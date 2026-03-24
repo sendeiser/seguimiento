@@ -3,7 +3,8 @@ import { supabase } from "../../lib/supabase";
 import { useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List } from "lucide-react";
+import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff } from "lucide-react";
+
 
 export default function PublicClassView() {
   const { token } = useParams();
@@ -12,6 +13,18 @@ export default function PublicClassView() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [viewMode, setViewMode] = useState("table"); // "table" or "cards"
+  const [searchTerm, setSearchTerm] = useState("");
+  const [pinnedStudent, setPinnedStudent] = useState(null);
+
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) setViewMode("cards");
+    
+    // Load pinned student from local storage
+    const saved = localStorage.getItem(`pinned_${token}`);
+    if (saved) setPinnedStudent(saved);
+  }, [token]);
+
 
   useEffect(() => {
     fetchData();
@@ -73,8 +86,24 @@ export default function PublicClassView() {
     return { ...st, total, max };
   });
 
-  // Sort students: highest total first
-  const sortedStudents = [...studentTotals].sort((a, b) => b.total - a.total);
+  // Sort students: pinned first, then highest total
+  const sortedStudents = [...studentTotals].sort((a, b) => {
+    if (a.cs_id === pinnedStudent) return -1;
+    if (b.cs_id === pinnedStudent) return 1;
+    return b.total - a.total;
+  });
+
+  const filteredStudents = sortedStudents.filter(st => 
+    st.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const togglePin = (csId) => {
+    const newVal = pinnedStudent === csId ? null : csId;
+    setPinnedStudent(newVal);
+    if (newVal) localStorage.setItem(`pinned_${token}`, newVal);
+    else localStorage.removeItem(`pinned_${token}`);
+  };
+
 
   const getScoreColor = (score, max) => {
     if (score == null) return "text-slate-700";
@@ -118,26 +147,40 @@ export default function PublicClassView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex bg-slate-900/80 p-1 rounded-xl border border-slate-800">
-              <button 
-                onClick={() => setViewMode("table")}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === "table" ? "bg-slate-800 text-blue-400 shadow-inner" : "text-slate-500 hover:text-slate-300"}`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setViewMode("cards")}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-slate-800 text-blue-400 shadow-inner" : "text-slate-500 hover:text-slate-300"}`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
+          <div className="flex flex-1 items-center gap-3 max-w-md w-full sm:w-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input 
+                type="text"
+                placeholder="Buscar tu nombre..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-900/80 border border-slate-800 rounded-2xl py-2.5 pl-10 pr-4 text-sm font-bold outline-none focus:border-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
+              />
             </div>
-            <div className="bg-slate-900/80 px-4 py-2 rounded-2xl border border-slate-800 flex items-center gap-2.5 shadow-lg">
-              <Users className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-black">{students.length} <span className="text-slate-500 font-medium">alumnos</span></span>
+            
+            <div className="flex items-center gap-2">
+              <div className="flex bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                <button 
+                  onClick={() => setViewMode("table")}
+                  className={`p-1.5 rounded-lg transition-all ${viewMode === "table" ? "bg-slate-800 text-blue-400 shadow-inner" : "text-slate-500 hover:text-slate-300"}`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => setViewMode("cards")}
+                  className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-slate-800 text-blue-400 shadow-inner" : "text-slate-500 hover:text-slate-300"}`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="hidden lg:flex bg-slate-900/80 px-4 py-2 rounded-2xl border border-slate-800 items-center gap-2.5 shadow-lg">
+                <Users className="w-4 h-4 text-slate-500" />
+                <span className="text-sm font-black">{students.length} <span className="text-slate-500 font-medium">alumnos</span></span>
+              </div>
             </div>
           </div>
+
         </div>
       </header>
 
@@ -188,24 +231,32 @@ export default function PublicClassView() {
                 </thead>
 
                 <tbody className="divide-y divide-slate-800/40">
-                  {sortedStudents.map((student, idx) => (
+                  {filteredStudents.map((student, idx) => (
                     <tr
                       key={student.cs_id}
-                      className={`group/row transition-all ${idx % 2 === 0 ? "bg-transparent" : "bg-slate-900/20"} hover:bg-blue-600/5`}
+                      className={`group/row transition-all ${student.cs_id === pinnedStudent ? "bg-blue-600/10" : idx % 2 === 0 ? "bg-transparent" : "bg-slate-900/20"} hover:bg-blue-600/5`}
                     >
                       <td className="px-6 py-5 font-bold text-slate-200 sticky left-0 bg-slate-950 group-hover/row:bg-slate-900 transition-colors z-10 shadow-[4px_0_10px_-5px_rgba(0,0,0,0.5)]">
                         <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => togglePin(student.cs_id)}
+                            className={`p-1 rounded-lg transition-all ${student.cs_id === pinnedStudent ? "text-yellow-400" : "text-slate-700 hover:text-slate-400"}`}
+                          >
+                            {student.cs_id === pinnedStudent ? <Pin className="w-3.5 h-3.5 fill-current" /> : <PinOff className="w-3.5 h-3.5" />}
+                          </button>
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 shadow-lg ${
+                            student.cs_id === pinnedStudent ? "bg-blue-600 text-white shadow-blue-500/30" :
                             idx === 0 ? "bg-gradient-to-br from-yellow-400 to-amber-600 text-black border border-yellow-300/50 shadow-yellow-500/20" :
                             idx === 1 ? "bg-gradient-to-br from-slate-300 to-slate-500 text-black" :
                             idx === 2 ? "bg-gradient-to-br from-amber-700 to-amber-900 text-white" :
                             "bg-slate-800 text-slate-400"
                           }`}>
-                            {idx < 3 ? <Trophy className="w-4 h-4" /> : idx + 1}
+                            {idx < 3 && student.cs_id !== pinnedStudent ? <Trophy className="w-4 h-4" /> : idx + 1}
                           </div>
-                          <span className="truncate">{student.name}</span>
+                          <span className={`truncate ${student.cs_id === pinnedStudent ? "text-blue-400" : ""}`}>{student.name}</span>
                         </div>
                       </td>
+
                       {allCriteria.map(crit => {
                         const score = student.grades?.[crit.id];
                         return (
@@ -235,44 +286,66 @@ export default function PublicClassView() {
         ) : (
           /* Cards View for Mobile/Alternative */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedStudents.map((st, idx) => (
+            {filteredStudents.map((st, idx) => (
               <div 
                 key={st.cs_id} 
                 className={`relative p-6 rounded-3xl border border-slate-800 transition-all hover:border-blue-500/50 group ${
+                  st.cs_id === pinnedStudent ? "bg-blue-600/10 border-blue-500/40 shadow-xl shadow-blue-500/10" :
                   idx === 0 ? "bg-gradient-to-b from-blue-900/10 to-transparent border-blue-500/30 shadow-lg shadow-blue-500/5" : "bg-slate-900/40"
                 }`}
               >
-                {idx < 3 && (
-                  <div className={`absolute -top-3 -right-3 w-10 h-10 rounded-2xl flex items-center justify-center shadow-xl rotate-12 ${
-                    idx === 0 ? "bg-yellow-500" : idx === 1 ? "bg-slate-400" : "bg-amber-800"
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <button 
+                    onClick={() => togglePin(st.cs_id)}
+                    className={`p-2 rounded-xl transition-all ${st.cs_id === pinnedStudent ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-slate-800/80 text-slate-500 hover:text-white"}`}
+                  >
+                    {st.cs_id === pinnedStudent ? <Pin className="w-4 h-4 fill-current" /> : <PinOff className="w-4 h-4" />}
+                  </button>
+                  {idx < 3 && st.cs_id !== pinnedStudent && (
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xl rotate-12 ${
+                      idx === 0 ? "bg-yellow-500" : idx === 1 ? "bg-slate-400" : "bg-amber-800"
+                    }`}>
+                      <Trophy className="w-5 h-5 text-slate-900" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4 mb-6 pt-2">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black border transition-all ${
+                    st.cs_id === pinnedStudent ? "bg-blue-600 text-white border-blue-500" : "bg-slate-800 text-blue-500 border-slate-700"
                   }`}>
-                    <Trophy className="w-5 h-5 text-slate-900" />
-                  </div>
-                )}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-xl font-black text-blue-500 border border-slate-700">
                     {st.name[0].toUpperCase()}
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-black text-lg truncate text-slate-100">{st.name}</h3>
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Posición #{idx + 1}</p>
+                  <div className="min-w-0 pr-12">
+                    <h3 className={`font-black text-xl truncate ${st.cs_id === pinnedStudent ? "text-blue-400" : "text-slate-100"}`}>{st.name}</h3>
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                      {st.cs_id === pinnedStudent ? "Tu Perfil Fijado" : `Posición #${idx + 1}`}
+                    </p>
                   </div>
                 </div>
                 
-                <div className="space-y-3 mb-6">
-                  {allCriteria.slice(-4).map(crit => (
-                    <div key={crit.id} className="flex justify-between items-center bg-slate-950/50 p-3 rounded-2xl border border-slate-800/50">
+                <div className="grid grid-cols-1 gap-3 mb-6">
+                  {allCriteria.slice(-3).map(crit => (
+                    <div key={crit.id} className="flex justify-between items-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800/50 hover:bg-slate-900 transition-colors">
                       <div className="min-w-0">
-                        <p className="text-[10px] text-slate-600 font-bold uppercase truncate">{crit.name}</p>
-                        <p className="text-[9px] text-slate-700 leading-none">{format(new Date(crit.sessionDate + "T12:00:00"), "d MMM", { locale: es })}</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate mb-1">{crit.name}</p>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-3 h-3 text-slate-700" />
+                          <p className="text-[9px] text-slate-600 font-bold leading-none">{format(new Date(crit.sessionDate + "T12:00:00"), "d MMM", { locale: es })}</p>
+                        </div>
                       </div>
-                      <div className={`font-black text-xl tracking-tighter ${getScoreColor(st.grades?.[crit.id], crit.max_score)}`}>
+                      <div className={`font-black text-2xl tracking-tighter ${getScoreColor(st.grades?.[crit.id], crit.max_score)}`}>
                         {st.grades?.[crit.id] ?? "—"}
                       </div>
                     </div>
                   ))}
-                  {allCriteria.length > 4 && <p className="text-center text-[10px] text-slate-600 font-bold">+ otros criterios</p>}
+                  {allCriteria.length > 3 && (
+                    <div className="text-center py-2 bg-slate-950/30 rounded-xl border border-slate-800/30">
+                       <p className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">+ {allCriteria.length - 3} Criterios realizados</p>
+                    </div>
+                  )}
                 </div>
+
 
                 <div className="flex items-end justify-between border-t border-slate-800 pt-4">
                   <div>
