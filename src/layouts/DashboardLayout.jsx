@@ -30,8 +30,8 @@ export default function DashboardLayout() {
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="font-black text-gray-900 text-base leading-none tracking-tight">Seguimiento</p>
-            <p className="text-[10px] uppercase font-bold text-gray-400 mt-1 tracking-widest">Alumnos</p>
+            <p className="font-black text-gray-900 text-base leading-none tracking-tight">Kairos</p>
+            <p className="text-[10px] uppercase font-bold text-gray-400 mt-1 tracking-widest">Gestión Académica</p>
           </div>
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function DashboardLayout() {
             <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-1.5 rounded-lg shadow-md shadow-blue-600/20">
               <GraduationCap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-black text-gray-900 tracking-tight">Seguimiento</span>
+            <span className="font-black text-gray-900 tracking-tight">Kairos</span>
           </div>
 
           <div className="w-9" /> {/* Spacer */}
