@@ -91,54 +91,117 @@ export default function PublicStudentView() {
 
         {/* Summary Card */}
         {maxTotal > 0 && (
-          <div className="bg-white rounded-xl border shadow-sm p-6 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Puntaje acumulado</p>
-              <p className="text-4xl font-black text-primary">{totalScore} <span className="text-xl font-normal text-muted-foreground">/ {maxTotal}</span></p>
+          <div className="bg-gradient-to-br from-primary to-indigo-700 rounded-3xl p-8 text-white shadow-2xl shadow-primary/20 relative overflow-hidden border border-white/10">
+            <div className="flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-blue-100 text-xs font-black uppercase tracking-[0.2em] mb-2 opacity-80">Rendimiento Total</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-6xl font-black tracking-tighter">{totalScore}</span>
+                  <span className="text-2xl text-blue-200/60 font-medium">/ {maxTotal}</span>
+                </div>
+                <p className="text-blue-100/70 text-sm mt-2 font-medium">Puntos acumulados en la cursada</p>
+              </div>
+              <div className="relative">
+                <div className="bg-white/10 backdrop-blur-xl rounded-[40px] h-28 w-28 flex flex-col items-center justify-center border border-white/20 shadow-inner">
+                  <span className="text-3xl font-black">{maxTotal > 0 ? Math.round((totalScore / maxTotal) * 100) : 0}%</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-1">Logrado</span>
+                </div>
+                {/* Decorative glow */}
+                <div className="absolute inset-0 bg-white/20 blur-2xl rounded-full -z-10 animate-pulse" />
+              </div>
             </div>
-            <div className="bg-primary/10 rounded-full h-20 w-20 flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary">{maxTotal > 0 ? Math.round((totalScore / maxTotal) * 100) : 0}%</span>
-            </div>
+            {/* Background pattern */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl pointer-events-none" />
           </div>
         )}
 
         {/* Sessions */}
         {!data.sessions || data.sessions.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <Clock className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p className="text-lg font-medium">Esperando clases...</p>
-            <p className="text-sm mt-1">El docente aún no ha registrado ninguna sesión.</p>
+          <div className="text-center py-20 bg-white/50 rounded-[40px] border border-dashed border-slate-200">
+            <Clock className="w-16 h-16 mx-auto mb-6 text-slate-300 animate-pulse" />
+            <p className="text-xl font-black text-slate-900 tracking-tight">Esperando novedades...</p>
+            <p className="text-sm text-slate-500 mt-2 font-medium">El docente aún no ha registrado evaluaciones en vivo.</p>
           </div>
         ) : (
           data.sessions.map((session) => (
-            <div key={session.id} className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <div className="bg-slate-50 border-b px-6 py-4">
-                <h3 className="font-semibold text-primary capitalize">
-                  {format(new Date(session.date + "T12:00:00"), "EEEE d 'de' MMMM", { locale: es })}
-                </h3>
+            <div key={session.id} className="bg-white rounded-[32px] border border-slate-100 shadow-xl shadow-slate-900/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-slate-50/50 border-b border-slate-100 px-8 py-6 flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-slate-900 capitalize text-lg tracking-tight">
+                    {format(new Date(session.date + "T12:00:00"), "EEEE d 'de' MMMM", { locale: es })}
+                  </h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Detalle de la sesión</p>
+                </div>
+                <div className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                  Evaluación
+                </div>
               </div>
-              <div className="divide-y">
+              
+              <div className="p-0 overflow-x-auto">
                 {!session.criteria || session.criteria.length === 0 ? (
-                  <p className="px-6 py-4 text-sm text-muted-foreground">Sin criterios definidos aún.</p>
+                  <div className="px-8 py-10 text-center">
+                    <p className="text-sm text-slate-400 font-mediumitalic">Sin criterios definidos para esta clase.</p>
+                  </div>
                 ) : (
-                  session.criteria.map((crit) => (
-                    <div key={crit.id} className="flex items-center justify-between px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className={`w-5 h-5 flex-shrink-0 ${crit.score !== null ? 'text-green-500' : 'text-slate-200'}`} />
-                        <span className="font-medium">{crit.name}</span>
-                      </div>
-                      <div className="text-right ml-4">
-                        {crit.score !== null ? (
-                          <div>
-                            <span className="text-2xl font-bold">{crit.score}</span>
-                            <span className="text-sm text-muted-foreground"> / {crit.max_score}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded-full">Pendiente</span>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/30 border-b border-slate-50">
+                        <th className="text-left px-8 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Criterio de Evaluación</th>
+                        <th className="text-center px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Nota</th>
+                        <th className="text-right px-8 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {session.criteria.map((crit) => {
+                        const isGraded = crit.score !== null;
+                        const percentage = isGraded ? (crit.score / crit.max_score) * 100 : 0;
+                        
+                        return (
+                          <tr key={crit.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${isGraded ? 'bg-green-50 text-green-600 shadow-sm shadow-green-100' : 'bg-slate-50 text-slate-300'}`}>
+                                  {isGraded ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-slate-800 block leading-tight">{crit.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Máximo: {crit.max_score} puntos</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              {isGraded ? (
+                                <div className="inline-flex flex-col items-center">
+                                  <span className="text-2xl font-black text-slate-900 leading-none">{crit.score}</span>
+                                  <div className="w-12 h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                                     <div className={`h-full rounded-full ${percentage >= 70 ? 'bg-green-500' : percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${percentage}%` }} />
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-xl font-black text-slate-200 tracking-widest">—</span>
+                              )}
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              {isGraded ? (
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                  percentage >= 70 ? 'bg-green-50 text-green-700' : 
+                                  percentage >= 40 ? 'bg-yellow-50 text-yellow-700' : 
+                                  'bg-red-50 text-red-700'
+                                }`}>
+                                  {percentage >= 70 ? 'Excelente' : percentage >= 40 ? 'En proceso' : 'Requiere apoyo'}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-400">
+                                  Pendiente
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 )}
               </div>
             </div>

@@ -21,6 +21,7 @@ export default function ClassView() {
   const [addingStudent, setAddingStudent] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => { fetchAll(); }, [id]);
 
@@ -36,7 +37,10 @@ export default function ClassView() {
     ]);
     setClassData(cls);
     setSessions(sData || []);
-    setStudents(stData || []);
+    const sortedStudents = (stData || []).sort((a, b) => 
+      getStudentName(a).localeCompare(getStudentName(b))
+    );
+    setStudents(sortedStudents);
     setLoading(false);
   };
 
@@ -60,7 +64,9 @@ export default function ClassView() {
     if (error) {
       alert("Error al agregar alumno: " + error.message);
     } else {
-      setStudents(prev => [...prev, data]);
+      setStudents(prev => [...prev, data].sort((a, b) => 
+        getStudentName(a).localeCompare(getStudentName(b))
+      ));
       setNewStudentName("");
     }
     setAddingStudent(false);
@@ -208,6 +214,16 @@ export default function ClassView() {
                 </div>
                 Alumnos <span className="text-gray-400 ml-auto text-sm">{students.length}</span>
               </CardTitle>
+              <div className="relative mt-4">
+                <input
+                  type="text"
+                  placeholder="Buscar alumno..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-white border border-gray-100 rounded-2xl py-2 pl-9 pr-4 text-xs font-bold shadow-sm focus:border-blue-400 outline-none transition-all"
+                />
+                <Users className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
+              </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               {students.length === 0 ? (
@@ -216,7 +232,9 @@ export default function ClassView() {
                 </div>
               ) : (
                 <ul className="space-y-1 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  {students.map(st => (
+                  {students
+                    .filter(st => getStudentName(st).toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map(st => (
                     <li key={st.id} className="group flex items-center gap-3 py-3 border-b border-gray-50 last:border-0 hover:bg-blue-50/30 rounded-2xl px-2 transition-colors">
                       <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-black flex-shrink-0 shadow-sm shadow-blue-400/20">
                         {getStudentName(st)[0].toUpperCase()}

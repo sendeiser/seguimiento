@@ -19,6 +19,9 @@ export default function LiveSession() {
   const [viewMode, setViewMode] = useState("table"); // "table", "cards", or "focus"
   const [focusIndex, setFocusIndex] = useState(0);
   const [showStudentList, setShowStudentList] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc"); // "asc" or "desc"
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const inputRefs = useRef({});
   const listRef = useRef(null);
@@ -33,7 +36,19 @@ export default function LiveSession() {
       })
       .subscribe();
 
-    return () => supabase.removeChannel(subscription);
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setViewMode("focus");
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Initial check
+
+    return () => {
+      supabase.removeChannel(subscription);
+      window.removeEventListener("resize", handleResize);
+    };
   }, [id]);
 
   const fetchData = async () => {
@@ -131,19 +146,19 @@ export default function LiveSession() {
   };
 
   const handleKeyDown = (e, studentIndex, criteriaIndex) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      // Move to next student, same criteria
-      const nextStudentIndex = (studentIndex + 1) % students.length;
-      const nextKey = `${students[nextStudentIndex].cs_id}_${criteria[criteriaIndex].id}`;
-      inputRefs.current[nextKey]?.focus();
-      inputRefs.current[nextKey]?.select();
     }
   };
 
+  const filteredStudents = students
+    .filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      if (sortOrder === "asc") return a.name.localeCompare(b.name);
+      return b.name.localeCompare(a.name);
+    });
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
 
-  const currentStudent = students[focusIndex];
+  const currentStudent = filteredStudents[focusIndex] || null;
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -161,25 +176,43 @@ export default function LiveSession() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md p-1 rounded-2xl border border-gray-100 shadow-sm w-fit self-center">
-          <button 
-            onClick={() => setViewMode("table")}
-            className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "table" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
-          >
-            <List className="w-4 h-4" /> <span className="hidden sm:inline">Lista</span>
-          </button>
-          <button 
-            onClick={() => setViewMode("cards")}
-            className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "cards" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
-          >
-            <LayoutGrid className="w-4 h-4" /> <span className="hidden sm:inline">Tarjetas</span>
-          </button>
-          <button 
-            onClick={() => setViewMode("focus")}
-            className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "focus" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
-          >
-            <Users className="w-4 h-4" /> <span className="hidden sm:inline">Enfoque</span>
-          </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative w-full sm:w-64 group">
+            <input
+              type="text"
+              placeholder="Buscar alumno..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setFocusIndex(0); }}
+              className="w-full bg-white border border-gray-100 rounded-2xl py-3 pl-10 pr-4 text-sm font-bold shadow-sm focus:border-blue-400 outline-none transition-all"
+            />
+            <Users className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" />
+          </div>
+
+          {!isMobile && (
+            <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md p-1 rounded-2xl border border-gray-100 shadow-sm w-fit">
+              <button 
+                onClick={() => setViewMode("table")}
+                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "table" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                <List className="w-4 h-4" /> <span className="hidden sm:inline">Lista</span>
+              </button>
+              <button 
+                onClick={() => setViewMode("cards")}
+                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "cards" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                <LayoutGrid className="w-4 h-4" /> <span className="hidden sm:inline">Tarjetas</span>
+              </button>
+              <button 
+                onClick={() => setViewMode("focus")}
+                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "focus" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                <Users className="w-4 h-4" /> <span className="hidden sm:inline">Enfoque</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -212,23 +245,23 @@ export default function LiveSession() {
                 <div className="flex items-center justify-between mb-8">
                   <h4 className="text-xl font-black text-white tracking-tight">Lista de Alumnos</h4>
                   <button onClick={() => setShowStudentList(false)} className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Cerrar</button>
+                </                 <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                   {filteredStudents.map((st, idx) => (
+                     <button
+                       key={st.cs_id}
+                       onClick={() => { setFocusIndex(idx); setShowStudentList(false); }}
+                       className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all border ${
+                         idx === focusIndex ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20" : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                       }`}
+                     >
+                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${idx === focusIndex ? "bg-white/20" : "bg-slate-800"}`}>
+                         {idx + 1}
+                       </div>
+                       <span className="font-bold truncate">{st.name}</span>
+                     </button>
+                   ))}
                 </div>
-                <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                  {students.map((st, idx) => (
-                    <button
-                      key={st.cs_id}
-                      onClick={() => { setFocusIndex(idx); setShowStudentList(false); }}
-                      className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all border ${
-                        idx === focusIndex ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20" : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${idx === focusIndex ? "bg-white/20" : "bg-slate-800"}`}>
-                        {idx + 1}
-                      </div>
-                      <span className="font-bold truncate">{st.name}</span>
-                    </button>
-                  ))}
-                </div>
+div>
              </div>
            )}
 
@@ -305,7 +338,7 @@ export default function LiveSession() {
            <div className="fixed bottom-0 left-0 right-0 p-6 bg-slate-950/80 backdrop-blur-xl border-t border-slate-900 sm:relative sm:inset-auto z-40">
              <div className="max-w-md mx-auto flex items-center gap-3">
                 <Button 
-                  onClick={() => setFocusIndex(prev => (prev - 1 + students.length) % students.length)}
+                  onClick={() => setFocusIndex(prev => (prev - 1 + filteredStudents.length) % filteredStudents.length)}
                   variant="ghost" 
                   className="h-16 w-16 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 hover:text-white p-0 flex-shrink-0"
                 >
@@ -313,7 +346,7 @@ export default function LiveSession() {
                 </Button>
                 
                 <Button 
-                  onClick={() => setFocusIndex(prev => (prev + 1) % students.length)}
+                  onClick={() => setFocusIndex(prev => (prev + 1) % filteredStudents.length)}
                   className="flex-1 h-16 rounded-2xl bg-blue-600 hover:bg-blue-500 font-black text-lg gap-3 shadow-2xl shadow-blue-600/30 border-t border-white/10 active:scale-[0.98] transition-all"
                 >
                   Siguiente Alumno <ChevronRight className="w-6 h-6" />
@@ -345,77 +378,90 @@ export default function LiveSession() {
                   <PlusCircle className="w-5 h-5" /> Crear primer criterio
                 </Button>
               </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="py-24 text-center">
+                 <Users className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                 <p className="font-black text-lg text-gray-400">No se encontraron alumnos con "{searchTerm}"</p>
+              </div>
             ) : viewMode === "table" ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/30 border-b border-gray-100">
-                      <th className="text-left px-8 py-5 font-black text-[11px] uppercase tracking-[0.2em] text-gray-400 sticky left-0 bg-white z-10 min-w-[200px]">Alumno</th>
-                      {criteria.map(c => (
-                        <th key={c.id} className="px-4 py-5 font-black text-[11px] uppercase tracking-[0.2em] text-gray-400 text-center min-w-[140px] group relative border-l border-gray-50/50">
-                          <div className="truncate text-gray-900">{c.name}</div>
-                          <div className="text-[10px] text-gray-400 font-bold mt-1 tracking-widest">MÁX {c.max_score}</div>
-                          <button
-                            onClick={() => handleDeleteCriteria(c.id)}
-                            className="absolute -top-1 -right-1 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm"
-                            title="Eliminar criterio"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {students.map((student, sIdx) => (
-                      <tr key={student.cs_id} className="hover:bg-blue-50/20 transition-all group">
-                        <td className="px-8 py-5 font-black text-gray-800 sticky left-0 bg-white group-hover:bg-blue-50/50 transition-colors z-10 shadow-[2px_0_10px_-5px_rgba(0,0,0,0.05)]">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-blue-400/20 text-center">
-                              {student.name[0].toUpperCase()}
-                            </div>
-                            <span className="truncate">{student.name}</span>
+                      <tr className="bg-slate-50/30 border-b border-gray-100">
+                        <th 
+                          onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                          className="text-left px-4 sm:px-8 py-5 font-black text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-gray-400 sticky left-0 bg-white z-20 min-w-[150px] sm:min-w-[200px] shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] cursor-pointer hover:text-blue-600 transition-colors group/h"
+                        >
+                          <div className="flex items-center gap-2">
+                             Alumno
+                             <ChevronRight className={`w-3 h-3 transition-transform ${sortOrder === "desc" ? "rotate-90" : "-rotate-90"}`} />
                           </div>
-                        </td>
-                        {criteria.map((c, cIdx) => {
-                          const key = `${student.cs_id}_${c.id}`;
-                          const val = grades[key] ?? "";
-                          const isSaving = saving[key];
-                          return (
-                            <td key={c.id} className="px-4 py-5 text-center border-l border-gray-50/50">
-                              <div className="relative inline-block group/input">
-                                <input
-                                  ref={el => inputRefs.current[key] = el}
-                                  type="number"
-                                  min="0"
-                                  max={c.max_score}
-                                  step="0.5"
-                                  value={val}
-                                  onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)}
-                                  onBlur={e => saveGrade(student.cs_id, c.id, e.target.value)}
-                                  onKeyDown={e => handleKeyDown(e, sIdx, cIdx)}
-                                  placeholder="—"
-                                  className={`w-20 text-center border-2 rounded-2xl px-2 py-3 font-black text-xl outline-none transition-all scale-95 group-hover/input:scale-100 ${
-                                    val ? "bg-white border-blue-100 text-blue-600" : "bg-gray-50 border-transparent text-gray-300 focus:bg-white focus:border-blue-400"
-                                  }`}
-                                />
-                                {isSaving && (
-                                  <div className="absolute top-0 right-0 p-1">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        })}
+                        </th>
+                        {criteria.map(c => (
+                          <th key={c.id} className="px-3 sm:px-4 py-5 font-black text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-gray-400 text-center min-w-[100px] sm:min-w-[140px] group relative border-l border-gray-50/50">
+                            <div className="truncate text-gray-900 max-w-[80px] sm:max-w-none mx-auto">{c.name}</div>
+                            <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold mt-1 tracking-widest whitespace-nowrap">MÁX {c.max_score}</div>
+                            <button
+                              onClick={() => handleDeleteCriteria(c.id)}
+                              className="absolute -top-1 -right-1 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm z-30"
+                              title="Eliminar criterio"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {filteredStudents.map((student, sIdx) => (
+                        <tr key={student.cs_id} className="hover:bg-blue-50/20 transition-all group">
+                          <td className="px-4 sm:px-8 py-4 sm:py-5 font-black text-gray-800 sticky left-0 bg-white group-hover:bg-blue-50/50 transition-colors z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white text-[10px] sm:text-xs font-black shadow-md sm:shadow-lg shadow-blue-400/20 text-center flex-shrink-0">
+                                {student.name[0].toUpperCase()}
+                              </div>
+                              <span className="truncate text-xs sm:text-sm">{student.name}</span>
+                            </div>
+                          </td>
+                          {criteria.map((c, cIdx) => {
+                            const key = `${student.cs_id}_${c.id}`;
+                            const val = grades[key] ?? "";
+                            const isSaving = saving[key];
+                            return (
+                              <td key={c.id} className="px-2 sm:px-4 py-4 sm:py-5 text-center border-l border-gray-50/50">
+                                <div className="relative inline-block group/input">
+                                  <input
+                                    ref={el => inputRefs.current[key] = el}
+                                    type="number"
+                                    min="0"
+                                    max={c.max_score}
+                                    step="0.5"
+                                    value={val}
+                                    onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)}
+                                    onBlur={e => saveGrade(student.cs_id, c.id, e.target.value)}
+                                    onKeyDown={e => handleKeyDown(e, sIdx, cIdx)}
+                                    placeholder="—"
+                                    className={`w-14 sm:w-20 text-center border-2 rounded-xl sm:rounded-2xl px-1 sm:px-2 py-2 sm:py-3 font-black text-lg sm:text-xl outline-none transition-all scale-95 focus:scale-100 group-hover/input:scale-100 ${
+                                      val !== "" ? "bg-white border-blue-100 text-blue-600" : "bg-gray-50 border-transparent text-gray-300 focus:bg-white focus:border-blue-400"
+                                    }`}
+                                  />
+                                  {isSaving && (
+                                    <div className="absolute top-0 right-0 p-0.5 sm:p-1">
+                                      <div className="w-1.5 h-1.5 sm:w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
                 </table>
               </div>
             ) : (
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/30">
-                {students.map(student => (
+                {filteredStudents.map(student => (
                   <div key={student.cs_id} className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-900/5 border border-gray-100 flex flex-col">
                     <div className="flex items-center gap-4 mb-6 border-b border-gray-50 pb-4">
                       <div className="w-12 h-12 rounded-[20px] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg font-black shadow-lg shadow-blue-500/20 text-center">
