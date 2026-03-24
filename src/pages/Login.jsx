@@ -33,7 +33,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-[28px] shadow-2xl shadow-blue-600/20 mb-6 border border-white/20">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">Kairos</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">Notyx</h1>
           <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[10px] mt-2">Progreso en Tiempo Real</p>
         </div>
 
