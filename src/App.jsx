@@ -12,6 +12,7 @@ import PublicClassView from "./pages/student/PublicClassView";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import ClassView from "./pages/teacher/ClassView";
 import LiveSession from "./pages/teacher/LiveSession";
+import JoinClass from "./pages/JoinClass";
 
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentClassView from "./pages/student/StudentClassView";
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/live/:token" element={<PublicStudentView />} />
         <Route path="/class-live/:token" element={<PublicClassView />} />
+        <Route path="/j/:code" element={<JoinClass />} />
         
         <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route index element={<DynamicDashboard />} />

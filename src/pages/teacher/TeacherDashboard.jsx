@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Plus, BookOpen, GraduationCap, ArrowRight, X } from "lucide-react";
+import { generateShortCode } from "../../lib/utils";
+
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
@@ -30,7 +32,12 @@ export default function TeacherDashboard() {
     if (!newClassName.trim()) return;
     const { error } = await supabase
       .from("classes")
-      .insert([{ name: newClassName, teacher_id: user.id }]);
+      .insert([{ 
+        name: newClassName, 
+        teacher_id: user.id,
+        short_code: generateShortCode()
+      }]);
+
     
     if (error) alert(error.message);
     else {

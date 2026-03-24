@@ -67,8 +67,9 @@ export default function ClassView() {
   };
 
   const copyClassLink = () => {
-    if (!classData?.public_token) return;
-    navigator.clipboard.writeText(`${BASE_URL}/class-live/${classData.public_token}`);
+    if (!classData?.short_code) return;
+    navigator.clipboard.writeText(`${BASE_URL}/j/${classData.short_code}`);
+
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -107,7 +108,8 @@ export default function ClassView() {
     </div>
   );
 
-  const classLink = `${BASE_URL}/class-live/${classData?.public_token}`;
+  const classLink = `${BASE_URL}/j/${classData?.short_code || '...'}`;
+
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
