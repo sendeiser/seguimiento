@@ -3,7 +3,8 @@ import { supabase } from "../../lib/supabase";
 import { useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { GraduationCap, CheckCircle2, Clock } from "lucide-react";
+import { GraduationCap, CheckCircle2, Clock, Award, TrendingUp, Star, ShieldCheck, Trophy, Target } from "lucide-react";
+import confetti from "canvas-confetti";
 
 export default function PublicStudentView() {
   const { token } = useParams();
@@ -32,6 +33,23 @@ export default function PublicStudentView() {
 
     setData(result);
     setLoading(false);
+
+    // Trigger confetti if average is high
+    // Calculate overall average score across all sessions
+    const totalPossibleScore = result?.sessions?.reduce((acc, session) => acc + (session.criteria || []).reduce((a, c) => a + (c.max_score ?? 0), 0), 0) || 1;
+    const totalAchievedScore = result?.sessions?.reduce((acc, session) => acc + (session.criteria || []).reduce((a, c) => a + (c.score ?? 0), 0), 0) || 0;
+    const overallPercentage = (totalAchievedScore / totalPossibleScore) * 100;
+
+    if (overallPercentage >= 90) {
+      setTimeout(() => {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#3b82f6', '#6366f1', '#d4af37']
+        });
+      }, 500);
+    }
   };
 
   if (loading) {
@@ -115,6 +133,50 @@ export default function PublicStudentView() {
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl pointer-events-none" />
           </div>
         )}
+
+        {/* XP Level Bar */}
+        <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-xl shadow-slate-900/5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-100 p-2 rounded-xl">
+                <Trophy className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Nivel Actual</span>
+                <h4 className="text-xl font-black text-slate-900 tracking-tight">Estudiante Oro</h4>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-black text-blue-600 italic">Nv. {Math.floor(totalScore / 10) + 1}</span>
+            </div>
+          </div>
+          
+          <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-inner">
+            <div 
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-lg shimmer" 
+              style={{ width: `${(totalScore % 10) * 10}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{totalScore % 10} / 10 XP para subir</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Siguiente: {(Math.floor(totalScore / 10) + 2) * 10} XP</span>
+          </div>
+        </div>
+
+        {/* Achievement Badges */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { icon: Star, label: "Perfecto", color: "text-amber-500", bg: "bg-amber-50", active: totalScore > 50 },
+            { icon: Target, label: "Constante", color: "text-blue-500", bg: "bg-blue-50", active: true },
+            { icon: Award, label: "Destacado", color: "text-indigo-500", bg: "bg-indigo-50", active: totalScore > 80 },
+            { icon: ShieldCheck, label: "Puntual", color: "text-green-500", bg: "bg-green-50", active: true },
+          ].map((badge, idx) => (
+            <div key={idx} className={`rounded-2xl p-3 flex flex-col items-center justify-center gap-2 border transition-all ${badge.active ? `${badge.bg} border-transparent shadow-sm` : 'bg-gray-50 border-gray-100 opacity-40 grayscale'}`}>
+              <badge.icon className={`w-5 h-5 ${badge.color}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{badge.label}</span>
+            </div>
+          ))}
+        </div>
 
         {/* Sessions */}
         {!data.sessions || data.sessions.length === 0 ? (

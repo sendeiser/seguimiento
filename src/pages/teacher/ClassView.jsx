@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarPlus, Users, Copy, Check, Plus, Link as LinkIcon, Pencil, Trash2, X, ArrowLeft } from "lucide-react";
+import { CalendarPlus, Users, Copy, Check, Plus, Link as LinkIcon, Pencil, Trash2, X, ArrowLeft, Download } from "lucide-react";
 
 const BASE_URL = window.location.origin;
 
@@ -105,6 +105,31 @@ export default function ClassView() {
       alert("Error al editar: " + error.message);
     }
   };
+  const exportGrades = async () => {
+    setLoading(true);
+    try {
+      const { data: sData } = await supabase.from("sessions").select("id, date").eq("class_id", id);
+      const sIds = sData.map(s => s.id);
+      const { data: cData } = await supabase.from("session_criteria").select("*").in("session_id", sIds);
+      const { data: gData } = await supabase.from("grades").select("*").in("criteria_id", cData.map(c => c.id));
+
+      const rows = [["Alumno", "Fecha", "Sesion", "Criterio", "Nota", "Max"]];
+      students.forEach(st => {
+        gData.filter(g => g.class_student_id === st.id).forEach(g => {
+          const crit = cData.find(c => c.id === g.criteria_id);
+          const sess = sData.find(s => s.id === crit.session_id);
+          rows.push([getStudentName(st), sess.date, sess.id, crit.name, g.score, crit.max_score]);
+        });
+      });
+
+      const csv = "data:text/csv;charset=utf-8," + rows.map(r => r.join(",")).join("\n");
+      const link = document.createElement("a");
+      link.href = encodeURI(csv);
+      link.download = `notas_${classData.name}.csv`;
+      link.click();
+    } catch (e) { alert("Error al exportar"); }
+    setLoading(false);
+  };
 
   const getStudentName = (st) => st.profiles?.full_name || st.student_name || "Sin nombre";
 
@@ -131,6 +156,13 @@ export default function ClassView() {
             <p className="text-gray-500 mt-1 font-medium text-sm">Panel de control de la materia</p>
           </div>
         </div>
+        <Button 
+          variant="outline" 
+          onClick={exportGrades}
+          className="rounded-2xl h-11 px-5 border-2 hover:bg-slate-50 gap-2 font-black text-xs uppercase tracking-widest mt-2 sm:mt-0"
+        >
+          <Download className="w-4 h-4" /> Exportar Planilla
+        </Button>
       </div>
 
       {/* Class Link Banner - Responsive */}
