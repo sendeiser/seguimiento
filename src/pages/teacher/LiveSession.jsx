@@ -23,6 +23,8 @@ export default function LiveSession() {
   const [sortOrder, setSortOrder] = useState("asc"); // "asc" or "desc"
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [attendance, setAttendance] = useState({}); // { cs_id: boolean }
+  const [inheritedGrades, setInheritedGrades] = useState({}); // { cs_id_criteriaName: score }
+  const [showOverallAverage, setShowOverallAverage] = useState(false);
 
   const inputRefs = useRef({});
   const listRef = useRef(null);
@@ -88,6 +90,39 @@ export default function LiveSession() {
       const aMap = {};
       (aData || []).forEach(a => { aMap[a.class_student_id] = a.is_present; });
       setAttendance(aMap);
+
+      // Fetch INHERITED grades (last scores for these criteria names)
+      const { data: otherSessions } = await supabase
+        .from("sessions")
+        .select("id")
+        .eq("class_id", s.classes.id)
+        .neq("id", id);
+      
+      if (otherSessions?.length > 0) {
+        const osIds = otherSessions.map(os => os.id);
+        const { data: allPrevCrit } = await supabase
+          .from("session_criteria")
+          .select("id, name")
+          .in("session_id", osIds);
+        
+        if (allPrevCrit?.length > 0) {
+          const { data: allPrevGrades } = await supabase
+            .from("grades")
+            .select("*, session_criteria(name)")
+            .in("criteria_id", allPrevCrit.map(apc => apc.id))
+            .order("updated_at", { ascending: false });
+
+          const iMap = {};
+          (allPrevGrades || []).forEach(g => {
+            const critName = g.session_criteria?.name;
+            const iKey = `${g.class_student_id}_${critName}`;
+            if (!iMap[iKey]) {
+              iMap[iKey] = g.score; // First one is the newest due to order
+            }
+          });
+          setInheritedGrades(iMap);
+        }
+      }
     }
     setLoading(false);
   };
@@ -196,7 +231,7 @@ export default function LiveSession() {
   const generateAIFeedback = (csId) => {
     const studentGrades = criteria.map(c => {
       const key = `${csId}_${c.id}`;
-      const score = parseFloat(grades[key]) || 0;
+      const score = parseFloat(grades[key]) || parseFloat(inheritedGrades[`${csId}_${c.name}`]) || 0;
       return { name: c.name, score, max_score: c.max_score };
     });
 
@@ -226,6 +261,32 @@ export default function LiveSession() {
     }
 
     return feedback;
+  };
+
+  const calculateOverallAverage = (csId) => {
+    const studentCritNames = new Set();
+    const criteriaLatestScore = {};
+
+    criteria.forEach(c => {
+      const key = `${csId}_${c.id}`;
+      if (grades[key] !== undefined && grades[key] !== "") {
+        studentCritNames.add(c.name);
+        criteriaLatestScore[c.name] = parseFloat(grades[key]);
+      }
+    });
+
+    Object.keys(inheritedGrades).forEach(iKey => {
+      const [iCsId, iCritName] = iKey.split("_");
+      if (iCsId === csId.toString() && !criteriaLatestScore[iCritName]) {
+        studentCritNames.add(iCritName);
+        criteriaLatestScore[iCritName] = parseFloat(inheritedGrades[iKey]);
+      }
+    });
+
+    const critArray = Array.from(studentCritNames);
+    if (critArray.length === 0) return 0;
+    const total = critArray.reduce((acc, name) => acc + criteriaLatestScore[name], 0);
+    return (total / critArray.length).toFixed(1);
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
@@ -370,12 +431,19 @@ export default function LiveSession() {
                 {criteria.map((c, idx) => {
                   const key = `${currentStudent?.cs_id}_${c.id}`;
                   const val = grades[key] ?? "";
+                  const inheritedVal = inheritedGrades[`${currentStudent?.cs_id}_${c.name}`] ?? "";
                   const isSaving = saving[key];
+                  const displayVal = val !== "" ? val : inheritedVal;
+                  const isInherited = val === "" && inheritedVal !== "";
+
                   return (
                     <div key={c.id} className="bg-slate-900 p-5 rounded-[28px] border border-slate-800 relative group overflow-hidden transition-all hover:border-slate-700">
                       <div className="flex items-center justify-between mb-3 relative z-10">
                         <div className="flex items-center justify-between w-full">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Criterio {idx + 1} de {criteria.length}</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                            Criterio {idx + 1} de {criteria.length} 
+                            {isInherited && <span className="ml-2 text-amber-500/80">(Persistente)</span>}
+                          </span>
                           <button 
                             onClick={() => alert(`Sugerencia IA: ${generateAIFeedback(currentStudent.cs_id)}`)}
                             className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
@@ -389,21 +457,22 @@ export default function LiveSession() {
                         <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Máximo {c.max_score}</span>
                       </div>
                       
-                      <div className="flex items-center gap-4 relative z-10">
-                        <div className="flex-1">
+                      <div className="flex flex-col gap-3">
+                        <div className="relative">
                           <input
+                            ref={el => inputRefs.current[key] = el}
                             type="number"
                             min="0"
                             max={c.max_score}
                             step="0.5"
-                            value={val}
+                            value={displayVal}
                             onChange={e => handleGradeChange(currentStudent.cs_id, c.id, e.target.value)}
                             onBlur={e => saveGrade(currentStudent.cs_id, c.id, e.target.value)}
-                            className="w-full bg-slate-950 border-2 border-slate-800 focus:border-blue-600 rounded-2xl py-3 px-4 font-black text-3xl text-blue-400 outline-none transition-all text-center shadow-inner"
-                            placeholder="0"
+                            placeholder="0.0"
+                            className={`w-full text-center border-2 border-transparent focus:border-blue-400 bg-slate-800 rounded-2xl py-4 font-black text-2xl outline-none transition-all ${
+                              isInherited ? "text-slate-500 italic bg-slate-800/50" : "text-white"
+                            }`}
                           />
-                        </div>
-                        <div className="w-6 h-6 flex items-center justify-center">
                           {isSaving ? (
                             <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                           ) : val !== "" && (
@@ -533,7 +602,11 @@ export default function LiveSession() {
                           {criteria.map((c, cIdx) => {
                             const key = `${student.cs_id}_${c.id}`;
                             const val = grades[key] ?? "";
+                            const inheritedVal = inheritedGrades[`${student.cs_id}_${c.name}`] ?? "";
                             const isSaving = saving[key];
+                            const displayVal = val !== "" ? val : inheritedVal;
+                            const isInherited = val === "" && inheritedVal !== "";
+
                             return (
                               <td key={c.id} className="px-2 sm:px-4 py-4 sm:py-5 text-center border-l border-gray-50/50">
                                 <div className="relative inline-block group/input">
@@ -543,13 +616,13 @@ export default function LiveSession() {
                                     min="0"
                                     max={c.max_score}
                                     step="0.5"
-                                    value={val}
+                                    value={displayVal}
                                     onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)}
                                     onBlur={e => saveGrade(student.cs_id, c.id, e.target.value)}
                                     onKeyDown={e => handleKeyDown(e, sIdx, cIdx)}
                                     placeholder="—"
                                     className={`w-14 sm:w-20 text-center border-2 rounded-xl sm:rounded-2xl px-1 sm:px-2 py-2 sm:py-3 font-black text-lg sm:text-xl outline-none transition-all scale-95 focus:scale-100 group-hover/input:scale-100 ${
-                                      val !== "" ? "bg-white border-blue-100 text-blue-600" : "bg-gray-50 border-transparent text-gray-300 focus:bg-white focus:border-blue-400"
+                                      val !== "" ? "bg-white border-blue-100 text-blue-600" : (inheritedVal !== "" ? "bg-amber-50/30 border-amber-100/50 text-amber-600/50 italic" : "bg-gray-50 border-transparent text-gray-300 focus:bg-white focus:border-blue-400")
                                     }`}
                                   />
                                   {isSaving && (
@@ -590,21 +663,27 @@ export default function LiveSession() {
                       {criteria.map(c => {
                         const key = `${student.cs_id}_${c.id}`;
                         const val = grades[key] ?? "";
+                        const inheritedVal = inheritedGrades[`${student.cs_id}_${c.name}`] ?? "";
                         const isSaving = saving[key];
+                        const displayVal = val !== "" ? val : inheritedVal;
+                        const isInherited = val === "" && inheritedVal !== "";
+
                         return (
                           <div key={c.id} className="flex items-center justify-between gap-4 p-3 bg-slate-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all group/card-input">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">{c.name}</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">
+                              {c.name} {isInherited && <span className="text-amber-500 text-[8px]">(P)</span>}
+                            </span>
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
                                 min="0"
                                 max={c.max_score}
                                 step="0.5"
-                                value={val}
+                                value={displayVal}
                                 onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)}
                                 onBlur={e => saveGrade(student.cs_id, c.id, e.target.value)}
                                 className={`w-14 text-center border-2 rounded-xl py-1.5 font-black text-sm outline-none transition-all ${
-                                  val !== "" ? "bg-white border-blue-500 text-blue-600 shadow-sm" : "bg-white/50 border-gray-100 text-gray-300"
+                                  val !== "" ? "bg-white border-blue-500 text-blue-600 shadow-sm" : (inheritedVal !== "" ? "bg-amber-50/50 border-amber-200/50 text-amber-600/70 italic" : "bg-white/50 border-gray-100 text-gray-300")
                                 }`}
                                 placeholder="0"
                               />
@@ -633,6 +712,70 @@ export default function LiveSession() {
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Próximo Criterio</span>
             </div>
           </div>
+        </div>
+      )}
+      {/* Overall Average Modal */}
+      {showOverallAverage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <Card className="w-full max-w-2xl rounded-[40px] shadow-2xl border-none overflow-hidden animate-in zoom-in-95 duration-300">
+            <CardHeader className="bg-white border-b border-slate-50 pb-6">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl font-black flex items-center gap-3 italic">
+                  <div className="bg-blue-600 p-2 rounded-2xl shadow-lg shadow-blue-500/20">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  PROMEDIO DEL CUATRIMESTRE
+                </CardTitle>
+                <button 
+                  onClick={() => setShowOverallAverage(false)}
+                  className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-slate-500 font-bold text-sm mt-2">Promedio calculado sobre la última nota de cada criterio evaluado hasta hoy.</p>
+            </CardHeader>
+            <CardContent className="p-0 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-white z-10">
+                  <tr className="border-b border-slate-50">
+                    <th className="text-left px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Alumno</th>
+                    <th className="text-right px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Promedio Final</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {students.sort((a,b) => calculateOverallAverage(b.cs_id) - calculateOverallAverage(a.cs_id)).map(s => {
+                    const avg = calculateOverallAverage(s.cs_id);
+                    return (
+                      <tr key={s.cs_id} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="px-8 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-[10px] font-black">
+                              {s.name[0].toUpperCase()}
+                            </div>
+                            <span className="font-bold text-slate-800">{s.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-4 text-right">
+                          <span className={`text-xl font-black ${parseFloat(avg) >= 7 ? 'text-green-600' : 'text-amber-500'}`}>
+                            {avg}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </CardContent>
+            <div className="bg-slate-50 p-6 flex justify-end gap-3">
+              <Button 
+                onClick={() => setShowOverallAverage(false)}
+                className="rounded-2xl font-black text-sm px-8 h-12 shadow-xl shadow-blue-600/10"
+              >
+                Cerrar Panel
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
     </div>

@@ -48,9 +48,33 @@ export default function ClassView() {
     const today = new Date().toISOString().split("T")[0];
     const existing = sessions.find(s => s.date === today);
     if (existing) { navigate(`/session/${existing.id}`); return; }
-    const { data, error } = await supabase.from("sessions").insert([{ class_id: id, date: today }]).select().single();
-    if (data) navigate(`/session/${data.id}`);
-    else alert("Error: " + error?.message);
+    
+    // Create session
+    const { data: sessionData, error: sError } = await supabase
+      .from("sessions")
+      .insert([{ class_id: id, date: today }])
+      .select()
+      .single();
+    
+    if (sError) { alert("Error: " + sError.message); return; }
+
+    // Add predefined criteria
+    const defaultCriteria = [
+      "Conducta", 
+      "Participación en clase", 
+      "Carpeta completa", 
+      "Actividades completas"
+    ];
+    
+    await supabase.from("session_criteria").insert(
+      defaultCriteria.map(name => ({
+        session_id: sessionData.id,
+        name,
+        max_score: 10
+      }))
+    );
+
+    navigate(`/session/${sessionData.id}`);
   };
 
   const addStudent = async () => {
