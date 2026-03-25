@@ -13,6 +13,7 @@ import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import ClassView from "./pages/teacher/ClassView";
 import LiveSession from "./pages/teacher/LiveSession";
 import JoinClass from "./pages/JoinClass";
+import Gateway from "./pages/Gateway";
 
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentClassView from "./pages/student/StudentClassView";
@@ -28,21 +29,22 @@ export default function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<Gateway />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/live/:token" element={<PublicStudentView />} />
         <Route path="/class-live/:token" element={<PublicClassView />} />
         <Route path="/j/:code" element={<JoinClass />} />
         
-        <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          <Route index element={<DynamicDashboard />} />
+        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route path="/home" element={<DynamicDashboard />} />
           
           {/* Teacher Routes */}
-          <Route path="class/:id" element={<ProtectedRoute allowedRoles={['teacher']}><ClassView /></ProtectedRoute>} />
-          <Route path="session/:id" element={<ProtectedRoute allowedRoles={['teacher']}><LiveSession /></ProtectedRoute>} />
+          <Route path="/class/:id" element={<ProtectedRoute allowedRoles={['teacher']}><ClassView /></ProtectedRoute>} />
+          <Route path="/session/:id" element={<ProtectedRoute allowedRoles={['teacher']}><LiveSession /></ProtectedRoute>} />
           
           {/* Student Routes */}
-          <Route path="student/class/:id" element={<ProtectedRoute allowedRoles={['student']}><StudentClassView /></ProtectedRoute>} />
+          <Route path="/student/class/:id" element={<ProtectedRoute allowedRoles={['student']}><StudentClassView /></ProtectedRoute>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

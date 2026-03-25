@@ -129,6 +129,28 @@ export default function ClassView() {
       alert("Error al editar: " + error.message);
     }
   };
+  const deleteSession = async (sessionId) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar esta sesión y TODAS sus calificaciones? Esta acción no se puede deshacer.")) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('sessions')
+        .delete()
+        .eq('id', sessionId);
+        
+      if (error) throw error;
+      
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      alert("Hubo un error al eliminar la sesión.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const exportGrades = async () => {
     setLoading(true);
     try {
@@ -170,7 +192,7 @@ export default function ClassView() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link to="/">
+          <Link to="/home">
             <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white border-transparent">
               <ArrowLeft className="w-5 h-5 text-gray-500" />
             </Button>
@@ -189,29 +211,40 @@ export default function ClassView() {
         </Button>
       </div>
 
-      {/* Class Link Banner - Responsive */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 text-white overflow-hidden relative shadow-xl shadow-blue-600/20 border border-blue-400/20">
+      {/* Class Access Banner */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[32px] p-6 text-white overflow-hidden relative shadow-2xl shadow-blue-600/20 border border-blue-400/20">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="bg-white/20 p-3 rounded-2xl flex-shrink-0 backdrop-blur-md border border-white/20">
-              <LinkIcon className="w-6 h-6 text-white" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 min-w-0 w-full md:w-auto">
+            <div className="bg-white/20 p-4 rounded-2xl flex-shrink-0 backdrop-blur-md border border-white/20 hidden sm:flex items-center justify-center">
+              <LinkIcon className="w-7 h-7 text-white" />
             </div>
-            <div className="min-w-0">
-              <p className="font-extrabold text-lg leading-none">Link Público</p>
-              <p className="text-blue-100/80 text-xs truncate max-w-[200px] sm:max-w-xs mt-2 font-medium bg-blue-900/40 px-2 py-1 rounded-lg border border-white/5">{classLink}</p>
+            <div className="min-w-0 w-full">
+              <p className="font-extrabold text-lg leading-none mb-1">Código de Acceso para Alumnos</p>
+              <p className="text-blue-100/80 text-xs mb-3 font-medium">Los alumnos pueden ingresar a la web con este código.</p>
+              <div className="flex items-center gap-3">
+                <span className="bg-white/10 border border-white/20 px-5 py-2.5 rounded-xl text-2xl font-black tracking-[0.25em] uppercase shadow-inner">
+                  {classData?.short_code || '...'}
+                </span>
+              </div>
             </div>
           </div>
-          <button
-            onClick={copyClassLink}
-            className="w-full md:w-auto flex items-center justify-center gap-3 bg-white text-blue-600 hover:bg-blue-50 transition-all px-6 py-4 md:py-3 rounded-2xl text-sm font-black shadow-lg"
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            {copied ? "¡Copiado!" : "Copiar link para alumnos"}
-          </button>
+          <div className="flex flex-col gap-2 w-full md:w-auto">
+            <button
+              onClick={copyClassLink}
+              className="w-full flex items-center justify-center gap-3 bg-white text-blue-600 hover:bg-blue-50 transition-all px-6 py-4 md:py-3.5 rounded-2xl text-sm font-black shadow-lg"
+            >
+              {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+              {copied ? "¡Enlace copiado!" : "Copiar Link Directo"}
+            </button>
+            <p className="text-[10px] text-blue-200/60 font-medium text-center uppercase tracking-widest hidden md:block">
+              O enviales el enlace URL
+            </p>
+          </div>
         </div>
         {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sessions Section */}
@@ -239,14 +272,23 @@ export default function ClassView() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {sessions.map(s => (
-                <div key={s.id} className="bg-white rounded-3xl border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-600/5 transition-all p-6 flex flex-col">
-                  <div>
-                    <p className="font-black text-gray-900 text-lg capitalize leading-tight">
-                      {format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}
-                    </p>
-                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-1">
-                      {format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}
-                    </p>
+                <div key={s.id} className="bg-white rounded-3xl border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-600/5 transition-all p-6 flex flex-col relative group/session">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-black text-gray-900 text-lg capitalize leading-tight">
+                        {format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}
+                      </p>
+                      <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-1">
+                        {format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => deleteSession(s.id)}
+                      className="p-2 -mt-2 -mr-2 rounded-xl text-gray-300 hover:text-red-600 hover:bg-red-50 transition-all opacity-0 group-hover/session:opacity-100 focus:opacity-100 outline-none"
+                      title="Eliminar sesión"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                   <div className="mt-8 flex items-center justify-between gap-4">
                     <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider">Activa</span>

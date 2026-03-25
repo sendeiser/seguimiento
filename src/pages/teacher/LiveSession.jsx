@@ -42,7 +42,6 @@ export default function LiveSession() {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) setViewMode("focus");
     };
 
     window.addEventListener("resize", handleResize);
@@ -322,28 +321,26 @@ export default function LiveSession() {
             <Users className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" />
           </div>
 
-          {!isMobile && (
-            <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md p-1 rounded-2xl border border-gray-100 shadow-sm w-fit">
-              <button 
-                onClick={() => setViewMode("table")}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "table" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
-              >
-                <List className="w-4 h-4" /> <span className="hidden sm:inline">Lista</span>
-              </button>
-              <button 
-                onClick={() => setViewMode("cards")}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "cards" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
-              >
-                <LayoutGrid className="w-4 h-4" /> <span className="hidden sm:inline">Tarjetas</span>
-              </button>
-              <button 
-                onClick={() => setViewMode("focus")}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${viewMode === "focus" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
-              >
-                <Users className="w-4 h-4" /> <span className="hidden sm:inline">Enfoque</span>
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-1 sm:gap-2 bg-white/80 backdrop-blur-md p-1 rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm w-fit mx-auto sm:mx-0">
+            <button 
+              onClick={() => setViewMode("table")}
+              className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-black uppercase tracking-widest ${viewMode === "table" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
+            >
+              <List className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Lista</span>
+            </button>
+            <button 
+              onClick={() => setViewMode("cards")}
+              className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-black uppercase tracking-widest ${viewMode === "cards" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
+            >
+              <LayoutGrid className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tarjetas</span>
+            </button>
+            <button 
+              onClick={() => setViewMode("focus")}
+              className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-black uppercase tracking-widest ${viewMode === "focus" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-gray-400 hover:text-gray-600"}`}
+            >
+              <Users className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Enfoque</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -406,28 +403,28 @@ export default function LiveSession() {
            )}
 
            {/* Main Content Area */}
-           <div className="flex-1 overflow-y-auto bg-slate-950 flex flex-col py-8 px-6 space-y-8 pb-32">
+           <div className="flex-1 overflow-y-auto bg-slate-950 flex flex-col py-4 sm:py-8 px-4 sm:px-6 space-y-4 sm:space-y-8 pb-32">
               <div className="text-center animate-in zoom-in duration-500 relative">
                 <div className="absolute top-0 right-0">
                   <button 
                     onClick={() => toggleAttendance(currentStudent.cs_id)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${
+                    className={`px-3 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-1.5 ${
                       attendance[currentStudent.cs_id] !== false ? "bg-green-600 text-white shadow-lg shadow-green-600/20" : "bg-red-600 text-white shadow-lg shadow-red-600/20"
                     }`}
                   >
                     {attendance[currentStudent.cs_id] !== false ? "Presente" : "Ausente"}
                   </button>
                 </div>
-                <div className="w-20 h-20 rounded-[32px] bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-blue-600/30 mx-auto mb-4 border-2 border-slate-800">
+                <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-[24px] sm:rounded-[32px] bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white text-2xl sm:text-3xl font-black shadow-2xl shadow-blue-600/30 mx-auto mb-3 sm:mb-4 border-2 border-slate-800">
                   {currentStudent?.name[0].toUpperCase()}
                 </div>
-                <h2 className="text-2xl font-black text-white tracking-tight leading-none mb-1">{currentStudent?.name}</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-none mb-1">{currentStudent?.name}</h2>
                 <div className="flex items-center justify-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-900/50 w-fit mx-auto px-3 py-1 rounded-full border border-slate-800">
                    Alumno {focusIndex + 1} de {filteredStudents.length}
                 </div>
               </div>
 
-              <div className="space-y-4 max-w-md mx-auto w-full">
+              <div className="space-y-2 sm:space-y-4 max-w-md mx-auto w-full">
                 {criteria.map((c, idx) => {
                   const key = `${currentStudent?.cs_id}_${c.id}`;
                   const val = grades[key] ?? "";
@@ -437,58 +434,54 @@ export default function LiveSession() {
                   const isInherited = val === "" && inheritedVal !== "";
 
                   return (
-                    <div key={c.id} className="bg-slate-900 p-5 rounded-[28px] border border-slate-800 relative group overflow-hidden transition-all hover:border-slate-700">
-                      <div className="flex items-center justify-between mb-3 relative z-10">
-                        <div className="flex items-center justify-between w-full">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                            Criterio {idx + 1} de {criteria.length} 
-                            {isInherited && <span className="ml-2 text-amber-500/80">(Persistente)</span>}
-                          </span>
-                          <button 
-                            onClick={() => alert(`Sugerencia IA: ${generateAIFeedback(currentStudent.cs_id)}`)}
-                            className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                          >
-                            <Sparkles className="w-3 h-3" /> IA Feedback
-                          </button>
-                        </div>
+                    <div key={c.id} className="bg-slate-900 p-3 sm:p-5 rounded-2xl sm:rounded-[28px] border border-slate-800 relative group overflow-hidden transition-all hover:border-slate-700">
+                      <div className="flex items-center justify-between mb-2 sm:mb-3 relative z-10">
+                        <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                          {idx + 1}/{criteria.length}
+                          {isInherited && <span className="ml-2 text-amber-500/80">(P)</span>}
+                        </span>
+                        <button 
+                          onClick={() => alert(`Sugerencia IA: ${generateAIFeedback(currentStudent.cs_id)}`)}
+                          className="flex items-center gap-1 text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 hover:bg-blue-600 hover:text-white transition-all"
+                        >
+                          <Sparkles className="w-2.5 h-2.5" /> IA
+                        </button>
                       </div>
-                      <div className="flex items-center justify-between mb-3 relative z-10">
-                        <h4 className="text-xl font-black text-white tracking-tight leading-none truncate">{c.name}</h4>
-                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Máximo {c.max_score}</span>
+                      <div className="flex items-center justify-between mb-2 sm:mb-3 relative z-10">
+                        <h4 className="text-base sm:text-xl font-black text-white tracking-tight leading-none truncate">{c.name}</h4>
+                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-2 flex-shrink-0">/{c.max_score}</span>
                       </div>
                       
-                      <div className="flex flex-col gap-3">
-                        <div className="relative">
-                          <input
-                            ref={el => inputRefs.current[key] = el}
-                            type="number"
-                            min="0"
-                            max={c.max_score}
-                            step="0.5"
-                            value={displayVal}
-                            onChange={e => handleGradeChange(currentStudent.cs_id, c.id, e.target.value)}
-                            onBlur={e => saveGrade(currentStudent.cs_id, c.id, e.target.value)}
-                            placeholder="0.0"
-                            className={`w-full text-center border-2 border-transparent focus:border-blue-400 bg-slate-800 rounded-2xl py-4 font-black text-2xl outline-none transition-all ${
-                              isInherited ? "text-slate-500 italic bg-slate-800/50" : "text-white"
-                            }`}
-                          />
-                          {isSaving ? (
-                            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                          ) : val !== "" && (
-                            <div className="w-6 h-6 text-green-500 animate-in fade-in zoom-in">
-                              <CheckCircle2 className="w-6 h-6 stroke-[3]" />
-                            </div>
-                          )}
-                        </div>
+                      <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                        <input
+                          ref={el => inputRefs.current[key] = el}
+                          type="number"
+                          min="0"
+                          max={c.max_score}
+                          step="0.5"
+                          value={displayVal}
+                          onChange={e => handleGradeChange(currentStudent.cs_id, c.id, e.target.value)}
+                          onBlur={e => saveGrade(currentStudent.cs_id, c.id, e.target.value)}
+                          placeholder="0.0"
+                          className={`flex-1 text-center border-2 border-transparent focus:border-blue-400 bg-slate-800 rounded-xl sm:rounded-2xl py-2 sm:py-4 font-black text-xl sm:text-2xl outline-none transition-all ${
+                            isInherited ? "text-slate-500 italic bg-slate-800/50" : "text-white"
+                          }`}
+                        />
+                        {isSaving ? (
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                        ) : val !== "" && (
+                          <div className="w-5 h-5 text-green-500 animate-in fade-in zoom-in flex-shrink-0">
+                            <CheckCircle2 className="w-5 h-5 stroke-[3]" />
+                          </div>
+                        )}
                       </div>
 
-                      <div className="mt-4 flex flex-wrap gap-1.5 justify-center">
+                      <div className="flex flex-wrap gap-1 justify-center">
                         {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5, 0].filter(n => n <= c.max_score).map(num => (
                           <button
                             key={num}
                             onClick={() => setQuickGrade(currentStudent.cs_id, c.id, num)}
-                            className={`h-11 px-3 min-w-[3.8rem] rounded-xl font-black text-xs transition-all border-2 ${
+                            className={`h-8 sm:h-11 px-2 sm:px-3 min-w-[2.4rem] sm:min-w-[3.8rem] rounded-lg sm:rounded-xl font-black text-[10px] sm:text-xs transition-all border-2 ${
                               val === num.toString() ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20 scale-105" : "bg-slate-950 text-slate-600 border-slate-800 active:bg-slate-800 active:scale-95"
                             }`}
                           >
@@ -554,25 +547,25 @@ export default function LiveSession() {
               </div>
             ) : viewMode === "table" ? (
               <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-sm border-collapse">
+                <table className="w-full text-sm border-collapse table-fixed md:table-auto">
                   <thead>
                       <tr className="bg-slate-50/30 border-b border-gray-100">
                         <th 
                           onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                          className="text-left px-4 sm:px-8 py-5 font-black text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-gray-400 sticky left-0 bg-white z-20 min-w-[150px] sm:min-w-[200px] shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] cursor-pointer hover:text-blue-600 transition-colors group/h"
+                          className="text-left px-1 sm:px-8 py-2 sm:py-5 font-black text-[9px] sm:text-[11px] uppercase tracking-widest sm:tracking-[0.2em] text-gray-400 sticky left-0 bg-white z-20 w-[70px] sm:w-auto sm:min-w-[200px] shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] cursor-pointer hover:text-blue-600 transition-colors group/h"
                         >
-                          <div className="flex items-center gap-2">
-                             Alumno
-                             <ChevronRight className={`w-3 h-3 transition-transform ${sortOrder === "desc" ? "rotate-90" : "-rotate-90"}`} />
+                          <div className="flex items-center gap-1 sm:gap-2">
+                             ALUMNO
+                             <ChevronRight className={`w-3 h-3 transition-transform hidden sm:block ${sortOrder === "desc" ? "rotate-90" : "-rotate-90"}`} />
                           </div>
                         </th>
                         {criteria.map(c => (
-                          <th key={c.id} className="px-3 sm:px-4 py-5 font-black text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-gray-400 text-center min-w-[100px] sm:min-w-[140px] group relative border-l border-gray-50/50">
-                            <div className="truncate text-gray-900 max-w-[80px] sm:max-w-none mx-auto">{c.name}</div>
-                            <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold mt-1 tracking-widest whitespace-nowrap">MÁX {c.max_score}</div>
+                          <th key={c.id} className="px-1 sm:px-4 py-2 sm:py-5 font-black text-[8px] sm:text-[11px] uppercase tracking-tighter sm:tracking-[0.2em] text-gray-400 text-center w-[35px] sm:w-auto sm:min-w-[140px] group relative border-l border-gray-50/50 leading-tight">
+                            <div className="truncate text-gray-900 max-w-[32px] sm:max-w-none mx-auto" title={c.name}>{c.name}</div>
+                            <div className="text-[7px] sm:text-[10px] text-gray-400 font-bold mt-0.5 sm:mt-1 tracking-tighter sm:tracking-widest whitespace-nowrap"><span className="hidden sm:inline">MÁX</span> {c.max_score}</div>
                             <button
                               onClick={() => handleDeleteCriteria(c.id)}
-                              className="absolute -top-1 -right-1 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm z-30"
+                              className="absolute -top-1 -right-1 p-1 sm:p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm z-30"
                               title="Eliminar criterio"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -581,22 +574,28 @@ export default function LiveSession() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {filteredStudents.map((student, sIdx) => (
+                    <tbody className="divide-y divide-gray-50 bg-white">
+                      {filteredStudents.map((student, sIdx) => {
+                        const names = student.name.split(" ");
+                        const mobileName = names.length > 1 ? `${names[0]} ${names[1][0]}.` : names[0];
+                        return (
                         <tr key={student.cs_id} className="hover:bg-blue-50/20 transition-all group">
-                          <td className="px-4 sm:px-8 py-4 sm:py-5 font-black text-gray-800 sticky left-0 bg-white group-hover:bg-blue-50/50 transition-colors z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                            <div className="flex items-center gap-2 sm:gap-3">
+                          <td className="px-1 sm:px-8 py-1 sm:py-5 font-black text-[10px] sm:text-sm text-gray-800 sticky left-0 bg-white group-hover:bg-blue-50/50 transition-colors z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] overflow-hidden w-[70px] sm:w-auto">
+                            <div className="flex items-center gap-1 sm:gap-3">
                               <button 
                                 onClick={() => toggleAttendance(student.cs_id)}
-                                className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 transition-all flex-shrink-0 ${
+                                className={`w-2 h-2 sm:w-4 sm:h-4 rounded-full border-2 transition-all flex-shrink-0 ${
                                   attendance[student.cs_id] !== false ? "bg-green-500 border-green-200" : "bg-red-500 border-red-200"
                                 }`}
                                 title={attendance[student.cs_id] !== false ? "Presente" : "Ausente"}
                               />
-                              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white text-[10px] sm:text-xs font-black shadow-md sm:shadow-lg shadow-blue-400/20 text-center flex-shrink-0">
+                              <div className="hidden sm:flex w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 items-center justify-center text-white text-xs font-black shadow-lg shadow-blue-400/20 text-center flex-shrink-0">
                                 {student.name[0].toUpperCase()}
                               </div>
-                              <span className="truncate text-xs sm:text-sm">{student.name}</span>
+                              <span className="truncate leading-tight block w-full" title={student.name}>
+                                <span className="sm:hidden">{mobileName}</span>
+                                <span className="hidden sm:inline">{student.name}</span>
+                              </span>
                             </div>
                           </td>
                           {criteria.map((c, cIdx) => {
@@ -608,8 +607,8 @@ export default function LiveSession() {
                             const isInherited = val === "" && inheritedVal !== "";
 
                             return (
-                              <td key={c.id} className="px-2 sm:px-4 py-4 sm:py-5 text-center border-l border-gray-50/50">
-                                <div className="relative inline-block group/input">
+                              <td key={c.id} className="px-0.5 sm:px-4 py-1 sm:py-5 text-center border-l border-gray-50/50 h-full align-middle">
+                                <div className="relative inline-flex items-center justify-center group/input w-full h-full">
                                   <input
                                     ref={el => inputRefs.current[key] = el}
                                     type="number"
@@ -621,13 +620,13 @@ export default function LiveSession() {
                                     onBlur={e => saveGrade(student.cs_id, c.id, e.target.value)}
                                     onKeyDown={e => handleKeyDown(e, sIdx, cIdx)}
                                     placeholder="—"
-                                    className={`w-14 sm:w-20 text-center border-2 rounded-xl sm:rounded-2xl px-1 sm:px-2 py-2 sm:py-3 font-black text-lg sm:text-xl outline-none transition-all scale-95 focus:scale-100 group-hover/input:scale-100 ${
-                                      val !== "" ? "bg-white border-blue-100 text-blue-600" : (inheritedVal !== "" ? "bg-amber-50/30 border-amber-100/50 text-amber-600/50 italic" : "bg-gray-50 border-transparent text-gray-300 focus:bg-white focus:border-blue-400")
+                                    className={`w-7 sm:w-20 text-center border md:border-2 rounded sm:rounded-2xl px-0 sm:px-2 py-1 sm:py-3 font-black text-[10px] sm:text-xl outline-none transition-all focus:scale-100 group-hover/input:scale-100 ${
+                                      val !== "" ? "bg-white border-blue-100 text-blue-600 shadow-sm" : (inheritedVal !== "" ? "bg-amber-50/30 border-amber-100/50 text-amber-600/50 italic" : "bg-gray-50 border-transparent text-gray-300 focus:bg-white focus:border-blue-400")
                                     }`}
                                   />
                                   {isSaving && (
-                                    <div className="absolute top-0 right-0 p-0.5 sm:p-1">
-                                      <div className="w-1.5 h-1.5 sm:w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+                                    <div className="absolute top-0 right-0 p-px sm:p-1">
+                                      <div className="w-1 h-1 sm:w-2 sm:h-2 bg-blue-500 rounded-full animate-ping" />
                                     </div>
                                   )}
                                 </div>
@@ -635,66 +634,67 @@ export default function LiveSession() {
                             );
                           })}
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                 </table>
               </div>
             ) : (
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/30">
-                {filteredStudents.map(student => (
-                  <div key={student.cs_id} className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-900/5 border border-gray-100 flex flex-col items-center">
-                    <div className="relative mb-6">
-                      <div className="w-20 h-20 rounded-[32px] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-blue-500/20 text-center">
+            <div className="p-3 sm:p-6 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 bg-slate-50/30">
+              {filteredStudents.map(student => (
+                <div key={student.cs_id} className="bg-white rounded-2xl sm:rounded-[32px] p-3 sm:p-6 shadow-lg sm:shadow-xl shadow-slate-900/5 border border-gray-100 flex flex-col">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-5">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-[24px] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-base sm:text-2xl font-black shadow-md shadow-blue-500/20">
                         {student.name[0].toUpperCase()}
                       </div>
                       <button 
                         onClick={() => toggleAttendance(student.cs_id)}
-                        className={`absolute -top-1 -right-1 w-7 h-7 rounded-full border-4 border-white shadow-md flex items-center justify-center transition-all ${
+                        className={`absolute -top-1 -right-1 w-4 h-4 sm:w-6 sm:h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center transition-all ${
                           attendance[student.cs_id] !== false ? "bg-green-500" : "bg-red-500"
                         }`}
                       >
-                        {attendance[student.cs_id] !== false ? <CheckCircle2 className="w-3 h-3 text-white" /> : <X className="w-3 h-3 text-white" />}
+                        {attendance[student.cs_id] !== false ? <CheckCircle2 className="w-2 h-2 sm:w-3 sm:h-3 text-white" /> : <X className="w-2 h-2 sm:w-3 sm:h-3 text-white" />}
                       </button>
                     </div>
-                    <h3 className="font-black text-lg text-gray-900 truncate tracking-tight">{student.name}</h3>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1 mb-8">Evaluación Diaria</p>
-                    
-                    <div className="w-full space-y-4">
-                      {criteria.map(c => {
-                        const key = `${student.cs_id}_${c.id}`;
-                        const val = grades[key] ?? "";
-                        const inheritedVal = inheritedGrades[`${student.cs_id}_${c.name}`] ?? "";
-                        const isSaving = saving[key];
-                        const displayVal = val !== "" ? val : inheritedVal;
-                        const isInherited = val === "" && inheritedVal !== "";
-
-                        return (
-                          <div key={c.id} className="flex items-center justify-between gap-4 p-3 bg-slate-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all group/card-input">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">
-                              {c.name} {isInherited && <span className="text-amber-500 text-[8px]">(P)</span>}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                min="0"
-                                max={c.max_score}
-                                step="0.5"
-                                value={displayVal}
-                                onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)}
-                                onBlur={e => saveGrade(student.cs_id, c.id, e.target.value)}
-                                className={`w-14 text-center border-2 rounded-xl py-1.5 font-black text-sm outline-none transition-all ${
-                                  val !== "" ? "bg-white border-blue-500 text-blue-600 shadow-sm" : (inheritedVal !== "" ? "bg-amber-50/50 border-amber-200/50 text-amber-600/70 italic" : "bg-white/50 border-gray-100 text-gray-300")
-                                }`}
-                                placeholder="0"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="min-w-0">
+                      <h3 className="font-black text-xs sm:text-base text-gray-900 truncate tracking-tight leading-tight">{student.name}</h3>
+                      <p className="text-[8px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Eval. Diaria</p>
                     </div>
                   </div>
-                ))}
-              </div>
+                  
+                  <div className="w-full space-y-1.5 sm:space-y-3">
+                    {criteria.map(c => {
+                      const key = `${student.cs_id}_${c.id}`;
+                      const val = grades[key] ?? "";
+                      const inheritedVal = inheritedGrades[`${student.cs_id}_${c.name}`] ?? "";
+                      const displayVal = val !== "" ? val : inheritedVal;
+                      const isInherited = val === "" && inheritedVal !== "";
+
+                      return (
+                        <div key={c.id} className="flex items-center justify-between gap-1 sm:gap-3 p-1.5 sm:p-3 bg-slate-50 rounded-lg sm:rounded-2xl border border-transparent hover:border-blue-100 transition-all">
+                          <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-tighter sm:tracking-widest truncate flex-1" title={c.name}>
+                            {c.name} {isInherited && <span className="text-amber-500 text-[7px]">(P)</span>}
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={c.max_score}
+                            step="0.5"
+                            value={displayVal}
+                            onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)}
+                            onBlur={e => saveGrade(student.cs_id, c.id, e.target.value)}
+                            className={`w-9 sm:w-14 text-center border-2 rounded-lg sm:rounded-xl py-0.5 sm:py-1.5 font-black text-xs sm:text-sm outline-none transition-all flex-shrink-0 ${
+                              val !== "" ? "bg-white border-blue-500 text-blue-600 shadow-sm" : (inheritedVal !== "" ? "bg-amber-50/50 border-amber-200/50 text-amber-600/70 italic" : "bg-white/50 border-gray-100 text-gray-300")
+                            }`}
+                            placeholder="0"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
             )}
           </CardContent>
         </Card>

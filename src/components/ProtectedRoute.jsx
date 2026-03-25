@@ -6,7 +6,7 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (loading) return <div className="flex h-screen w-full items-center justify-center">Cargando...</div>;
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
 
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
     return <Navigate to="/unauthorized" replace />;

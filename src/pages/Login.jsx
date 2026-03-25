@@ -16,7 +16,7 @@ export default function Login() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) alert("Error: " + error.message);
-    else navigate("/");
+    else navigate("/home");
     setLoading(false);
   };
 
@@ -29,8 +29,15 @@ export default function Login() {
       </div>
 
       <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-700">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-[28px] shadow-2xl shadow-blue-600/20 mb-6 border border-white/20">
+        <div className="text-center mb-8 relative">
+          <div className="absolute top-0 left-0">
+            <Link to="/">
+              <Button variant="ghost" size="sm" className="rounded-xl text-slate-400 font-bold hover:bg-white hover:text-slate-900 border-transparent">
+                Volver al inicio
+              </Button>
+            </Link>
+          </div>
+          <div className="inline-flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-[28px] shadow-2xl shadow-blue-600/20 mb-6 border border-white/20 mt-12">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">Notyx</h1>

@@ -38,10 +38,10 @@ export default function DashboardLayout() {
 
       <nav className="flex-1 p-4 space-y-1.5">
         <Link
-          to="/"
+          to="/home"
           onClick={closeMenu}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-            location.pathname === "/"
+            location.pathname === "/home" || location.pathname === "/"
               ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
               : "text-gray-500 hover:bg-gray-100/80 hover:text-gray-900"
           }`}

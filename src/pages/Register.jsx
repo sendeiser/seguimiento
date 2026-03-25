@@ -26,7 +26,7 @@ export default function Register() {
     if (error) alert("Error: " + error.message);
     else {
       alert("¡Registro exitoso! Por favor, revisá tu correo para confirmar la cuenta (opcional según config) e iniciá sesión.");
-      navigate("/login");
+      navigate("/home");
     }
     setLoading(false);
   };
@@ -39,8 +39,8 @@ export default function Register() {
       </div>
 
       <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <Link to="/login" className="inline-flex items-center gap-2 px-4 py-2 text-sm font-black text-slate-400 hover:text-blue-600 transition-colors mb-6 group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Volver a Notyx
+        <Link to="/" className="inline-flex items-center gap-2 px-4 py-2 text-sm font-black text-slate-400 hover:text-blue-600 transition-colors mb-6 group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Volver al inicio
         </Link>
         
         <Card className="rounded-[40px] border-none shadow-2xl shadow-slate-200/50 bg-white/80 backdrop-blur-xl overflow-hidden group">
