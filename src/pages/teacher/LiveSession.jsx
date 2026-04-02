@@ -159,6 +159,42 @@ export default function LiveSession() {
     }
   };
 
+  const handleFillMaxGrades = async (crit) => {
+    if (!confirm(`¿Llenar con nota MÁXIMA (${crit.max_score}) a todos los alumnos que estén PRESENTES y no tengan nota?`)) return;
+    
+    const studentsToUpdate = students.filter(s => {
+      const isPresent = attendance[s.cs_id] !== false;
+      const key = `${s.cs_id}_${crit.id}`;
+      const val = grades[key];
+      const hasGrade = val !== undefined && val !== "";
+      return isPresent && !hasGrade;
+    });
+
+    if (studentsToUpdate.length === 0) {
+      alert("Todos los alumnos presentes ya tienen nota para este criterio.");
+      return;
+    }
+
+    const newGrades = { ...grades };
+    const upserts = [];
+
+    studentsToUpdate.forEach(s => {
+      const key = `${s.cs_id}_${crit.id}`;
+      newGrades[key] = crit.max_score.toString();
+      upserts.push({
+        class_student_id: s.cs_id,
+        criteria_id: crit.id,
+        score: crit.max_score,
+        updated_at: new Date().toISOString()
+      });
+    });
+
+    setGrades(newGrades); // optimistic UI update
+
+    const { error } = await supabase.from("grades").upsert(upserts, { onConflict: "class_student_id,criteria_id" });
+    if (error) alert("Error al guardar notas masivas: " + error.message);
+  };
+
   const handleGradeChange = (csId, criteriaId, value) => {
     const key = `${csId}_${criteriaId}`;
     setGrades(prev => ({ ...prev, [key]: value }));
@@ -563,6 +599,13 @@ export default function LiveSession() {
                           <th key={c.id} className="px-1 sm:px-4 py-2 sm:py-5 font-black text-[8px] sm:text-[11px] uppercase tracking-tighter sm:tracking-[0.2em] text-gray-400 text-center w-[35px] sm:w-auto sm:min-w-[140px] group relative border-l border-gray-50/50 leading-tight">
                             <div className="truncate text-gray-900 max-w-[32px] sm:max-w-none mx-auto" title={c.name}>{c.name}</div>
                             <div className="text-[7px] sm:text-[10px] text-gray-400 font-bold mt-0.5 sm:mt-1 tracking-tighter sm:tracking-widest whitespace-nowrap"><span className="hidden sm:inline">MÁX</span> {c.max_score}</div>
+                            <button
+                              onClick={() => handleFillMaxGrades(c)}
+                              className="absolute -top-1 -left-1 p-1 sm:p-2 bg-blue-50 text-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm z-30"
+                              title={`Llenar todos con ${c.max_score}`}
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                            </button>
                             <button
                               onClick={() => handleDeleteCriteria(c.id)}
                               className="absolute -top-1 -right-1 p-1 sm:p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm z-30"

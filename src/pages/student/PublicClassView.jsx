@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal } from "lucide-react";
+import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame } from "lucide-react";
+import { calculateGamification } from "../../lib/gamificationEngine";
 
 export default function PublicClassView() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +107,9 @@ export default function PublicClassView() {
       return sum + (score != null ? Number(score) : 0);
     }, 0);
 
-    return { ...st, total, max, overallTotal };
+    const gami = calculateGamification(sortedSessions, st.grades, st.attendance);
+
+    return { ...st, total, max, overallTotal, gami };
   });
 
   // Sort students: pinned first, then highest overall total (to keep ranking stable)
@@ -288,12 +292,13 @@ export default function PublicClassView() {
                     return (
                     <tr
                       key={student.cs_id}
-                      className={`transition-colors group hover:bg-slate-50/80 ${student.cs_id === pinnedStudent ? "bg-blue-50/40" : "bg-transparent"}`}
+                      onClick={() => student.token && navigate(`/live/${student.token}`)}
+                      className={`cursor-pointer transition-colors group hover:bg-slate-50/80 ${student.cs_id === pinnedStudent ? "bg-blue-50/40" : "bg-transparent"}`}
                     >
                       <td className={`px-2 md:px-8 py-2 md:py-5 sticky left-0 z-10 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors group-hover:bg-white w-[90px] md:w-[300px] overflow-hidden ${student.cs_id === pinnedStudent ? "bg-blue-50/90" : "bg-white"}`}>
                         <div className="flex items-center gap-1 md:gap-4">
                           <button 
-                            onClick={() => togglePin(student.cs_id)}
+                            onClick={(e) => { e.stopPropagation(); togglePin(student.cs_id); }}
                             className={`p-1 md:p-1.5 rounded-lg md:rounded-xl transition-all outline-none ${student.cs_id === pinnedStudent ? "text-blue-600 bg-white md:shadow-md" : "text-slate-300 hover:text-blue-600 hover:bg-blue-50"}`}
                             title={student.cs_id === pinnedStudent ? "Desfijar" : "Fijar"}
                           >
@@ -318,6 +323,15 @@ export default function PublicClassView() {
                               <span className="md:hidden">{mobileName}</span>
                               <span className="hidden md:inline">{student.name}</span>
                             </span>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest hidden lg:inline ${student.gami?.rank?.color || 'text-slate-400'}`}>Nv. {student.gami?.currentLevel || 1}</span>
+                              {student.gami?.streak >= 3 && (
+                                <span className="flex items-center gap-0.5 text-[8px] font-black text-orange-600 bg-orange-100 px-1 py-0.5 rounded-full uppercase tracking-wider">
+                                   <Flame className="w-2.5 h-2.5 fill-orange-500" />
+                                   {student.gami.streak}
+                                </span>
+                              )}
+                            </div>
                             {/* Mobile Rank Indicator */}
                             {idx < 3 && student.cs_id !== pinnedStudent && (
                               <span className="md:hidden text-[7px] font-black uppercase tracking-widest text-amber-600 truncate mt-0.5">Top #{idx + 1}</span>
@@ -380,7 +394,8 @@ export default function PublicClassView() {
               return (
               <div 
                 key={st.cs_id} 
-                className={`relative flex flex-col bg-white/80 backdrop-blur-xl rounded-[32px] overflow-hidden transition-all duration-300 group hover:-translate-y-1 ${
+                onClick={() => st.token && navigate(`/live/${st.token}`)}
+                className={`cursor-pointer relative flex flex-col bg-white/80 backdrop-blur-xl rounded-[32px] overflow-hidden transition-all duration-300 group hover:-translate-y-1 ${
                   isPinned
                     ? "border-2 border-blue-500 shadow-2xl shadow-blue-500/20 ring-4 ring-blue-500/10 z-10" 
                     : isTop3 && idx === 0 
@@ -394,42 +409,47 @@ export default function PublicClassView() {
                 }`} />
 
                 {/* Card Header Section */}
-                <div className="p-6 pb-5 flex items-start justify-between">
-                     <div className="flex gap-4 items-center">
-                       <div className={`relative w-16 h-16 rounded-[20px] flex items-center justify-center text-3xl font-black shadow-md shrink-0 transition-transform group-hover:scale-105 ${
-                        isPinned ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/30 border-none" : 
-                        "bg-gradient-to-br from-slate-50 to-white text-slate-700 border-2 border-slate-100"
-                      }`}>
+                <div className="p-6 pb-5 flex items-start justify-between relative overflow-hidden">
+                     {/* Rank background modifier glow */}
+                     <div className={`absolute -right-20 -top-20 w-40 h-40 blur-3xl opacity-20 pointer-events-none rounded-full ${st.gami?.rank?.bg?.replace('bg-', 'bg-') || 'bg-blue-500'}`} />
+                     
+                     <div className="flex gap-4 items-center relative z-10 w-full">
+                       <div className={`relative w-16 h-16 rounded-[24px] flex items-center justify-center text-3xl font-black shadow-md shrink-0 transition-transform group-hover:scale-105 border-2 ${st.gami?.rank?.bg || 'bg-slate-50'} ${st.gami?.rank?.color || 'text-slate-700'} ${st.gami?.rank?.border || 'border-slate-200'}`}>
                         {st.name[0].toUpperCase()}
                         {/* Status Dot */}
                         <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${pct >= 75 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} />
                       </div>
-                      <div className="min-w-0 pr-2">
-                        {isPinned ? (
-                           <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-100 px-2 py-0.5 rounded-lg mb-1.5 w-fit border border-blue-200">
-                             <Pin className="w-3 h-3 fill-current" /> Fijado
-                           </div>
-                        ) : isTop3 ? (
-                           <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg mb-1.5 w-fit border ${
-                             idx === 0 ? "text-amber-700 bg-amber-100 border-amber-200/50 shadow-sm" :
-                             idx === 1 ? "text-slate-600 bg-slate-100 border-slate-200" :
-                             "text-orange-800 bg-orange-100 border-orange-200"
-                           }`}>
-                             <Medal className="w-3 h-3" /> Puesto #{idx + 1}
-                           </div>
-                        ) : (
-                           <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
-                             RANKING #{idx + 1}
-                           </div>
-                        )}
-                        <h3 className={`font-black text-2xl tracking-tight leading-none truncate ${isPinned ? "text-blue-900" : "text-slate-800"}`}>
-                          {st.name}
-                        </h3>
+                      <div className="min-w-0 pr-2 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                            {isPinned && (
+                               <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-600 bg-blue-100 px-2 py-0.5 rounded-lg border border-blue-200 shrink-0">
+                                 <Pin className="w-3 h-3 fill-current" />
+                               </div>
+                            )}
+                            {isTop3 && (
+                               <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg shrink-0 border ${
+                                 idx === 0 ? "text-amber-700 bg-amber-100 border-amber-200/50 shadow-sm" :
+                                 idx === 1 ? "text-slate-600 bg-slate-100 border-slate-200" :
+                                 "text-orange-800 bg-orange-100 border-orange-200"
+                               }`}>
+                                 <Medal className="w-2.5 h-2.5" /> #{idx + 1}
+                               </div>
+                            )}
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border shrink-0 ${st.gami?.rank?.color || 'text-slate-500'} ${st.gami?.rank?.bg || 'bg-slate-50'} ${st.gami?.rank?.border || 'border-slate-200'}`}>
+                               Nv. {st.gami?.currentLevel || 1}
+                            </span>
+                            {st.gami?.streak >= 3 && (
+                               <span className="flex items-center gap-0.5 text-[9px] font-black text-orange-600 bg-orange-100/50 border border-orange-200 px-2 py-0.5 rounded-md uppercase tracking-widest shrink-0">
+                                 <Flame className="w-3 h-3 fill-orange-500" /> x{st.gami.streak}
+                               </span>
+                            )}
+                        </div>
+                        <h3 className={`font-black text-2xl tracking-tight leading-none truncate ${isPinned ? "text-blue-900" : "text-slate-800"}`}>{st.name}</h3>
                       </div>
                      </div>
                      
                      <button 
-                        onClick={() => togglePin(st.cs_id)}
+                        onClick={(e) => { e.stopPropagation(); togglePin(st.cs_id); }}
                         className={`p-2.5 rounded-2xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 backdrop-blur-sm shrink-0 ${
                           isPinned 
                             ? "bg-blue-600 text-white hover:bg-blue-700 rotate-12" 
