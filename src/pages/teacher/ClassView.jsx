@@ -189,30 +189,30 @@ export default function ClassView() {
 
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 animate-in slide-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link to="/home">
-            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white border-transparent">
-              <ArrowLeft className="w-5 h-5 text-gray-500" />
+            <Button variant="ghost" size="icon" className="rounded-xl">
+              <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 leading-none">{classData?.name}</h1>
-            <p className="text-gray-500 mt-1 font-medium text-sm">Panel de control de la materia</p>
+            <h1 className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{classData?.name}</h1>
+            <p className="text-[var(--text-secondary)] mt-1 font-medium text-sm">Panel de control de la materia</p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={exportGrades}
-          className="rounded-2xl h-11 px-5 border-2 hover:bg-slate-50 gap-2 font-black text-xs uppercase tracking-widest mt-2 sm:mt-0"
+          className="rounded-2xl h-11 px-5 border-2 hover:bg-[var(--bg-secondary)] gap-2 font-black text-xs uppercase tracking-widest mt-2 sm:mt-0"
         >
           <Download className="w-4 h-4" /> Exportar Planilla
         </Button>
       </div>
 
       {/* Class Access Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[32px] p-6 text-white overflow-hidden relative shadow-2xl shadow-blue-600/20 border border-blue-400/20">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white overflow-hidden relative shadow-2xl shadow-blue-600/20 border border-blue-400/20">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 min-w-0 w-full md:w-auto">
             <div className="bg-white/20 p-4 rounded-2xl flex-shrink-0 backdrop-blur-md border border-white/20 hidden sm:flex items-center justify-center">

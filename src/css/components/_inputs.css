@@ -1,0 +1,97 @@
+/* ===================================
+   NOTYX EDU - Input Components
+   =================================== */
+
+@layer components {
+  /* === Base Input === */
+  .input {
+    width: 100%;
+    background: hsl(var(--bg-secondary));
+    border: 2px solid transparent;
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: hsl(var(--text-primary));
+    outline: none;
+    transition: all var(--transition-fast);
+  }
+
+  .input::placeholder {
+    color: hsl(var(--text-muted));
+  }
+
+  .input:focus {
+    background: hsl(var(--bg-primary));
+    border-color: hsl(var(--interactive-primary));
+    box-shadow: 0 0 0 3px hsl(var(--interactive-primary) / 0.1);
+  }
+
+  .input-error {
+    border-color: hsl(var(--status-error));
+  }
+
+  .input-error:focus {
+    box-shadow: 0 0 0 3px hsl(var(--status-error) / 0.1);
+  }
+
+  /* === Input with Icon === */
+  .input-wrapper {
+    position: relative;
+  }
+
+  .input-icon {
+    position: absolute;
+    left: var(--space-4);
+    top: 50%;
+    transform: translateY(-50%);
+    color: hsl(var(--text-muted));
+    pointer-events: none;
+    transition: color var(--transition-fast);
+  }
+
+  .input-with-icon {
+    padding-left: var(--space-12);
+  }
+
+  .input-wrapper:focus-within .input-icon {
+    color: hsl(var(--interactive-primary));
+  }
+
+  /* === Input Sizes === */
+  .input-sm {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    border-radius: var(--radius-md);
+  }
+
+  .input-lg {
+    padding: var(--space-5) var(--space-6);
+    font-size: var(--text-lg);
+    border-radius: var(--radius-xl);
+  }
+
+  /* === Label === */
+  .label {
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: hsl(var(--text-secondary));
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: var(--space-2);
+  }
+
+  /* === Form Group === */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .form-error {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: hsl(var(--status-error));
+  }
+}

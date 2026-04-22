@@ -3,11 +3,13 @@ import { supabase } from "../../lib/supabase";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { BookOpen } from "lucide-react";
+import { BookOpen, TrendingUp, Award, Flame } from "lucide-react";
+import { calculateGamification, RANKS, BADGE_DEFS } from "../../lib/gamificationEngine";
 
 export default function StudentDashboard() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [gamificationData, setGamificationData] = useState(null);
 
   useEffect(() => {
     fetchClasses();
@@ -34,37 +36,77 @@ export default function StudentDashboard() {
     setLoading(false);
   };
 
-  if (loading) return <div className="p-8">Cargando mis clases...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in slide-up">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Mis Materias</h2>
-        <p className="text-muted-foreground">Consulta tu progreso y notas de cada clase.</p>
+        <h1 className="text-3xl md:text-4xl font-black text-[var(--text-primary)] tracking-tight leading-none">Mis Materias</h1>
+        <p className="text-[var(--text-secondary)] mt-2 font-medium">Consulta tu progreso y rendimiento en cada clase.</p>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="stat-card">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-blue-500" />
+            <span className="stat-label">Nivel</span>
+          </div>
+          <span className="stat-value text-blue-600">--</span>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-2 mb-2">
+            <Award className="w-4 h-4 text-yellow-500" />
+            <span className="stat-label">Rango</span>
+          </div>
+          <span className="stat-value text-yellow-600">--</span>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-2 mb-2">
+            <Flame className="w-4 h-4 text-orange-500" />
+            <span className="stat-label">Racha</span>
+          </div>
+          <span className="stat-value text-orange-600">0</span>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className="w-4 h-4 text-purple-500" />
+            <span className="stat-label">Clases</span>
+          </div>
+          <span className="stat-value text-purple-600">{classes.length}</span>
+        </div>
       </div>
 
       {classes.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
-          <BookOpen className="h-12 w-12 text-muted-foreground mb-4 opacity-20" />
-          <p className="text-lg font-medium">No estás inscripto en ninguna clase</p>
-          <p className="text-sm text-muted-foreground">Espera a que un docente te agregue a su lista de alumnos.</p>
-        </Card>
+        <div className="card-empty">
+          <div className="card-empty-icon">
+            <BookOpen className="w-12 h-12 text-[var(--text-muted)] opacity-50" />
+          </div>
+          <h3 className="card-empty-title">No estás inscripto en ninguna clase</h3>
+          <p className="card-empty-description">Espera a que un docente te agregue a su lista de alumnos.</p>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {classes.map((c) => (
-            <Card key={c.id} className="hover:border-primary transition-colors">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xl">{c.name}</CardTitle>
-                <CardDescription>
-                  Docente: {c.profiles?.full_name}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to={`/student/class/${c.id}`}>
-                  <Button variant="secondary" className="w-full mt-4">Ver Mi Progreso</Button>
-                </Link>
-              </CardContent>
-            </Card>
+            <Link key={c.id} to={`/student/class/${c.id}`} className="group">
+              <Card className="card card-hover h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xl text-[var(--text-primary)]">{c.name}</CardTitle>
+                  <CardDescription className="text-[var(--text-secondary)]">
+                    Docente: {c.profiles?.full_name}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button variant="secondary" className="w-full mt-4 rounded-xl font-bold">
+                    Ver Mi Progreso
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
