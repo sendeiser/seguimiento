@@ -9,7 +9,8 @@ import {
   CalendarPlus, Users, Copy, Check, Plus, Link as LinkIcon, 
   Pencil, Trash2, X, ArrowLeft, Download, Trophy, 
   ShoppingBag, Shield, Star, Swords, Search, CheckCircle2, 
-  ShoppingCart, Flame, AlertCircle, Coins as LucideCoins, ExternalLink, UserPlus 
+  ShoppingCart, Flame, AlertCircle, Coins as LucideCoins, ExternalLink, UserPlus,
+  Gamepad2, Binary, Brain, Zap, BarChart3, Lock, Puzzle 
 } from "lucide-react";
 
 const BASE_URL = window.location.origin;
@@ -25,7 +26,8 @@ export default function ClassView() {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState("sessions"); // 'sessions' | 'students' | 'gamification'
+  const [activeTab, setActiveTab] = useState("sessions"); // sessions | students | ranking | rewards | arena
+  const [arenaProgress, setArenaProgress] = useState([]);
 
   // Modals state
   const [showRewardModal, setShowRewardModal] = useState(false);
@@ -49,15 +51,22 @@ export default function ClassView() {
         { data: stData },
         { data: rwData },
         { data: hData },
-        { data: pData }
+        { data: pData },
+        { data: pData2 }
       ] = await Promise.all([
         supabase.from("classes").select("*").eq("id", id).single(),
         supabase.from("sessions").select("*").eq("class_id", id).order("date", { ascending: false }),
         supabase.from("class_students").select("id, student_id, student_name, public_token, house_id, dni, profiles(full_name)").eq("class_id", id),
         supabase.from("rewards").select("*").eq("class_id", id).order("created_at", { ascending: false }),
         supabase.from("class_houses").select("*").eq("class_id", id).order("created_at", { ascending: false }),
-        supabase.from("student_purchases").select("*, rewards(name, icon), profiles(full_name)").order("created_at", { ascending: false })
+        supabase.from("student_purchases").select("*, rewards(name, icon), profiles(full_name)").order("created_at", { ascending: false }),
+        supabase.from("student_game_progress").select("*")
       ]);
+
+      // Filter progress for this class
+      const classStudentIds = (stData || []).map(s => s.id);
+      const filteredProg = (pData2 || []).filter(p => classStudentIds.includes(p.class_student_id));
+      setArenaProgress(filteredProg);
 
       console.log("Students found:", stData?.length || 0);
 
@@ -118,7 +127,12 @@ export default function ClassView() {
       name: modalForm.name, 
       description: modalForm.description, 
       cost_coins: parseInt(modalForm.cost_coins), 
-      icon: modalForm.icon 
+      icon: modalForm.icon,
+      category: modalForm.category || 'item',
+      metadata: modalForm.category === 'game_pass' ? {
+        game_name: modalForm.game_name,
+        duration_minutes: parseInt(modalForm.duration_minutes || 60)
+      } : {}
     };
 
     if (editingItem) {
@@ -229,6 +243,7 @@ export default function ClassView() {
         <button onClick={() => setActiveTab("sessions")} className={`tab-btn ${activeTab === 'sessions' ? 'active' : ''}`}><CalendarPlus className="w-4 h-4" /> Sesiones</button>
         <button onClick={() => setActiveTab("students")} className={`tab-btn ${activeTab === 'students' ? 'active' : ''}`}><Users className="w-4 h-4" /> Alumnos</button>
         <button onClick={() => setActiveTab("gamification")} className={`tab-btn ${activeTab === 'gamification' ? 'active' : ''}`}><Trophy className="w-4 h-4" /> Gamificación</button>
+        <button onClick={() => setActiveTab("arena")} className={`tab-btn ${activeTab === 'arena' ? 'active' : ''}`}><Gamepad2 className="w-4 h-4" /> Arena</button>
       </div>
 
       {/* 1. SESSIONS TAB */}
@@ -363,7 +378,7 @@ export default function ClassView() {
            <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tienda Notyx</h3>
-                <Button onClick={() => { setEditingItem(null); setModalForm({ name: "", description: "", cost_coins: 100, icon: "🎁" }); setShowRewardModal(true); }} className="rounded-2xl bg-orange-500 hover:bg-orange-600 h-10 px-5 gap-2 font-black text-[10px] uppercase tracking-widest"><Plus className="w-4 h-4" /> Crear Premio</Button>
+                <Button onClick={() => { setEditingItem(null); setModalForm({ name: "", description: "", cost_coins: 100, icon: "🎁", category: "item", game_name: "Sudoku", duration_minutes: 60 }); setShowRewardModal(true); }} className="rounded-2xl bg-orange-500 hover:bg-orange-600 h-10 px-5 gap-2 font-black text-[10px] uppercase tracking-widest"><Plus className="w-4 h-4" /> Crear Premio</Button>
               </div>
               <div className="grid gap-4">
                  {rewards.map(r => (
@@ -453,6 +468,86 @@ export default function ClassView() {
         </div>
       )}
 
+      {/* 5. ARENA TAB */}
+      {activeTab === "arena" && (
+        <div className="space-y-8 animate-in slide-up">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-[3rem] p-10 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10 flex items-center gap-6">
+              <div className="bg-white/20 p-5 rounded-[24px] backdrop-blur-xl border border-white/20">
+                <Gamepad2 className="w-10 h-10" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-black tracking-tight leading-none mb-2">Desempeño en la Arena</h2>
+                <p className="text-indigo-100/80 font-medium italic">Seguimiento de récords y progreso en los minijuegos</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Estudiante</th>
+                  <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Juego</th>
+                  <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Dificultad</th>
+                  <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Máximo Récord</th>
+                  <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Intentos</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {arenaProgress.length > 0 ? arenaProgress.map(p => {
+                  const student = students.find(s => s.id === p.class_student_id);
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-8 py-6">
+                        <span className="font-black text-slate-800">{student ? getStudentName(student) : "Estudiante Desconocido"}</span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2">
+                          {p.game_name === 'Memory Match' && <Puzzle className="w-4 h-4 text-indigo-500" />}
+                          {p.game_name === 'Sudoku' && <Brain className="w-4 h-4 text-purple-500" />}
+                          {p.game_name === 'Pyramid' && <Binary className="w-4 h-4 text-emerald-500" />}
+                          {p.game_name === 'Math Blitz' && <Zap className="w-4 h-4 text-orange-500" />}
+                          <span className="font-bold text-slate-700 text-sm">{p.game_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                          p.difficulty === 'easy' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+                          p.difficulty === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-100' : 
+                          'bg-red-50 text-red-600 border-red-100'
+                        }`}>
+                          {p.difficulty === 'easy' ? 'Principiante' : p.difficulty === 'medium' ? 'Caballero' : 'Leyenda'}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-slate-300" />
+                          <span className="font-black text-slate-800">{p.high_score}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className="text-slate-400 font-bold">{p.total_games_played}</span>
+                      </td>
+                    </tr>
+                  );
+                }) : (
+                  <tr>
+                    <td colSpan="5" className="px-8 py-20 text-center">
+                      <div className="max-w-xs mx-auto">
+                        <Gamepad2 className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Aún no hay registros de juegos en esta clase</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* --- MODALS --- */}
       {(showRewardModal || showHouseModal) && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -471,11 +566,33 @@ export default function ClassView() {
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Costo en Coins</label>
                         <input type="number" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.cost_coins} onChange={e => setModalForm({...modalForm, cost_coins: e.target.value})} />
                      </div>
-                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Descripción</label>
-                        <textarea className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" rows={3} value={modalForm.description} onChange={e => setModalForm({...modalForm, description: e.target.value})} />
-                     </div>
-                   </>
+                      <div>
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Descripción</label>
+                         <textarea className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" rows={3} value={modalForm.description} onChange={e => setModalForm({...modalForm, description: e.target.value})} />
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Categoría</label>
+                         <select className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.category} onChange={e => setModalForm({...modalForm, category: e.target.value})}>
+                            <option value="item">Objeto Físico / Ventaja</option>
+                            <option value="game_pass">Pase de Juego (Temporal)</option>
+                         </select>
+                      </div>
+                      {modalForm.category === 'game_pass' && (
+                        <div className="grid grid-cols-2 gap-4 animate-in slide-up">
+                           <div>
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Juego a Desbloquear</label>
+                              <select className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.game_name} onChange={e => setModalForm({...modalForm, game_name: e.target.value})}>
+                                 <option value="Sudoku">Sudoku</option>
+                                 <option value="Pyramid">Pirámide Numérica</option>
+                              </select>
+                           </div>
+                           <div>
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Duración (minutos)</label>
+                              <input type="number" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.duration_minutes} onChange={e => setModalForm({...modalForm, duration_minutes: e.target.value})} />
+                           </div>
+                        </div>
+                      )}
+                    </>
                  )}
                  <div className="grid grid-cols-2 gap-4">
                     <div>

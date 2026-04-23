@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Trophy, Medal, Star, Shield, TrendingUp, Search } from "lucide-react";
+import { Card, CardContent } from "../../components/ui/card";
+import { Search, Trophy, Medal, Star } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 
 export default function GlobalRanking() {
@@ -15,49 +15,96 @@ export default function GlobalRanking() {
 
   const fetchGlobalRanking = async () => {
     setLoading(true);
-    // Fetch all students, class associations, sessions, grades, attendance, and purchases
-    const [
-      { data: students },
-      { data: allClassStudents },
-      { data: allSessions },
-      { data: allGrades },
-      { data: allAttendance },
-      { data: allPurchases }
-    ] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, role").eq("role", "student"),
-      supabase.from("class_students").select("student_id, class_id"),
-      supabase.from("sessions").select("id, class_id, date, session_criteria(id, name, max_score)"),
-      supabase.from("grades").select("student_id, criteria_id, score"),
-      supabase.from("attendance").select("student_id, session_id, is_present"),
-      supabase.from("student_purchases").select("student_id, rewards(cost_coins)").neq("status", "cancelled")
-    ]);
+    try {
+      const [
+        { data: allClassStudents },
+        { data: allSessions },
+        { data: allCriteria },
+        { data: allGrades },
+        { data: allAttendance },
+        { data: allPurchases }
+      ] = await Promise.all([
+        supabase.from("class_students").select("id, student_id, student_name, class_id, profiles(full_name)"),
+        supabase.from("sessions").select("id, class_id, date"),
+        supabase.from("session_criteria").select("id, session_id, name, max_score"),
+        supabase.from("grades").select("class_student_id, criteria_id, score"),
+        supabase.from("attendance").select("class_student_id, session_id, is_present"),
+        supabase.from("student_purchases").select("class_student_id, student_id, rewards(cost_coins)").neq("status", "cancelled")
+      ]);
 
-    if (students) {
-      const globalStats = students.map(st => {
-         const studentClasses = allClassStudents?.filter(cs => cs.student_id === st.id).map(cs => cs.class_id) || [];
-         const studentSessions = allSessions?.filter(s => studentClasses.includes(s.class_id)) || [];
-         const studentGrades = allGrades?.filter(g => g.student_id === st.id).reduce((acc, curr) => { acc[curr.criteria_id] = curr.score; return acc; }, {}) || {};
-         const studentAtt = allAttendance?.filter(a => a.student_id === st.id).reduce((acc, curr) => { acc[curr.session_id] = curr.is_present; return acc; }, {}) || {};
-         const spentCoins = allPurchases?.filter(p => p.student_id === st.id).reduce((acc, curr) => acc + (curr.rewards?.cost_coins || 0), 0) || 0;
+      if (allClassStudents) {
+        // Prepare criteria lookup
+        const criteriaBySession = (allCriteria || []).reduce((acc, c) => {
+          if (!acc[c.session_id]) acc[c.session_id] = [];
+          acc[c.session_id].push(c);
+          return acc;
+        }, {});
 
-         const gami = calculateGamification(studentSessions.map(s => ({...s, criteria: s.session_criteria || []})), studentGrades, studentAtt, spentCoins);
+        // Prepare sessions lookup
+        const sessionsByClass = (allSessions || []).reduce((acc, s) => {
+          if (!acc[s.class_id]) acc[s.class_id] = [];
+          acc[s.class_id].push({
+            ...s,
+            criteria: criteriaBySession[s.id] || []
+          });
+          return acc;
+        }, {});
 
-         return {
-            id: st.id,
-            name: st.full_name,
+        // Prepare grades and attendance lookup
+        const gradesByStudent = (allGrades || []).reduce((acc, g) => {
+          if (!acc[g.class_student_id]) acc[g.class_student_id] = {};
+          acc[g.class_student_id][g.criteria_id] = g.score;
+          return acc;
+        }, {});
+
+        const attByStudent = (allAttendance || []).reduce((acc, a) => {
+          if (!acc[a.class_student_id]) acc[a.class_student_id] = {};
+          acc[a.class_student_id][a.session_id] = a.is_present;
+          return acc;
+        }, {});
+
+        const spentByStudent = (allPurchases || []).reduce((acc, p) => {
+          const sid = p.class_student_id;
+          if (sid) {
+            acc[sid] = (acc[sid] || 0) + (p.rewards?.cost_coins || 0);
+          }
+          return acc;
+        }, {});
+
+        const globalStats = allClassStudents.map(cs => {
+          const studentSessions = sessionsByClass[cs.class_id] || [];
+          const studentGrades = gradesByStudent[cs.id] || {};
+          const studentAtt = attByStudent[cs.id] || {};
+          const spentCoins = spentByStudent[cs.id] || 0;
+
+          const gami = calculateGamification(studentSessions, studentGrades, studentAtt, spentCoins);
+
+          return {
+            id: cs.id,
+            name: cs.profiles?.full_name || cs.student_name || "Alumno",
             xp: gami.currentXP,
             level: gami.currentLevel,
             rank: gami.rank,
             coins: gami.notyxCoins
-         };
-      }).sort((a, b) => b.xp - a.xp);
+          };
+        })
+        .filter(st => st.xp > 0)
+        .sort((a, b) => b.xp - a.xp);
 
-      setRanking(globalStats);
+        setRanking(globalStats);
+      }
+    } catch (err) {
+      console.error("Error en ranking global:", err);
     }
     setLoading(false);
   };
 
-  if (loading) return <div className="p-10 text-center font-black animate-pulse text-blue-600">Calculando Ranking Mundial...</div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <p className="font-black text-blue-600 animate-pulse uppercase tracking-widest text-xs">Calculando Ranking Mundial...</p>
+    </div>
+  );
 
   const filteredRanking = ranking.filter(st => st.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -111,53 +158,54 @@ export default function GlobalRanking() {
       )}
 
       {/* Full List */}
-      <Card className="rounded-[40px] border-slate-100 shadow-xl overflow-hidden">
-         <CardContent className="p-0">
-            <div className="overflow-x-auto">
-               <table className="w-full text-left border-collapse">
-                  <thead>
-                     <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Posición</th>
-                        <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Estudiante</th>
-                        <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Rango & Nivel</th>
-                        <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Poder Total (XP)</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                     {filteredRanking.map((st, idx) => (
-                        <tr key={st.id} className="hover:bg-slate-50/50 transition-colors group">
-                           <td className="px-8 py-6">
-                              <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-400 text-yellow-900' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                                 {idx + 1}
+      <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
+         <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+               <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                     <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Posición</th>
+                     <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Estudiante</th>
+                     <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Rango & Nivel</th>
+                     <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Poder Total (XP)</th>
+                  </tr>
+               </thead>
+               <tbody className="divide-y divide-slate-50">
+                  {filteredRanking.map((st, idx) => (
+                     <tr key={st.id} className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="px-8 py-6">
+                           <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-400 text-yellow-900' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                              {idx + 1}
+                           </span>
+                        </td>
+                        <td className="px-8 py-6">
+                           <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                                 {st.name[0]}
+                              </div>
+                              <span className="font-black text-slate-800 text-base">{st.name}</span>
+                           </div>
+                        </td>
+                        <td className="px-8 py-6">
+                           <div className="flex items-center gap-3">
+                              <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${st.rank.bg} ${st.rank.color}`}>
+                                 {st.rank.name}
                               </span>
-                           </td>
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
-                                    {st.name[0]}
-                                 </div>
-                                 <span className="font-black text-slate-800 text-base">{st.name}</span>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-3">
-                                 <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${st.rank.bg} ${st.rank.color}`}>
-                                    {st.rank.name}
-                                 </span>
-                                 <span className="text-xs font-bold text-slate-400">Lvl {st.level}</span>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6 text-right">
-                              <span className="text-xl font-black text-slate-900 tracking-tighter">{st.xp}</span>
-                              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-2">XP</span>
-                           </td>
-                        </tr>
-                     ))}
-                  </tbody>
-               </table>
-            </div>
-         </CardContent>
-      </Card>
+                              <span className="text-xs font-bold text-slate-400">Lvl {st.level}</span>
+                           </div>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                           <span className="text-xl font-black text-slate-900 tracking-tighter">{st.xp}</span>
+                           <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-2">XP</span>
+                        </td>
+                     </tr>
+                  ))}
+               </tbody>
+            </table>
+            {filteredRanking.length === 0 && (
+              <div className="p-20 text-center text-slate-400 font-bold italic">No hay suficientes datos para mostrar el ranking aún.</div>
+            )}
+         </div>
+      </div>
     </div>
   );
 }
