@@ -1,45 +1,31 @@
-/* ===================================
-   NOTYX EDU - Card Components
-   =================================== */
-
+/* === Cards === */
 @layer components {
   .card {
-    background: hsl(var(--bg-elevated));
-    border-radius: var(--radius-xl);
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: var(--shadow-sm);
+    background: hsl(var(--color-bg-elevated));
+    border-radius: var(--primitive-radius-xl);
+    border: 1px solid hsl(var(--color-border) / 0.5);
+    box-shadow: var(--primitive-shadow-sm);
     overflow: hidden;
-    transition: all var(--transition-normal);
+    transition: all var(--primitive-transition-normal);
   }
-
-  .card-hover {
-    cursor: pointer;
-  }
-
+  .card-hover { cursor: pointer; }
   .card-hover:hover {
-    border-color: hsl(var(--border-hover));
-    box-shadow: var(--shadow-lg);
+    border-color: hsl(var(--color-border-hover));
+    box-shadow: var(--primitive-shadow-lg);
     transform: translateY(-2px);
   }
-
   .card-glass {
-    background: hsl(var(--bg-primary) / 0.8);
+    background: hsl(var(--color-bg-primary) / 0.8);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid hsl(var(--border) / 0.1);
+    border: 1px solid hsl(var(--color-border) / 0.1);
   }
-
   .card-dark {
     background: hsl(220 20% 8% / 0.6);
     backdrop-filter: blur(24px);
     border: 1px solid hsl(0 0% 100% / 0.05);
   }
-
-  /* === Card with Accent Bar === */
-  .card-accent {
-    position: relative;
-  }
-
+  .card-accent { position: relative; }
   .card-accent::before {
     content: "";
     position: absolute;
@@ -47,72 +33,6 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(
-      90deg,
-      hsl(var(--brand-h) var(--brand-s) 50%),
-      hsl(calc(var(--brand-h) + 30) var(--brand-s) 60%)
-    );
-  }
-
-  /* === Card Sections === */
-  .card-header {
-    padding: var(--space-6);
-    border-bottom: 1px solid hsl(var(--border) / 0.5);
-  }
-
-  .card-body {
-    padding: var(--space-6);
-  }
-
-  .card-footer {
-    padding: var(--space-4) var(--space-6);
-    background: hsl(var(--bg-secondary));
-    border-top: 1px solid hsl(var(--border) / 0.5);
-  }
-
-  /* === Card Title === */
-  .card-title {
-    font-size: var(--text-xl);
-    font-weight: 800;
-    color: hsl(var(--text-primary));
-    letter-spacing: -0.01em;
-  }
-
-  .card-description {
-    font-size: var(--text-sm);
-    color: hsl(var(--text-secondary));
-    margin-top: var(--space-1);
-  }
-
-  /* === Empty State Card === */
-  .card-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-16) var(--space-8);
-    text-align: center;
-    border: 2px dashed hsl(var(--border));
-    background: hsl(var(--bg-secondary) / 0.5);
-  }
-
-  .card-empty-icon {
-    padding: var(--space-6);
-    border-radius: var(--radius-2xl);
-    background: hsl(var(--interactive-secondary));
-    margin-bottom: var(--space-4);
-  }
-
-  .card-empty-title {
-    font-size: var(--text-lg);
-    font-weight: 700;
-    color: hsl(var(--text-primary));
-  }
-
-  .card-empty-description {
-    font-size: var(--text-sm);
-    color: hsl(var(--text-secondary));
-    margin-top: var(--space-2);
-    max-width: 20rem;
+    background: linear-gradient(90deg, hsl(var(--primitive-color-brand-500)), hsl(calc(221 + 30) 83% 60%));
   }
 }

@@ -14,7 +14,9 @@ export const BADGE_DEFS = {
   streak_5: { label: "Imparable x5", icon: "Flame", color: "text-red-500", bg: "bg-red-50", req: "5 clases seguidas" },
   perfect_score: { label: "Día Perfecto", icon: "Star", color: "text-yellow-500", bg: "bg-yellow-50", req: "Puntaje máximo en una clase" },
   perfectionist: { label: "Perfeccionista", icon: "Crown", color: "text-purple-500", bg: "bg-purple-50", req: "Puntaje máximo en 3 clases" },
-  resilience: { label: "Ave Fénix", icon: "TrendingUp", color: "text-emerald-500", bg: "bg-emerald-50", req: "Mejorar un 20% respecto a la clase anterior" },
+  resilience: { label: "Mejora Continua", icon: "TrendingUp", color: "text-emerald-500", bg: "bg-emerald-50", req: "Mejorar un 20% respecto a la clase anterior" },
+  phoenix: { label: "Ave Fénix", icon: "Heart", color: "text-rose-500", bg: "bg-rose-50", req: "Sobrevivir con menos de 20 HP" },
+  resurrection: { label: "Resurrección", icon: "Sparkles", color: "text-cyan-500", bg: "bg-cyan-50", req: "De reprobar a sacar nota perfecta" },
 };
 
 /**
@@ -23,7 +25,7 @@ export const BADGE_DEFS = {
  * @param {Object|null} studentGradesDict - Dictionary mapping criteria_id to score. If null, expects `criteria.score` directly inside session.
  * @param {Object|null} studentAttendanceDict - Dictionary mapping session_id to boolean. If null, expects `session.attendance` directly.
  */
-export function calculateGamification(sessions = [], studentGradesDict = null, studentAttendanceDict = null) {
+export function calculateGamification(sessions = [], studentGradesDict = null, studentAttendanceDict = null, spentCoins = 0) {
   let currentXP = 0;
   let streak = 0;
   let maxStreak = 0;
@@ -34,6 +36,7 @@ export function calculateGamification(sessions = [], studentGradesDict = null, s
   const MAX_HP = 100;
 
   let sessionScores = [];
+  let totalEarnedCoins = 0;
 
   // Ensure sessions are sorted chronologically
   const sortedSessions = [...sessions].sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -119,22 +122,39 @@ export function calculateGamification(sessions = [], studentGradesDict = null, s
     streak_3: maxStreak >= 3,
     streak_5: maxStreak >= 5,
     perfectionist: perfectSessions >= 3,
-    resilience: false
+    resilience: false,
+    phoenix: false,
+    resurrection: false
   };
 
-  // Check resilience
+  // Check resilience and hidden badges
+  if (sessionScores.length >= 1) {
+     const lowestHp = sessionScores.reduce((min, s) => {
+          return Math.min(min, hp);
+     }, hp);
+     
+     if (lowestHp > 0 && lowestHp <= 20) {
+         badges.phoenix = true;
+     }
+  }
+
   if (sessionScores.length >= 2) {
      for (let i = 1; i < sessionScores.length; i++) {
         const prev = sessionScores[i-1].pct;
         const curr = sessionScores[i].pct;
         if (curr >= prev + 0.20 && curr >= 0.5) {
             badges.resilience = true;
-            break;
+        }
+        if (prev < 0.4 && curr === 1) {
+            badges.resurrection = true;
         }
      }
   }
 
-  // Calculate unlocked achievements list to easily render them
+  // Notyx Coins logic
+  totalEarnedCoins = Math.floor(currentXP * 1.5); 
+  const notyxCoins = Math.max(0, totalEarnedCoins - spentCoins);
+
   const unlockedBadges = Object.keys(BADGE_DEFS).map(key => ({
      id: key,
      ...BADGE_DEFS[key],
@@ -152,6 +172,9 @@ export function calculateGamification(sessions = [], studentGradesDict = null, s
       unlockedBadges,
       hp,
       MAX_HP,
-      sessionScores
+      sessionScores,
+      notyxCoins,
+      totalEarnedCoins
   };
 }
+

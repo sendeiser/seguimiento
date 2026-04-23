@@ -1,17 +1,14 @@
-/* ===================================
-   NOTYX EDU - Button Components
-   =================================== */
-
+/* === Buttons === */
 @layer components {
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2);
+    gap: var(--primitive-spacing-2);
     font-weight: 700;
     letter-spacing: 0.01em;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
+    border-radius: var(--primitive-radius-md);
+    transition: all var(--primitive-transition-fast);
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
@@ -19,101 +16,54 @@
     outline: none;
   }
 
-  /* === Sizes === */
-  .btn-sm {
-    height: 2.25rem;
-    padding: 0 var(--space-4);
-    font-size: var(--text-sm);
-  }
+  .btn-sm { height: 2.25rem; padding: 0 var(--primitive-spacing-4); font-size: 0.875rem; }
+  .btn-md { height: 2.75rem; padding: 0 var(--primitive-spacing-6); font-size: 1rem; }
+  .btn-lg { height: 3.5rem; padding: 0 var(--primitive-spacing-8); font-size: 1.125rem; border-radius: var(--primitive-radius-lg); }
 
-  .btn-md {
-    height: 2.75rem;
-    padding: 0 var(--space-6);
-    font-size: var(--text-base);
-  }
-
-  .btn-lg {
-    height: 3.5rem;
-    padding: 0 var(--space-8);
-    font-size: var(--text-lg);
-    border-radius: var(--radius-lg);
-  }
-
-  /* === Variants === */
   .btn-primary {
-    background: hsl(var(--interactive-primary));
-    color: hsl(var(--text-inverted));
-    box-shadow: var(--shadow-md);
+    background: hsl(var(--color-interactive-primary));
+    color: hsl(var(--color-text-inverted));
+    box-shadow: var(--primitive-shadow-md);
   }
-
   .btn-primary:hover {
-    background: hsl(var(--interactive-primary-hover));
-    box-shadow: var(--shadow-lg), 0 0 20px hsl(var(--interactive-primary) / 0.2);
+    background: hsl(var(--color-interactive-primary-hover));
+    box-shadow: var(--primitive-shadow-lg), 0 0 20px hsl(var(--color-interactive-primary) / 0.2);
     transform: translateY(-1px);
   }
-
-  .btn-primary:active {
-    transform: translateY(0) scale(0.98);
-  }
+  .btn-primary:active { transform: translateY(0) scale(0.98); }
 
   .btn-secondary {
-    background: hsl(var(--interactive-secondary));
-    color: hsl(var(--text-primary));
-    border: 1px solid hsl(var(--border));
+    background: hsl(var(--color-interactive-secondary));
+    color: hsl(var(--color-text-primary));
+    border: 1px solid hsl(var(--color-border));
   }
-
   .btn-secondary:hover {
-    background: hsl(var(--interactive-secondary-hover));
-    border-color: hsl(var(--border-hover));
+    background: hsl(var(--color-interactive-secondary-hover));
+    border-color: hsl(var(--color-border-hover));
   }
 
   .btn-ghost {
     background: transparent;
-    color: hsl(var(--text-secondary));
+    color: hsl(var(--color-text-secondary));
   }
-
   .btn-ghost:hover {
-    background: hsl(var(--interactive-secondary));
-    color: hsl(var(--text-primary));
+    background: hsl(var(--color-interactive-secondary));
+    color: hsl(var(--color-text-primary));
   }
 
   .btn-gradient {
-    background: linear-gradient(
-      135deg,
-      hsl(var(--brand-h) var(--brand-s) 55%),
-      hsl(calc(var(--brand-h) + 20) var(--brand-s) 50%)
-    );
-    color: hsl(var(--text-inverted));
-    box-shadow: var(--shadow-lg);
+    background: linear-gradient(135deg, hsl(var(--primitive-color-brand-500)), hsl(calc(221 + 20) 83% 50%));
+    color: hsl(var(--color-text-inverted));
+    box-shadow: var(--primitive-shadow-lg);
   }
-
   .btn-gradient:hover {
-    box-shadow: var(--shadow-xl), 0 0 30px hsl(var(--brand-h) var(--brand-s) var(--brand-l) / 0.3);
+    box-shadow: var(--primitive-shadow-xl), 0 0 30px hsl(var(--primitive-color-brand-500) / 0.3);
     transform: translateY(-1px);
   }
 
-  .btn-destructive {
-    background: hsl(var(--status-error));
-    color: hsl(var(--text-inverted));
-  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
-  .btn-destructive:hover {
-    background: hsl(var(--status-error) / 0.9);
-  }
-
-  /* === States === */
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  .btn-loading {
-    position: relative;
-    color: transparent;
-    pointer-events: none;
-  }
-
+  .btn-loading { position: relative; color: transparent; pointer-events: none; }
   .btn-loading::after {
     content: "";
     position: absolute;
@@ -123,29 +73,5 @@
     border-right-color: transparent;
     border-radius: 50%;
     animation: spin 0.75s linear infinite;
-  }
-
-  /* === Icon Button === */
-  .btn-icon {
-    padding: 0;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: var(--radius-md);
-  }
-
-  .btn-icon-sm {
-    width: 2rem;
-    height: 2rem;
-  }
-
-  .btn-icon-lg {
-    width: 3rem;
-    height: 3rem;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
   }
 }

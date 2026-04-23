@@ -5,7 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarPlus, Users, Copy, Check, Plus, Link as LinkIcon, Pencil, Trash2, X, ArrowLeft, Download } from "lucide-react";
+import { 
+  CalendarPlus, Users, Copy, Check, Plus, Link as LinkIcon, 
+  Pencil, Trash2, X, ArrowLeft, Download, Trophy, 
+  ShoppingBag, Shield, Star, Swords, Search, CheckCircle2, 
+  ShoppingCart, Flame, AlertCircle, Coins as LucideCoins, ExternalLink, UserPlus 
+} from "lucide-react";
 
 const BASE_URL = window.location.origin;
 
@@ -15,388 +20,506 @@ export default function ClassView() {
   const [classData, setClassData] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [students, setStudents] = useState([]);
+  const [rewards, setRewards] = useState([]);
+  const [houses, setHouses] = useState([]);
+  const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState("sessions"); // 'sessions' | 'students' | 'gamification'
+
+  // Modals state
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [showHouseModal, setShowHouseModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [modalForm, setModalForm] = useState({ name: "", description: "", cost_coins: 100, icon: "🎁", color: "#3b82f6" });
+
+  // Student management state
   const [newStudentName, setNewStudentName] = useState("");
-  const [addingStudent, setAddingStudent] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [editingName, setEditingName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => { fetchAll(); }, [id]);
 
   const fetchAll = async () => {
     setLoading(true);
-    const [{ data: cls }, { data: sData }, { data: stData }] = await Promise.all([
-      supabase.from("classes").select("*").eq("id", id).single(),
-      supabase.from("sessions").select("*").eq("class_id", id).order("date", { ascending: false }),
-      supabase
-        .from("class_students")
-        .select("id, student_id, student_name, public_token, profiles(full_name)")
-        .eq("class_id", id),
-    ]);
-    setClassData(cls);
-    setSessions(sData || []);
-    const sortedStudents = (stData || []).sort((a, b) => 
-      getStudentName(a).localeCompare(getStudentName(b))
-    );
-    setStudents(sortedStudents);
+    try {
+      console.log("Fetching all data for class:", id);
+      const [
+        { data: cls }, 
+        { data: sData }, 
+        { data: stData },
+        { data: rwData },
+        { data: hData },
+        { data: pData }
+      ] = await Promise.all([
+        supabase.from("classes").select("*").eq("id", id).single(),
+        supabase.from("sessions").select("*").eq("class_id", id).order("date", { ascending: false }),
+        supabase.from("class_students").select("id, student_id, student_name, public_token, house_id, dni, profiles(full_name)").eq("class_id", id),
+        supabase.from("rewards").select("*").eq("class_id", id).order("created_at", { ascending: false }),
+        supabase.from("class_houses").select("*").eq("class_id", id).order("created_at", { ascending: false }),
+        supabase.from("student_purchases").select("*, rewards(name, icon), profiles(full_name)").order("created_at", { ascending: false })
+      ]);
+
+      console.log("Students found:", stData?.length || 0);
+
+      setClassData(cls);
+      setSessions(sData || []);
+      setStudents((stData || []).sort((a, b) => {
+         const nameA = getStudentName(a);
+         const nameB = getStudentName(b);
+         return nameA.localeCompare(nameB);
+      }));
+      setRewards(rwData || []);
+      setHouses(hData || []);
+      
+      const classRewardIds = (rwData || []).map(r => r.id);
+      setPurchases((pData || []).filter(p => classRewardIds.includes(p.reward_id)));
+    } catch (err) {
+      console.error("Error total en fetchAll:", err);
+    }
     setLoading(false);
   };
 
+  const getStudentName = (st) => {
+    if (!st) return "Cargando...";
+    return st.profiles?.full_name || st.student_name || "Sin nombre";
+  };
+
+  // --- STUDENT ACTIONS ---
+  const handleAddStudent = async (e) => {
+    e.preventDefault();
+    if (!newStudentName.trim()) return;
+    const { error } = await supabase.from("class_students").insert([{ class_id: id, student_name: newStudentName }]);
+    if (!error) { setNewStudentName(""); fetchAll(); }
+    else { console.error("Error agregando alumno:", error); }
+  };
+
+  const handleDeleteStudent = async (sid) => {
+    if (!confirm("¿Eliminar alumno de esta clase?")) return;
+    await supabase.from("class_students").delete().eq("id", sid);
+    fetchAll();
+  };
+
+  const updateStudentHouse = async (sid, hid) => {
+    await supabase.from("class_students").update({ house_id: hid || null }).eq("id", sid);
+    fetchAll();
+  };
+
+  const updateStudentDni = async (sid, dni) => {
+    await supabase.from("class_students").update({ dni }).eq("id", sid);
+    // Optimistic update
+    setStudents(prev => prev.map(s => s.id === sid ? { ...s, dni } : s));
+  };
+
+  // --- REWARD ACTIONS ---
+  const handleSaveReward = async () => {
+    if (!modalForm.name.trim()) return;
+    const payload = { 
+      class_id: id, 
+      name: modalForm.name, 
+      description: modalForm.description, 
+      cost_coins: parseInt(modalForm.cost_coins), 
+      icon: modalForm.icon 
+    };
+
+    if (editingItem) {
+      await supabase.from("rewards").update(payload).eq("id", editingItem.id);
+    } else {
+      await supabase.from("rewards").insert([payload]);
+    }
+    setShowRewardModal(false);
+    fetchAll();
+  };
+
+  const handleDeleteReward = async (rid) => {
+    if (!confirm("¿Eliminar este premio?")) return;
+    await supabase.from("rewards").delete().eq("id", rid);
+    fetchAll();
+  };
+
+  // --- HOUSE ACTIONS ---
+  const handleSaveHouse = async () => {
+    if (!modalForm.name.trim()) return;
+    const payload = { 
+      class_id: id, 
+      name: modalForm.name, 
+      color: modalForm.color, 
+      icon: modalForm.icon 
+    };
+
+    if (editingItem) {
+      await supabase.from("class_houses").update(payload).eq("id", editingItem.id);
+    } else {
+      await supabase.from("class_houses").insert([payload]);
+    }
+    setShowHouseModal(false);
+    fetchAll();
+  };
+
+  const handleDeleteHouse = async (hid) => {
+    if (!confirm("¿Eliminar esta casa?")) return;
+    await supabase.from("class_houses").delete().eq("id", hid);
+    fetchAll();
+  };
+
+  // --- PURCHASE ACTIONS ---
+  const handleUpdatePurchaseStatus = async (pid, status) => {
+    await supabase.from("student_purchases").update({ status }).eq("id", pid);
+    fetchAll();
+  };
+
+  // --- SESSION ACTIONS ---
   const createSession = async () => {
     const today = new Date().toISOString().split("T")[0];
     const existing = sessions.find(s => s.date === today);
     if (existing) { navigate(`/session/${existing.id}`); return; }
     
-    // Create session
     const { data: sessionData, error: sError } = await supabase
       .from("sessions")
       .insert([{ class_id: id, date: today }])
       .select()
       .single();
     
-    if (sError) { alert("Error: " + sError.message); return; }
+    if (sError) return;
 
-    // Add predefined criteria
-    const defaultCriteria = [
-      "Conducta", 
-      "Participación en clase", 
-      "Carpeta completa", 
-      "Actividades completas"
-    ];
-    
+    const defaultCriteria = ["Conducta", "Participación", "Carpeta", "Actividades"];
     await supabase.from("session_criteria").insert(
-      defaultCriteria.map(name => ({
-        session_id: sessionData.id,
-        name,
-        max_score: 10
-      }))
+      defaultCriteria.map(name => ({ session_id: sessionData.id, name, max_score: 10 }))
     );
 
     navigate(`/session/${sessionData.id}`);
   };
 
-  const addStudent = async () => {
-    if (!newStudentName.trim()) return;
-    setAddingStudent(true);
-    const { data, error } = await supabase
-      .from("class_students")
-      .insert([{ class_id: id, student_name: newStudentName.trim() }])
-      .select("id, student_id, student_name, public_token, profiles(full_name)")
-      .single();
-    if (error) {
-      alert("Error al agregar alumno: " + error.message);
-    } else {
-      setStudents(prev => [...prev, data].sort((a, b) => 
-        getStudentName(a).localeCompare(getStudentName(b))
-      ));
-      setNewStudentName("");
-    }
-    setAddingStudent(false);
-  };
-
   const copyClassLink = () => {
     if (!classData?.short_code) return;
     navigator.clipboard.writeText(`${BASE_URL}/j/${classData.short_code}`);
-
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const deleteStudent = async (csId) => {
-    if (!confirm("¿Eliminar este alumno de la clase? Esto también borrará sus notas.")) return;
-    const { error } = await supabase.from("class_students").delete().eq("id", csId);
-    if (!error) setStudents(prev => prev.filter(s => s.id !== csId));
-    else alert("Error al eliminar: " + error.message);
-  };
-
-  const startEdit = (st) => {
-    setEditingId(st.id);
-    setEditingName(st.profiles?.full_name || st.student_name || "");
-  };
-
-  const saveEdit = async (csId) => {
-    if (!editingName.trim()) return;
-    const { error } = await supabase
-      .from("class_students")
-      .update({ student_name: editingName.trim() })
-      .eq("id", csId);
-    if (!error) {
-      setStudents(prev => prev.map(s => s.id === csId ? { ...s, student_name: editingName.trim() } : s));
-      setEditingId(null);
-    } else {
-      alert("Error al editar: " + error.message);
-    }
-  };
-  const deleteSession = async (sessionId) => {
-    if (!window.confirm("¿Estás seguro de que deseas eliminar esta sesión y TODAS sus calificaciones? Esta acción no se puede deshacer.")) return;
-    
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('sessions')
-        .delete()
-        .eq('id', sessionId);
-        
-      if (error) throw error;
-      
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
-      
-    } catch (error) {
-      console.error('Error deleting session:', error);
-      alert("Hubo un error al eliminar la sesión.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const exportGrades = async () => {
-    setLoading(true);
-    try {
-      const { data: sData } = await supabase.from("sessions").select("id, date").eq("class_id", id);
-      const sIds = sData.map(s => s.id);
-      const { data: cData } = await supabase.from("session_criteria").select("*").in("session_id", sIds);
-      const { data: gData } = await supabase.from("grades").select("*").in("criteria_id", cData.map(c => c.id));
-
-      const rows = [["Alumno", "Fecha", "Sesion", "Criterio", "Nota", "Max"]];
-      students.forEach(st => {
-        gData.filter(g => g.class_student_id === st.id).forEach(g => {
-          const crit = cData.find(c => c.id === g.criteria_id);
-          const sess = sData.find(s => s.id === crit.session_id);
-          rows.push([getStudentName(st), sess.date, sess.id, crit.name, g.score, crit.max_score]);
-        });
-      });
-
-      const csv = "data:text/csv;charset=utf-8," + rows.map(r => r.join(",")).join("\n");
-      const link = document.createElement("a");
-      link.href = encodeURI(csv);
-      link.download = `notas_${classData.name}.csv`;
-      link.click();
-    } catch (e) { alert("Error al exportar"); }
-    setLoading(false);
-  };
-
-  const getStudentName = (st) => st.profiles?.full_name || st.student_name || "Sin nombre";
-
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
+    <div className="flex items-center justify-center min-h-[400px]">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
     </div>
   );
 
-  const classLink = `${BASE_URL}/j/${classData?.short_code || '...'}`;
-
+  const filteredStudents = students.filter(st => getStudentName(st).toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-6 animate-in slide-up">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
           <Link to="/home">
-            <Button variant="ghost" size="icon" className="rounded-xl">
-              <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
+            <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-white">
+              <ArrowLeft className="w-5 h-5 text-slate-500" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{classData?.name}</h1>
-            <p className="text-[var(--text-secondary)] mt-1 font-medium text-sm">Panel de control de la materia</p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          onClick={exportGrades}
-          className="rounded-2xl h-11 px-5 border-2 hover:bg-[var(--bg-secondary)] gap-2 font-black text-xs uppercase tracking-widest mt-2 sm:mt-0"
-        >
-          <Download className="w-4 h-4" /> Exportar Planilla
-        </Button>
-      </div>
-
-      {/* Class Access Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white overflow-hidden relative shadow-2xl shadow-blue-600/20 border border-blue-400/20">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 min-w-0 w-full md:w-auto">
-            <div className="bg-white/20 p-4 rounded-2xl flex-shrink-0 backdrop-blur-md border border-white/20 hidden sm:flex items-center justify-center">
-              <LinkIcon className="w-7 h-7 text-white" />
-            </div>
-            <div className="min-w-0 w-full">
-              <p className="font-extrabold text-lg leading-none mb-1">Código de Acceso para Alumnos</p>
-              <p className="text-blue-100/80 text-xs mb-3 font-medium">Los alumnos pueden ingresar a la web con este código.</p>
-              <div className="flex items-center gap-3">
-                <span className="bg-white/10 border border-white/20 px-5 py-2.5 rounded-xl text-2xl font-black tracking-[0.25em] uppercase shadow-inner">
-                  {classData?.short_code || '...'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2 w-full md:w-auto">
-            <button
-              onClick={copyClassLink}
-              className="w-full flex items-center justify-center gap-3 bg-white text-blue-600 hover:bg-blue-50 transition-all px-6 py-4 md:py-3.5 rounded-2xl text-sm font-black shadow-lg"
-            >
-              {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-              {copied ? "¡Enlace copiado!" : "Copiar Link Directo"}
-            </button>
-            <p className="text-[10px] text-blue-200/60 font-medium text-center uppercase tracking-widest hidden md:block">
-              O enviales el enlace URL
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">{classData?.name}</h1>
+            <p className="text-slate-500 mt-2 font-medium text-sm flex items-center gap-2">
+               <Shield className="w-4 h-4 text-blue-500" />
+               Docente • Gestión de RPG y Academia
             </p>
           </div>
         </div>
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
       </div>
 
+      {/* Tabs */}
+      <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-[24px] w-fit border border-slate-200/50">
+        <button onClick={() => setActiveTab("sessions")} className={`tab-btn ${activeTab === 'sessions' ? 'active' : ''}`}><CalendarPlus className="w-4 h-4" /> Sesiones</button>
+        <button onClick={() => setActiveTab("students")} className={`tab-btn ${activeTab === 'students' ? 'active' : ''}`}><Users className="w-4 h-4" /> Alumnos</button>
+        <button onClick={() => setActiveTab("gamification")} className={`tab-btn ${activeTab === 'gamification' ? 'active' : ''}`}><Trophy className="w-4 h-4" /> Gamificación</button>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Sessions Section */}
-        <div className="lg:col-span-2 space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-black text-gray-800 tracking-tight">Sesiones recientes</h3>
-            <Button onClick={createSession} className="gap-2 rounded-2xl h-11 px-5 shadow-lg shadow-blue-600/10 font-bold hidden sm:flex">
-              <CalendarPlus className="w-4 h-4" /> Nueva sesión
-            </Button>
+      {/* 1. SESSIONS TAB */}
+      {activeTab === "sessions" && (
+        <div className="space-y-6">
+           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 text-white overflow-hidden relative shadow-2xl shadow-blue-600/20">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+              <div className="flex items-center gap-6">
+                <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-xl border border-white/20">
+                  <LinkIcon className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <p className="font-black text-xl leading-none mb-1">Acceso de Estudiantes</p>
+                  <p className="text-blue-100/80 text-sm mb-4 font-medium italic">Compartí este código para que se unan</p>
+                  <span className="bg-white/10 border border-white/20 px-6 py-3 rounded-2xl text-3xl font-black tracking-[0.3em] uppercase">
+                    {classData?.short_code || '...'}
+                  </span>
+                </div>
+              </div>
+              <Button onClick={copyClassLink} className="bg-white text-blue-600 hover:bg-blue-50 h-14 px-8 rounded-2xl font-black shadow-xl">
+                {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
+                {copied ? "¡Copiado!" : "Copiar Enlace"}
+              </Button>
+            </div>
           </div>
-          
-          <Button onClick={createSession} className="w-full gap-2 rounded-2xl h-12 font-bold shadow-lg shadow-blue-600/10 sm:hidden">
-            <CalendarPlus className="w-5 h-5" /> Iniciar sesión de hoy
-          </Button>
 
-          {sessions.length === 0 ? (
-            <div
-              className="border-2 border-dashed border-gray-200 rounded-[32px] py-16 px-6 text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/20 transition-all bg-white/50"
-              onClick={createSession}
-            >
-              <CalendarPlus className="w-12 h-12 text-gray-300 mx-auto mb-4 opacity-50" />
-              <p className="text-gray-900 font-black text-lg">Sin sesiones registradas</p>
-              <p className="text-gray-500 font-medium max-w-xs mx-auto mt-2">Hacé clic para crear la primera sesión de evaluación de la clase.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div onClick={createSession} className="border-2 border-dashed border-slate-200 rounded-[40px] p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all bg-white group">
+               <div className="w-16 h-16 rounded-[24px] bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Plus className="w-8 h-8" /></div>
+               <h4 className="font-black text-slate-800 text-lg">Nueva Sesión</h4>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {sessions.map(s => (
-                <div key={s.id} className="bg-white rounded-3xl border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-600/5 transition-all p-6 flex flex-col relative group/session">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-black text-gray-900 text-lg capitalize leading-tight">
-                        {format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}
-                      </p>
-                      <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-1">
-                        {format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => deleteSession(s.id)}
-                      className="p-2 -mt-2 -mr-2 rounded-xl text-gray-300 hover:text-red-600 hover:bg-red-50 transition-all opacity-0 group-hover/session:opacity-100 focus:opacity-100 outline-none"
-                      title="Eliminar sesión"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <div className="mt-8 flex items-center justify-between gap-4">
-                    <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider">Activa</span>
-                    <Link to={`/session/${s.id}`} className="flex-1">
-                      <Button variant="secondary" className="w-full rounded-2xl font-black text-sm h-11 hover:bg-blue-600 hover:text-white transition-all">Ingresar notas</Button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Students Section */}
-        <div className="space-y-5">
-          <Card className="rounded-[32px] border-none shadow-xl shadow-slate-900/5 bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50/50 pb-6 border-b border-gray-50">
-              <CardTitle className="text-xl font-black flex items-center gap-3">
-                <div className="bg-blue-600 p-2 rounded-xl">
-                  <Users className="w-4 h-4 text-white" />
-                </div>
-                Alumnos <span className="text-gray-400 ml-auto text-sm">{students.length}</span>
-              </CardTitle>
-              <div className="relative mt-4">
-                <input
-                  type="text"
-                  placeholder="Buscar alumno..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white border border-gray-100 rounded-2xl py-2 pl-9 pr-4 text-xs font-bold shadow-sm focus:border-blue-400 outline-none transition-all"
-                />
-                <Users className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
+            {sessions.map(s => (
+              <div key={s.id} className="bg-white rounded-[40px] border border-slate-100 p-8 flex flex-col hover:shadow-2xl transition-all">
+                <h4 className="font-black text-slate-900 text-xl capitalize">{format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}</h4>
+                <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-2">{format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}</p>
+                <Link to={`/session/${s.id}`} className="mt-8"><Button className="w-full rounded-2xl h-12 font-black uppercase text-[10px]">Ingresar Notas</Button></Link>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-              {students.length === 0 ? (
-                <div className="text-center py-6">
-                  <p className="text-sm font-bold text-gray-400">Sin alumnos registrados.</p>
-                </div>
-              ) : (
-                <ul className="space-y-1 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  {students
-                    .filter(st => getStudentName(st).toLowerCase().includes(searchTerm.toLowerCase()))
-                    .map(st => (
-                    <li key={st.id} className="group flex items-center gap-3 py-3 border-b border-gray-50 last:border-0 hover:bg-blue-50/30 rounded-2xl px-2 transition-colors">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-black flex-shrink-0 shadow-sm shadow-blue-400/20">
-                        {getStudentName(st)[0].toUpperCase()}
-                      </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-                      {editingId === st.id ? (
-                        <div className="flex-1 flex items-center gap-2">
-                          <input
-                            autoFocus
-                            value={editingName}
-                            onChange={e => setEditingName(e.target.value)}
-                            onKeyDown={e => e.key === "Enter" && saveEdit(st.id)}
-                            className="flex-1 text-sm border-2 border-blue-400 rounded-xl px-3 py-2 outline-none shadow-lg shadow-blue-500/10 font-bold"
-                          />
-                          <button onClick={() => saveEdit(st.id)} className="p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20"><Check className="w-4 h-4" /></button>
-                          <button onClick={() => setEditingId(null)} className="p-2 bg-gray-100 text-gray-400 rounded-xl"><X className="w-4 h-4" /></button>
-                        </div>
-                      ) : (
-                        <>
-                          <span className="text-sm font-bold text-gray-800 truncate flex-1 leading-none">{getStudentName(st)}</span>
-                          <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => startEdit(st)}
-                              className="p-2 rounded-xl text-gray-400 hover:text-blue-600 hover:bg-white transition-all"
-                              title="Editar nombre"
+      {/* 2. STUDENTS TAB */}
+      {activeTab === "students" && (
+        <div className="space-y-8 animate-in slide-up">
+           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <form onSubmit={handleAddStudent} className="flex gap-3 w-full md:w-auto">
+                 <input 
+                   placeholder="Nombre del alumno..." 
+                   className="bg-white border border-slate-200 rounded-2xl h-14 px-6 font-bold w-full md:w-80 outline-none focus:border-blue-400 transition-all"
+                   value={newStudentName}
+                   onChange={e => setNewStudentName(e.target.value)}
+                 />
+                 <Button type="submit" className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px]"><UserPlus className="w-5 h-5 mr-2" /> Agregar</Button>
+              </form>
+              <div className="relative w-full md:w-80">
+                 <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                 <input 
+                   placeholder="Buscar en lista..." 
+                   className="bg-white border border-slate-200 rounded-2xl h-14 pl-12 pr-6 font-bold w-full outline-none focus:border-blue-400 transition-all"
+                   value={searchTerm}
+                   onChange={e => setSearchTerm(e.target.value)}
+                 />
+              </div>
+           </div>
+
+           <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                 <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                       <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Estudiante</th>
+                       <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">DNI / Validación</th>
+                       <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Casa / Escudo</th>
+                       <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Acciones</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-slate-50">
+                    {filteredStudents.map(st => (
+                      <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
+                         <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                               <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-black">
+                                  {getStudentName(st)[0]}
+                               </div>
+                               <div>
+                                  <span className="font-black text-slate-800 text-base">{getStudentName(st)}</span>
+                                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-0.5">ID: {st.public_token?.slice(0, 8)}</p>
+                               </div>
+                            </div>
+                         </td>
+                         <td className="px-8 py-6">
+                            <input 
+                               placeholder="DNI del alumno"
+                               className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none focus:border-blue-400 w-32"
+                               value={st.dni || ""}
+                               onChange={e => updateStudentDni(st.id, e.target.value)}
+                            />
+                         </td>
+                         <td className="px-8 py-6">
+                            <select 
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none"
+                              value={st.house_id || ""}
+                              onChange={e => updateStudentHouse(st.id, e.target.value)}
                             >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteStudent(st.id)}
-                              className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-white transition-all"
-                              title="Eliminar alumno"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                               <option value="">Sin Casa</option>
+                               {houses.map(h => (
+                                 <option key={h.id} value={h.id}>{h.icon} {h.name}</option>
+                               ))}
+                            </select>
+                         </td>
+                         <td className="px-8 py-6 text-right space-x-2">
+                            <Link to={`/class-live/${st.public_token}`} target="_blank">
+                               <Button variant="ghost" size="icon" className="rounded-xl" title="Ver Perfil Público"><ExternalLink className="w-4 h-4" /></Button>
+                            </Link>
+                            <Button onClick={() => handleDeleteStudent(st.id)} variant="ghost" size="icon" className="rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
+                         </td>
+                      </tr>
+                    ))}
+                 </tbody>
+              </table>
+              {filteredStudents.length === 0 && (
+                <div className="p-20 text-center text-slate-400 font-bold italic">No hay alumnos registrados aún o que coincidan con la búsqueda.</div>
               )}
-
-              {/* Add forms */}
-              <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-3">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Nuevo Integrante</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Nombre completo"
-                    value={newStudentName}
-                    onChange={e => setNewStudentName(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && addStudent()}
-                    className="flex-1 text-sm border-2 border-transparent bg-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 transition-all font-bold shadow-sm"
-                  />
-                  <Button size="icon" onClick={addStudent} disabled={addingStudent} className="rounded-xl h-11 w-11 flex-shrink-0 shadow-lg shadow-blue-600/20">
-                    <Plus className="w-5 h-5" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+           </div>
         </div>
-      </div>
+      )}
+
+      {/* 3. GAMIFICATION TAB */}
+      {activeTab === "gamification" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+           {/* Rewards Management */}
+           <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tienda Notyx</h3>
+                <Button onClick={() => { setEditingItem(null); setModalForm({ name: "", description: "", cost_coins: 100, icon: "🎁" }); setShowRewardModal(true); }} className="rounded-2xl bg-orange-500 hover:bg-orange-600 h-10 px-5 gap-2 font-black text-[10px] uppercase tracking-widest"><Plus className="w-4 h-4" /> Crear Premio</Button>
+              </div>
+              <div className="grid gap-4">
+                 {rewards.map(r => (
+                   <div key={r.id} className="bg-white rounded-3xl p-5 border border-slate-100 flex items-center justify-between hover:shadow-lg transition-all group">
+                      <div className="flex items-center gap-5">
+                         <div className="text-3xl w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">{r.icon}</div>
+                         <div>
+                            <h4 className="font-black text-slate-800 leading-none mb-1">{r.name}</h4>
+                            <p className="text-xs text-slate-400 font-medium">{r.description || 'Sin descripción'}</p>
+                            <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mt-2 flex items-center gap-1"><LucideCoins className="w-3 h-3" /> {r.cost_coins} Coins</p>
+                         </div>
+                      </div>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                         <Button onClick={() => { setEditingItem(r); setModalForm(r); setShowRewardModal(true); }} variant="ghost" size="icon" className="rounded-xl"><Pencil className="w-4 h-4" /></Button>
+                         <Button onClick={() => handleDeleteReward(r.id)} variant="ghost" size="icon" className="rounded-xl text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                   </div>
+                 ))}
+                 {rewards.length === 0 && <p className="text-center py-10 text-slate-400 font-bold italic">No hay premios creados.</p>}
+              </div>
+
+              {/* Pending Purchases Section */}
+              <div className="pt-10 space-y-6">
+                 <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                    <ShoppingCart className="w-6 h-6 text-emerald-500" />
+                    Compras Pendientes
+                 </h3>
+                 <div className="space-y-3">
+                    {purchases.filter(p => p.status === 'pending').map(p => (
+                      <div key={p.id} className="bg-emerald-50 rounded-3xl p-5 border border-emerald-100 flex items-center justify-between animate-in zoom-in duration-300">
+                         <div className="flex items-center gap-4">
+                            <div className="text-2xl">{p.rewards?.icon}</div>
+                            <div>
+                               <h4 className="font-black text-slate-800 leading-none mb-1">{p.profiles?.full_name}</h4>
+                               <p className="text-xs text-emerald-700 font-medium">Compró: <span className="font-black uppercase tracking-tight">{p.rewards?.name}</span></p>
+                            </div>
+                         </div>
+                         <div className="flex gap-2">
+                            <Button onClick={() => handleUpdatePurchaseStatus(p.id, 'delivered')} className="bg-emerald-600 hover:bg-emerald-700 rounded-xl h-10 px-4 font-black text-[10px] uppercase tracking-widest flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Entregar</Button>
+                            <Button onClick={() => handleUpdatePurchaseStatus(p.id, 'cancelled')} variant="ghost" className="text-red-500 hover:bg-red-100 rounded-xl h-10 font-black text-[10px] uppercase tracking-widest">Rechazar</Button>
+                         </div>
+                      </div>
+                    ))}
+                    {purchases.filter(p => p.status === 'pending').length === 0 && (
+                      <div className="bg-slate-50 rounded-3xl p-8 text-center border border-dashed border-slate-200">
+                         <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                         <p className="text-slate-400 font-bold italic text-sm">No hay compras por entregar.</p>
+                      </div>
+                    )}
+                 </div>
+              </div>
+           </div>
+
+           {/* House Management */}
+           <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Casas y Escudos</h3>
+                 <Button onClick={() => { setEditingItem(null); setModalForm({ name: "", icon: "🏠", color: "#3b82f6" }); setShowHouseModal(true); }} className="rounded-2xl bg-blue-600 hover:bg-blue-700 h-10 px-5 gap-2 font-black text-[10px] uppercase tracking-widest"><Plus className="w-4 h-4" /> Nueva Casa</Button>
+              </div>
+              <div className="grid gap-6">
+                 {houses.map(h => (
+                   <div key={h.id} className="bg-white rounded-[40px] p-8 border border-slate-100 hover:shadow-2xl transition-all relative group overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: h.color }} />
+                      <div className="flex items-center justify-between relative z-10">
+                         <div className="flex items-center gap-6">
+                            <div className="text-4xl w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center border-2 border-slate-100 shadow-inner group-hover:scale-110 transition-transform">
+                              {h.icon}
+                            </div>
+                            <div>
+                               <h4 className="font-black text-2xl text-slate-800">{h.name}</h4>
+                               <div className="flex items-center gap-2 mt-2">
+                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: h.color }} />
+                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificador de Casa</span>
+                               </div>
+                            </div>
+                         </div>
+                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                            <Button onClick={() => { setEditingItem(h); setModalForm(h); setShowHouseModal(true); }} variant="outline" size="icon" className="rounded-xl"><Pencil className="w-4 h-4" /></Button>
+                            <Button onClick={() => handleDeleteHouse(h.id)} variant="outline" size="icon" className="rounded-xl text-red-400 hover:text-red-600 border-red-100"><Trash2 className="w-4 h-4" /></Button>
+                         </div>
+                      </div>
+                   </div>
+                 ))}
+                 {houses.length === 0 && <p className="text-center py-10 text-slate-400 font-bold italic">No hay casas registradas.</p>}
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* --- MODALS --- */}
+      {(showRewardModal || showHouseModal) && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+           <div className="bg-white rounded-[40px] w-full max-w-md p-10 shadow-2xl animate-in zoom-in duration-300">
+              <h3 className="text-2xl font-black text-slate-900 mb-6">
+                {editingItem ? 'Editar' : 'Crear'} {showRewardModal ? 'Premio' : 'Casa'}
+              </h3>
+              <div className="space-y-5">
+                 <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Nombre</label>
+                    <input className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none transition-all" value={modalForm.name} onChange={e => setModalForm({...modalForm, name: e.target.value})} />
+                 </div>
+                 {showRewardModal && (
+                   <>
+                     <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Costo en Coins</label>
+                        <input type="number" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.cost_coins} onChange={e => setModalForm({...modalForm, cost_coins: e.target.value})} />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Descripción</label>
+                        <textarea className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" rows={3} value={modalForm.description} onChange={e => setModalForm({...modalForm, description: e.target.value})} />
+                     </div>
+                   </>
+                 )}
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Icono (Emoji)</label>
+                       <input className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold text-center text-2xl" value={modalForm.icon} onChange={e => setModalForm({...modalForm, icon: e.target.value})} />
+                    </div>
+                    {showHouseModal && (
+                       <div>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Color</label>
+                          <input type="color" className="w-full h-[60px] bg-slate-50 border-2 border-transparent rounded-2xl p-2" value={modalForm.color} onChange={e => setModalForm({...modalForm, color: e.target.value})} />
+                       </div>
+                    )}
+                 </div>
+                 <div className="flex gap-3 pt-6">
+                    <Button onClick={showRewardModal ? handleSaveReward : handleSaveHouse} className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]">Guardar Cambios</Button>
+                    <Button variant="ghost" onClick={() => { setShowRewardModal(false); setShowHouseModal(false); }} className="flex-1 h-14 rounded-2xl font-black text-slate-400">Cancelar</Button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Styles for tabs */}
+      <style>{`
+        .tab-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 24px;
+          border-radius: 16px;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          transition: all 0.3s;
+          color: #64748b;
+        }
+        .tab-btn:hover { color: #1e293b; }
+        .tab-btn.active {
+          background: white;
+          color: #2563eb;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+      `}</style>
     </div>
   );
 }

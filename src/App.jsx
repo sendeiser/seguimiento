@@ -17,6 +17,8 @@ import Gateway from "./pages/Gateway";
 
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentClassView from "./pages/student/StudentClassView";
+import GlobalRanking from "./pages/gamification/GlobalRanking";
+import GlobalMarketplace from "./pages/gamification/GlobalMarketplace";
 
 const DynamicDashboard = () => {
   const { profile } = useAuth();
@@ -38,6 +40,8 @@ export default function App() {
         
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/home" element={<DynamicDashboard />} />
+          <Route path="/ranking" element={<GlobalRanking />} />
+          <Route path="/shop" element={<GlobalMarketplace />} />
           
           {/* Teacher Routes */}
           <Route path="/class/:id" element={<ProtectedRoute allowedRoles={['teacher']}><ClassView /></ProtectedRoute>} />

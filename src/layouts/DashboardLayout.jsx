@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
 import { supabase } from "../lib/supabase";
-import { LogOut, GraduationCap, LayoutDashboard, Menu, X, Sun, Moon } from "lucide-react";
+import { LogOut, GraduationCap, LayoutDashboard, Menu, X, Sun, Moon, Trophy, ShoppingBag } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 
 export default function DashboardLayout() {
@@ -46,6 +46,22 @@ export default function DashboardLayout() {
         >
           <LayoutDashboard className="w-4 h-4" />
           {isTeacher ? "Mis Clases" : "Mis Materias"}
+        </Link>
+        <Link
+          to="/ranking"
+          onClick={closeMenu}
+          className={`nav-item ${location.pathname === "/ranking" ? "active" : ""}`}
+        >
+          <Trophy className="w-4 h-4" />
+          Ranking Global
+        </Link>
+        <Link
+          to="/shop"
+          onClick={closeMenu}
+          className={`nav-item ${location.pathname === "/shop" ? "active" : ""}`}
+        >
+          <ShoppingBag className="w-4 h-4" />
+          Tienda Notyx
         </Link>
       </nav>
 

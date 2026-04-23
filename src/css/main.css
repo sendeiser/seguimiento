@@ -4,45 +4,44 @@
 
 @import "tailwindcss";
 
-/* Base */
+/* === BASE === */
 @import "./base/_variables.css";
 @import "./base/_typography.css";
 
-/* Components */
+/* === Tailwind v4 Theme Extension === */
+@theme inline {
+  --color-bg-primary: hsl(var(--color-bg-primary));
+  --color-bg-secondary: hsl(var(--color-bg-secondary));
+  --color-bg-tertiary: hsl(var(--color-bg-tertiary));
+  --color-bg-elevated: hsl(var(--color-bg-elevated));
+
+  --color-text-primary: hsl(var(--color-text-primary));
+  --color-text-secondary: hsl(var(--color-text-secondary));
+  --color-text-muted: hsl(var(--color-text-muted));
+  --color-text-inverted: hsl(var(--color-text-inverted));
+
+  --color-success: hsl(var(--primitive-color-status-success));
+  --color-success-bg: hsl(var(--primitive-color-status-success-bg));
+  --color-warning: hsl(var(--primitive-color-status-warning));
+  --color-warning-bg: hsl(var(--primitive-color-status-warning-bg));
+  --color-error: hsl(var(--primitive-color-status-error));
+  --color-error-bg: hsl(var(--primitive-color-status-error-bg));
+  --color-info: hsl(var(--primitive-color-status-info));
+  --color-info-bg: hsl(var(--primitive-color-status-info-bg));
+
+  --radius-sm: var(--primitive-radius-sm);
+  --radius-md: var(--primitive-radius-md);
+  --radius-lg: var(--primitive-radius-lg);
+  --radius-xl: var(--primitive-radius-xl);
+  --radius-2xl: var(--primitive-radius-2xl);
+}
+
+/* === COMPONENTS === */
 @import "./components/_buttons.css";
 @import "./components/_cards.css";
 @import "./components/_inputs.css";
-@import "./components/_gamification.css";
 @import "./components/_navigation.css";
-@import "./components/_modals.css";
+@import "./components/_gamification.css";
 
-/* Utilities */
+/* === UTILITIES === */
 @import "./utilities/_animations.css";
-
-/* === Tailwind v4 Theme Extension === */
-@theme inline {
-  --color-bg-primary: hsl(var(--bg-primary));
-  --color-bg-secondary: hsl(var(--bg-secondary));
-  --color-bg-tertiary: hsl(var(--bg-tertiary));
-  --color-bg-elevated: hsl(var(--bg-elevated));
-
-  --color-text-primary: hsl(var(--text-primary));
-  --color-text-secondary: hsl(var(--text-secondary));
-  --color-text-muted: hsl(var(--text-muted));
-  --color-text-inverted: hsl(var(--text-inverted));
-
-  --color-success: hsl(var(--status-success));
-  --color-success-bg: hsl(var(--status-success-bg));
-  --color-warning: hsl(var(--status-warning));
-  --color-warning-bg: hsl(var(--status-warning-bg));
-  --color-error: hsl(var(--status-error));
-  --color-error-bg: hsl(var(--status-error-bg));
-  --color-info: hsl(var(--status-info));
-  --color-info-bg: hsl(var(--status-info-bg));
-
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
-  --radius-2xl: var(--radius-2xl);
-}

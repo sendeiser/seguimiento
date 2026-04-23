@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame } from "lucide-react";
+import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 
 export default function PublicClassView() {
@@ -107,7 +107,7 @@ export default function PublicClassView() {
       return sum + (score != null ? Number(score) : 0);
     }, 0);
 
-    const gami = calculateGamification(sortedSessions, st.grades, st.attendance);
+    const gami = calculateGamification(sortedSessions, st.grades, st.attendance, st.spent_coins || 0);
 
     return { ...st, total, max, overallTotal, gami };
   });
@@ -331,6 +331,11 @@ export default function PublicClassView() {
                                    {student.gami.streak}
                                 </span>
                               )}
+                              {student.gami?.hp <= 30 && (
+                                <span className="flex items-center gap-0.5 text-[8px] font-black text-red-600 bg-red-100 px-1 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                   <Heart className="w-2.5 h-2.5 fill-red-500" /> {student.gami.hp}
+                                </span>
+                              )}
                             </div>
                             {/* Mobile Rank Indicator */}
                             {idx < 3 && student.cs_id !== pinnedStudent && (
@@ -461,30 +466,51 @@ export default function PublicClassView() {
                       </button>
                 </div>
 
-                {/* Main Progress Bar (XP Bar Style) */}
-                <div className="px-6 pb-2">
-                   <div className="flex items-end justify-between mb-2">
-                      <div className="flex items-baseline gap-1">
-                         <span className="font-black text-4xl tracking-tighter text-slate-800 leading-none">{st.total}</span>
-                         <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">/ {st.max} xp</span>
-                      </div>
-                      <span className={`font-black tracking-tight text-xl ${
-                        pct >= 75 ? "text-emerald-500" : pct >= 50 ? "text-amber-500" : "text-rose-500"
-                      }`}>{pct}%</span>
+                {/* Main Progress Bars (XP & HP) */}
+                <div className="px-6 pb-2 space-y-4">
+                   {/* XP Bar */}
+                   <div>
+                     <div className="flex items-end justify-between mb-1.5">
+                        <div className="flex items-baseline gap-1">
+                           <span className="font-black text-4xl tracking-tighter text-slate-800 leading-none">{st.total}</span>
+                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">xp acumulada</span>
+                        </div>
+                        <span className={`font-black tracking-tight text-xl ${
+                          pct >= 75 ? "text-emerald-500" : pct >= 50 ? "text-amber-500" : "text-rose-500"
+                        }`}>{pct}%</span>
+                     </div>
+                     <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner border border-slate-200/50 relative">
+                       <div 
+                          className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${
+                            pct >= 75 ? "bg-gradient-to-r from-emerald-400 to-emerald-500" : 
+                            pct >= 50 ? "bg-gradient-to-r from-amber-400 to-amber-500" : 
+                            "bg-gradient-to-r from-rose-400 to-rose-500"
+                          }`} 
+                          style={{ width: `${pct}%` }}
+                        >
+                           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/30 to-transparent" />
+                        </div>
+                     </div>
                    </div>
-                   <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner border border-slate-200/50 relative">
-                     <div 
-                        className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${
-                          pct >= 75 ? "bg-gradient-to-r from-emerald-400 to-emerald-500" : 
-                          pct >= 50 ? "bg-gradient-to-r from-amber-400 to-amber-500" : 
-                          "bg-gradient-to-r from-rose-400 to-rose-500"
-                        }`} 
-                        style={{ width: `${pct}%` }}
-                      >
-                         {/* Shine effect on bar */}
-                         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/30 to-transparent" />
-                      </div>
-                   </div>
+
+                   {/* HP Bar (Vitality) */}
+                   {st.gami && (
+                     <div className={`p-3 rounded-2xl border transition-all ${st.gami.hp <= 30 ? 'bg-red-50 border-red-200 animate-pulse' : 'bg-slate-50 border-slate-100'}`}>
+                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest mb-1.5">
+                          <span className="flex items-center gap-1 text-slate-600">
+                            <Heart className={`w-3 h-3 ${st.gami.hp <= 30 ? 'text-red-500 fill-red-500' : 'text-rose-400 fill-rose-200'}`} /> 
+                            Vitalidad (HP)
+                          </span>
+                          <span className={st.gami.hp <= 30 ? 'text-red-600' : 'text-slate-500'}>{st.gami.hp} HP</span>
+                        </div>
+                        <div className="w-full bg-slate-200/50 rounded-full h-1.5 overflow-hidden shadow-inner">
+                           <div 
+                             className={`h-full rounded-full transition-all duration-1000 ${st.gami.hp <= 30 ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                             style={{ width: `${(st.gami.hp / st.gami.MAX_HP) * 100}%` }}
+                           />
+                        </div>
+                     </div>
+                   )}
                 </div>
                 
                 {/* Divider */}
