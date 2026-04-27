@@ -97,6 +97,14 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef(null);
 
+  const { gami, name, cs_id, token, pct, equipped_skin } = student;
+  const rank = gami?.rank?.name || "Hierro";
+  
+  // Decide theme: skin overrides rank
+  const theme = equipped_skin && SKIN_THEMES[equipped_skin] 
+    ? SKIN_THEMES[equipped_skin] 
+    : RANK_THEMES[rank] || RANK_THEMES["Hierro"];
+
   const layoutType = equipped_skin ? 'full-art' 
     : ['Diamante', 'Maestro'].includes(rank) ? 'full-art' 
     : ['Plata', 'Oro', 'Platino'].includes(rank) ? 'pro' 
