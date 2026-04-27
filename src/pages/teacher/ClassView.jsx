@@ -32,8 +32,11 @@ export default function ClassView() {
   // Modals state
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [showHouseModal, setShowHouseModal] = useState(false);
+  const [showSessionModal, setShowSessionModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [editingSession, setEditingSession] = useState(null);
   const [modalForm, setModalForm] = useState({ name: "", description: "", cost_coins: 100, icon: "🎁", color: "#3b82f6" });
+  const [sessionForm, setSessionForm] = useState({ date: new Date().toISOString().split("T")[0] });
 
   // Student management state
   const [newStudentName, setNewStudentName] = useState("");
@@ -182,25 +185,107 @@ export default function ClassView() {
   };
 
   // --- SESSION ACTIONS ---
-  const createSession = async () => {
-    const today = new Date().toISOString().split("T")[0];
-    const existing = sessions.find(s => s.date === today);
-    if (existing) { navigate(`/session/${existing.id}`); return; }
-    
-    const { data: sessionData, error: sError } = await supabase
-      .from("sessions")
-      .insert([{ class_id: id, date: today }])
-      .select()
-      .single();
-    
-    if (sError) return;
+  const handleSaveSession = async () => {
+    const { date } = sessionForm;
+    if (!date) return;
 
-    const defaultCriteria = ["Conducta", "Participación", "Carpeta", "Actividades"];
-    await supabase.from("session_criteria").insert(
-      defaultCriteria.map(name => ({ session_id: sessionData.id, name, max_score: 10 }))
-    );
+    if (editingSession) {
+      const { error } = await supabase.from("sessions").update({ date }).eq("id", editingSession.id);
+      if (error) { alert(error.message); return; }
+    } else {
+      const existing = sessions.find(s => s.date === date);
+      if (existing) { navigate(`/session/${existing.id}`); return; }
 
-    navigate(`/session/${sessionData.id}`);
+      const { data: sessionData, error: sError } = await supabase
+        .from("sessions")
+        .insert([{ class_id: id, date }])
+        .select()
+        .single();
+      
+      if (sError) { alert(sError.message); return; }
+
+      // Cloning logic: Copy criteria and grades from last session
+      const lastSession = sessions[0]; // sessions is sorted by date desc
+      let criteriaToUse = [];
+
+      if (lastSession) {
+        const { data: lastCriteria } = await supabase
+          .from("session_criteria")
+          .select("*")
+          .eq("session_id", lastSession.id);
+
+        if (lastCriteria && lastCriteria.length > 0) {
+          const { data: newCriteria, error: cError } = await supabase
+            .from("session_criteria")
+            .insert(lastCriteria.map(c => ({ session_id: sessionData.id, name: c.name, max_score: c.max_score })))
+            .select();
+
+          if (!cError && newCriteria) {
+            // Fetch grades from last session to clone them
+            const { data: lastGrades } = await supabase
+              .from("grades")
+              .select("*")
+              .in("criteria_id", lastCriteria.map(c => c.id));
+
+            if (lastGrades && lastGrades.length > 0) {
+              const critMap = {};
+              newCriteria.forEach(nc => {
+                const oldC = lastCriteria.find(oc => oc.name === nc.name);
+                if (oldC) critMap[oldC.id] = nc.id;
+              });
+
+              const newGrades = lastGrades.map(lg => ({
+                class_student_id: lg.class_student_id,
+                criteria_id: critMap[lg.criteria_id],
+                score: lg.score,
+                comment: lg.comment,
+                student_id: lg.student_id
+              })).filter(ng => ng.criteria_id);
+
+              if (newGrades.length > 0) {
+                await supabase.from("grades").insert(newGrades);
+              }
+            }
+          }
+        } else {
+          // Fallback if last session had no criteria
+          const defaultCriteria = ["Conducta", "Participación", "Carpeta", "Actividades"];
+          await supabase.from("session_criteria").insert(
+            defaultCriteria.map(name => ({ session_id: sessionData.id, name, max_score: 10 }))
+          );
+        }
+      } else {
+        // Fallback if no last session exists
+        const defaultCriteria = ["Conducta", "Participación", "Carpeta", "Actividades"];
+        await supabase.from("session_criteria").insert(
+          defaultCriteria.map(name => ({ session_id: sessionData.id, name, max_score: 10 }))
+        );
+      }
+      
+      navigate(`/session/${sessionData.id}`);
+    }
+    setShowSessionModal(false);
+    setEditingSession(null);
+    fetchAll();
+  };
+
+  const createSession = () => {
+    setEditingSession(null);
+    setSessionForm({ date: new Date().toISOString().split("T")[0] });
+    setShowSessionModal(true);
+  };
+
+  const handleEditSession = (s) => {
+    setEditingSession(s);
+    setSessionForm({ date: s.date });
+    setShowSessionModal(true);
+  };
+
+  const handleDeleteSession = async (sid) => {
+    if (!confirm("¿Eliminar esta sesión y todas sus notas?")) return;
+    const { error } = await supabase.from("sessions").delete().eq("id", sid);
+    if (error) alert(error.message);
+    else fetchAll();
   };
 
   const copyClassLink = () => {
@@ -276,7 +361,11 @@ export default function ClassView() {
                <h4 className="font-black text-slate-800 text-lg">Nueva Sesión</h4>
             </div>
             {sessions.map(s => (
-              <div key={s.id} className="bg-white rounded-[40px] border border-slate-100 p-8 flex flex-col hover:shadow-2xl transition-all">
+              <div key={s.id} className="bg-white rounded-[40px] border border-slate-100 p-8 flex flex-col hover:shadow-2xl transition-all group/card relative overflow-hidden">
+                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-all">
+                  <Button onClick={() => handleEditSession(s)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 shadow-sm"><Pencil className="w-3.5 h-3.5 text-slate-500" /></Button>
+                  <Button onClick={() => handleDeleteSession(s.id)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-red-50 hover:bg-white border border-red-100 shadow-sm"><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
+                </div>
                 <h4 className="font-black text-slate-900 text-xl capitalize">{format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}</h4>
                 <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-2">{format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}</p>
                 <Link to={`/session/${s.id}`} className="mt-8"><Button className="w-full rounded-2xl h-12 font-black uppercase text-[10px]">Ingresar Notas</Button></Link>
@@ -549,6 +638,40 @@ export default function ClassView() {
       )}
 
       {/* --- MODALS --- */}
+      {showSessionModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+           <div className="bg-white rounded-[40px] w-full max-w-sm p-10 shadow-2xl animate-in zoom-in duration-300">
+              <h3 className="text-2xl font-black text-slate-900 mb-2">
+                {editingSession ? 'Editar Sesión' : 'Nueva Sesión'}
+              </h3>
+              <p className="text-slate-500 text-sm font-medium mb-8">
+                Seleccioná la fecha de la clase.
+              </p>
+              
+              <div className="space-y-6">
+                 <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Fecha de la Clase</label>
+                    <input 
+                      type="date" 
+                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none transition-all" 
+                      value={sessionForm.date} 
+                      onChange={e => setSessionForm({date: e.target.value})} 
+                    />
+                 </div>
+
+                 <div className="flex flex-col gap-3 pt-4">
+                    <Button onClick={handleSaveSession} className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]">
+                      {editingSession ? 'Actualizar Fecha' : 'Comenzar Clase'}
+                    </Button>
+                    <Button variant="ghost" onClick={() => { setShowSessionModal(false); setEditingSession(null); }} className="h-12 rounded-2xl font-black text-slate-400">
+                      Cancelar
+                    </Button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
       {(showRewardModal || showHouseModal) && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
            <div className="bg-white rounded-[40px] w-full max-w-md p-10 shadow-2xl animate-in zoom-in duration-300">

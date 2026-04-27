@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart } from "lucide-react";
+import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart, ChevronRight } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 
 export default function PublicClassView() {
@@ -16,7 +16,7 @@ export default function PublicClassView() {
   const [viewMode, setViewMode] = useState("cards"); // Always cards by default for public
   const [searchTerm, setSearchTerm] = useState("");
   const [pinnedStudent, setPinnedStudent] = useState(null);
-  const [showHistory, setShowHistory] = useState(false);
+  const [sessionFilter, setSessionFilter] = useState("latest"); // "latest", "all", or session.id
 
   useEffect(() => {
     // Load pinned student from local storage
@@ -83,8 +83,13 @@ export default function PublicClassView() {
     });
   });
 
-  // Calculate visible items based on history toggle
-  const visibleSessions = showHistory ? sortedSessions : (sortedSessions.length > 0 ? [sortedSessions[0]] : []);
+  // Calculate visible items based on session filter
+  const visibleSessions = sessionFilter === "all" 
+    ? sortedSessions 
+    : (sessionFilter === "latest" 
+        ? (sortedSessions.length > 0 ? [sortedSessions[0]] : []) 
+        : sortedSessions.filter(s => s.id === sessionFilter));
+
   const visibleCriteria = [];
   visibleSessions.forEach(session => {
     (session.criteria || []).forEach(crit => {
@@ -195,18 +200,27 @@ export default function PublicClassView() {
               />
             </div>
             
-            <button 
-              onClick={() => setShowHistory(!showHistory)}
-              className={`flex items-center justify-center gap-2 p-3 md:px-5 md:py-3 rounded-2xl font-black text-sm transition-all border-2 flex-shrink-0 ${
-                showHistory 
-                  ? "bg-blue-50 border-blue-600 text-blue-700 shadow-inner" 
-                  : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 shadow-sm"
-              }`}
-              title={showHistory ? "Ocultar historial" : "Ver todo el semestre"}
-            >
-              <History className="w-5 h-5" />
-              <span className="hidden sm:inline">{showHistory ? "Cerrar Histórico" : "Ver Todo"}</span>
-            </button>
+            <div className="relative shrink-0">
+               <History className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+               <select 
+                 value={sessionFilter}
+                 onChange={(e) => setSessionFilter(e.target.value)}
+                 className="appearance-none bg-white border-2 border-slate-200 rounded-2xl py-3 pl-12 pr-10 text-sm font-black text-slate-700 outline-none focus:border-blue-500 hover:border-slate-300 transition-all shadow-sm cursor-pointer"
+               >
+                 <option value="latest">Clase de Hoy</option>
+                 <option value="all">Todo el Semestre</option>
+                 <optgroup label="Seleccionar Fecha">
+                   {sortedSessions.map(s => (
+                     <option key={s.id} value={s.id}>
+                       {format(new Date(s.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}
+                     </option>
+                   ))}
+                 </optgroup>
+               </select>
+               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                 <ChevronRight className="w-4 h-4 text-slate-400 rotate-90" />
+               </div>
+            </div>
             
             {/* Desktop & Mobile View Toggles */}
             <div className="flex bg-slate-100 p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-slate-200">
@@ -520,14 +534,14 @@ export default function PublicClassView() {
                 <div className="px-6 pb-6 flex-1 flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                       {showHistory ? <History className="w-4 h-4 text-blue-500" /> : <TrendingUp className="w-4 h-4 text-blue-500" />  }
-                       {showHistory ? "Historial Académico" : "Rendimiento Reciente"}
+                       {sessionFilter === "all" ? <History className="w-4 h-4 text-blue-500" /> : <TrendingUp className="w-4 h-4 text-blue-500" />  }
+                       {sessionFilter === "all" ? "Historial Académico" : "Rendimiento Seleccionado"}
                      </p>
                   </div>
                   
-                  <div className={`content-start relative ${showHistory ? 'max-h-[340px] overflow-y-auto pr-2 custom-scrollbar' : 'grid grid-cols-1 gap-3'}`}>
+                  <div className={`content-start relative ${sessionFilter === "all" ? 'max-h-[340px] overflow-y-auto pr-2 custom-scrollbar' : 'grid grid-cols-1 gap-3'}`}>
                     
-                    {showHistory ? (
+                    {sessionFilter === "all" ? (
                       /* AESTHETIC TIMELINE VIEW FOR HISTORY */
                       <div className="relative pt-2">
                         {/* Continuous Timeline Line */}
@@ -619,9 +633,9 @@ export default function PublicClassView() {
                           )
                         })}
                         
-                        {visibleCriteria.length > 6 && (
+                        {sessionFilter === "latest" && visibleCriteria.length > 6 && (
                           <button 
-                            onClick={() => setShowHistory(true)}
+                            onClick={() => setSessionFilter("all")}
                             className="w-full flex items-center justify-center gap-2 py-3 mt-1 bg-white hover:bg-blue-50 text-blue-600 rounded-2xl border-2 border-blue-100 hover:border-blue-200 transition-all font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-md"
                           >
                              <History className="w-4 h-4" />

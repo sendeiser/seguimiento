@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Star, Award, TrendingUp, Info, ChevronLeft, ChevronRight, LayoutGrid, Maximize2, Search, Table as TableIcon, CheckCircle2, XCircle, Download, Sparkles, ArrowLeft, PlusCircle, Save, Trash2, List, Users, X } from "lucide-react";
+import { Star, Award, TrendingUp, Info, ChevronLeft, ChevronRight, LayoutGrid, Maximize2, Search, Table as TableIcon, CheckCircle2, XCircle, Download, Sparkles, ArrowLeft, PlusCircle, Save, Trash2, List, Users, X, Pencil } from "lucide-react";
 
 export default function LiveSession() {
   const { id } = useParams(); // session id
@@ -135,6 +135,16 @@ export default function LiveSession() {
       map[`${g.class_student_id}_${g.criteria_id}`] = g.score;
     });
     setGrades(map);
+  };
+
+  const updateSessionDate = async (newDate) => {
+    if (!newDate) return;
+    const { error } = await supabase.from("sessions").update({ date: newDate }).eq("id", id);
+    if (error) {
+      alert("Error actualizando fecha: " + error.message);
+    } else {
+      setSession(prev => ({ ...prev, date: newDate }));
+    }
   };
 
   const handleAddCriteria = async () => {
@@ -339,8 +349,18 @@ export default function LiveSession() {
           </Link>
           <div>
             <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight leading-none">Evaluación en Vivo</h1>
-            <p className="text-gray-500 mt-1 capitalize font-bold text-sm">
+            <p className="text-gray-500 mt-1 capitalize font-bold text-sm flex items-center gap-2">
               {className} · {format(new Date(session.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}
+              <button 
+                onClick={() => {
+                  const newDate = prompt("Nueva fecha (YYYY-MM-DD):", session.date);
+                  if (newDate && newDate !== session.date) updateSessionDate(newDate);
+                }}
+                className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                title="Cambiar fecha"
+              >
+                <Pencil className="w-3 h-3 text-gray-400" />
+              </button>
             </p>
           </div>
         </div>
