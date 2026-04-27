@@ -106,8 +106,8 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
     : RANK_THEMES[rank] || RANK_THEMES["Hierro"];
 
   const layoutType = equipped_skin ? 'full-art' 
-    : ['Diamante', 'Maestro'].includes(rank) ? 'full-art' 
-    : ['Plata', 'Oro', 'Platino'].includes(rank) ? 'pro' 
+    : (pct !== null && pct >= 0.85) ? 'full-art' 
+    : (pct !== null && pct >= 0.6) ? 'pro' 
     : 'basic';
 
   // Streak glow effect based on gamification

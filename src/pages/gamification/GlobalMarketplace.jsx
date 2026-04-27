@@ -33,10 +33,10 @@ export default function GlobalMarketplace() {
       { data: gData },
       { data: aData }
     ] = await Promise.all([
-      classIds.length > 0 ? supabase.from("rewards").select("*, classes(name)").in("class_id", classIds) : { data: [] },
-      supabase.from("rewards").select("*").is("class_id", null).eq("category", "cosmetic"),
+      classIds.length > 0 ? supabase.from("rewards").select("*, classes(name)").in("class_id", classIds) : Promise.resolve({ data: [] }),
+      supabase.from("rewards").select("*").eq("category", "cosmetic"),
       supabase.from("student_purchases").select("*, rewards(cost_coins, category)").eq("student_id", user.id).neq("status", "cancelled"),
-      classIds.length > 0 ? supabase.from("sessions").select("id, date, session_criteria(id, name, max_score)").in("class_id", classIds) : { data: [] },
+      classIds.length > 0 ? supabase.from("sessions").select("id, date, session_criteria(id, name, max_score)").in("class_id", classIds) : Promise.resolve({ data: [] }),
       supabase.from("grades").select("criteria_id, score").eq("student_id", user.id),
       supabase.from("attendance").select("session_id, is_present").eq("student_id", user.id)
     ]);
