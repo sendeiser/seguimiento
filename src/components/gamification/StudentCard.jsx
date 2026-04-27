@@ -97,14 +97,11 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef(null);
 
-  const { gami, name, cs_id, token, pct, equipped_skin } = student;
-  const rank = gami?.rank?.name || "Hierro";
-  
-  // Decide theme: skin overrides rank
-  const theme = equipped_skin && SKIN_THEMES[equipped_skin] 
-    ? SKIN_THEMES[equipped_skin] 
-    : RANK_THEMES[rank] || RANK_THEMES["Hierro"];
-  
+  const layoutType = equipped_skin ? 'full-art' 
+    : ['Diamante', 'Maestro'].includes(rank) ? 'full-art' 
+    : ['Plata', 'Oro', 'Platino'].includes(rank) ? 'pro' 
+    : 'basic';
+
   // Streak glow effect based on gamification
   const streakGlow = gami?.streak >= 5 ? "streak-glow-lg" : gami?.streak >= 3 ? "streak-glow-sm" : "";
   
@@ -144,12 +141,180 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
     setGlareY(50);
   };
 
-  // Select up to 3 badges for the footer
   const activeBadges = (gami?.unlockedBadges || []).filter(b => b.unlocked).slice(0, 3);
-  
-  // Calculate HP percentage
   const hpPct = Math.max(0, Math.min(100, (gami?.hp / gami?.MAX_HP) * 100)) || 100;
   const hpColor = hpPct > 50 ? "bg-green-500" : hpPct > 20 ? "bg-yellow-500" : "bg-red-500";
+  const xpPct = Math.min(100, ((gami?.currentLevelXP || 0) / (gami?.nextLevelXP || 1)) * 100);
+
+  // --- RENDERS POR LAYOUT ---
+
+  const renderBasicLayout = () => (
+    <div className={`w-full h-full rounded-[12px] flex flex-col ${theme.bgClass} overflow-hidden shadow-inner relative z-10 p-3`}>
+      {/* Header Clásico */}
+      <div className="flex justify-between items-start mb-2">
+        <h3 className={`font-black text-sm sm:text-base md:text-lg truncate tracking-tighter ${theme.textClass} max-w-[65%] leading-tight`}>{name}</h3>
+        <div className="flex items-center gap-1 font-black text-red-600 dark:text-red-400">
+          <span className="text-[10px] sm:text-xs tracking-tighter">HP</span>
+          <span className="text-sm sm:text-base">{gami?.hp || 100}</span>
+        </div>
+      </div>
+
+      {/* Ilustración Cuadrada */}
+      <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border-2 border-slate-900/10 shadow-inner mb-2 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+        <div className="text-5xl sm:text-6xl font-black text-white mix-blend-overlay drop-shadow-xl z-20">
+          {name.charAt(0).toUpperCase()}
+        </div>
+        <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2">
+          <div className={`px-2 py-0.5 rounded-full ${theme.typeColor} border border-white/30 text-white text-[8px] sm:text-[10px] font-black tracking-widest uppercase shadow-md flex items-center gap-1`}>
+            <Shield className="w-2.5 h-2.5" /> {rank}
+          </div>
+        </div>
+      </div>
+
+      <div className={`w-full bg-black/5 py-1 px-2 flex justify-between items-center text-[9px] sm:text-[10px] font-bold ${theme.textClass} rounded mb-3`}>
+        <span>Nvl {gami?.currentLevel || 1}</span>
+        <span>Racha {gami?.streak || 0} 🔥</span>
+      </div>
+
+      {/* Stats Simples */}
+      <div className="flex-1 flex flex-col gap-2 justify-center">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white flex-shrink-0 shadow-sm"><Star className="w-3 h-3 fill-current" /></div>
+          <div className="flex-1">
+            <div className={`flex justify-between items-center text-[10px] font-black ${theme.textClass} mb-1`}>
+              <span>Exp</span><span>{gami?.currentLevelXP}/{gami?.nextLevelXP}</span>
+            </div>
+            <div className="h-1.5 w-full bg-black/10 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${xpPct}%` }}></div>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white flex-shrink-0 shadow-sm"><Zap className="w-3 h-3 fill-current" /></div>
+          <div className="flex-1 flex justify-between items-center">
+            <span className={`text-[10px] font-black ${theme.textClass}`}>Rendimiento</span>
+            <span className={`text-sm font-black ${theme.textClass}`}>{pct !== null ? `${Math.round(pct * 100)}%` : 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Badges footer */}
+      <div className="mt-auto pt-2 border-t border-black/10">
+        <div className="flex gap-1">
+          {activeBadges.length > 0 ? activeBadges.map((badge, i) => {
+            const BIcon = ICONS[badge.icon] || Star;
+            return <div key={i} className="w-4 h-4 rounded-full bg-white shadow flex items-center justify-center"><BIcon className="w-2.5 h-2.5 text-amber-500" /></div>;
+          }) : <span className={`text-[9px] font-bold ${theme.textClass} opacity-40`}>Sin logros</span>}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderProLayout = () => (
+    <div className={`w-full h-full rounded-[12px] flex flex-col ${theme.bgClass} overflow-hidden shadow-inner relative z-10`}>
+      {/* Ilustración Superior Ampliada */}
+      <div className="relative w-full h-[55%] flex items-center justify-center bg-gradient-to-br from-slate-900 to-black overflow-hidden">
+        <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+        {/* Halo de luz de fondo */}
+        <div className={`absolute w-32 h-32 blur-[40px] rounded-full opacity-50 ${theme.typeColor.replace('bg-', 'bg-')}`}></div>
+        
+        <div className="text-7xl font-black text-white mix-blend-overlay drop-shadow-2xl z-20">
+          {name.charAt(0).toUpperCase()}
+        </div>
+        
+        {/* Cabecera Flotante */}
+        <div className="absolute top-2 left-2 right-2 flex justify-between items-center z-30">
+          <div className={`px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white text-[9px] font-black tracking-widest uppercase flex items-center gap-1`}>
+            <Shield className="w-3 h-3" /> {rank}
+          </div>
+          <div className="px-2 py-0.5 rounded-full bg-red-500/80 backdrop-blur-md border border-red-400/50 text-white text-[10px] font-black shadow-lg">
+            HP {gami?.hp || 100}
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido Glassmorphism */}
+      <div className="flex-1 flex flex-col p-3 relative bg-gradient-to-t from-black/5 to-transparent">
+        <h3 className={`font-black text-lg md:text-xl truncate tracking-tighter ${theme.textClass} mb-0.5 leading-none`}>{name}</h3>
+        <p className={`text-[10px] font-bold ${theme.textClass} opacity-60 mb-3`}>Nivel {gami?.currentLevel || 1} • Racha {gami?.streak || 0} 🔥</p>
+        
+        <div className="space-y-3 mt-1">
+          <div>
+            <div className={`flex justify-between items-end text-[10px] font-black ${theme.textClass} mb-1 uppercase tracking-widest`}>
+              <span>Exp</span>
+              <span className="text-xs">{gami?.currentLevelXP}/{gami?.nextLevelXP}</span>
+            </div>
+            <div className="h-2 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
+              <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-500" style={{ width: `${xpPct}%` }}></div>
+            </div>
+          </div>
+          
+          <div className="flex justify-between items-center bg-white/40 dark:bg-black/20 p-2 rounded-xl backdrop-blur-sm border border-white/20">
+            <span className={`text-[10px] font-black uppercase tracking-widest ${theme.textClass}`}>Rendimiento</span>
+            <span className={`text-lg font-black ${theme.textClass} drop-shadow-sm`}>{pct !== null ? `${Math.round(pct * 100)}%` : 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderFullArtLayout = () => (
+    <div className={`w-full h-full rounded-[12px] flex flex-col overflow-hidden relative z-10 bg-slate-900`}>
+      {/* Fondo Ilustración Completo */}
+      <div className={`absolute inset-0 ${theme.bgClass} flex items-center justify-center opacity-90`}>
+        <div className="text-[120px] font-black text-white mix-blend-overlay drop-shadow-2xl z-20 rotate-[-10deg] scale-110 blur-[1px]">
+          {name.charAt(0).toUpperCase()}
+        </div>
+      </div>
+
+      {/* Degradados y sombras superpuestas para lectura */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/50 z-20"></div>
+
+      {/* Cabecera Legendaria */}
+      <div className="relative z-30 p-3 flex justify-between items-start">
+        <h3 className="font-black text-xl text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate max-w-[70%]">{name}</h3>
+        <div className="flex items-center gap-1 font-black text-red-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-lg">
+          <span className="text-xs">HP</span>{gami?.hp || 100}
+        </div>
+      </div>
+
+      {/* Rango flotante */}
+      <div className="relative z-30 px-3">
+         <span className={`inline-block px-2 py-0.5 rounded ${theme.typeColor} border border-white/20 text-white text-[9px] font-black uppercase tracking-widest shadow-xl`}>
+           {equipped_skin ? `SKIN: ${equipped_skin}` : rank}
+         </span>
+      </div>
+
+      <div className="flex-1"></div>
+
+      {/* Caja de Stats (Bottom) */}
+      <div className="relative z-30 p-3 space-y-3">
+        {/* Barra XP de Neón */}
+        <div>
+          <div className="flex justify-between items-end text-[9px] font-black text-white/80 mb-1 uppercase tracking-widest">
+            <span>Nivel {gami?.currentLevel || 1}</span>
+            <span>{gami?.currentLevelXP}/{gami?.nextLevelXP} XP</span>
+          </div>
+          <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden backdrop-blur-md">
+            <div className={`h-full ${theme.typeColor} transition-all duration-500 shadow-[0_0_10px_currentColor]`} style={{ width: `${xpPct}%` }}></div>
+          </div>
+        </div>
+
+        {/* Stats Grid Legendaria */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-2 flex flex-col items-center justify-center">
+            <span className="text-[8px] text-white/60 font-black uppercase tracking-widest">Racha</span>
+            <span className="text-base text-white font-black flex items-center gap-1"><Flame className="w-3 h-3 text-orange-400"/> {gami?.streak || 0}</span>
+          </div>
+          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-2 flex flex-col items-center justify-center">
+            <span className="text-[8px] text-white/60 font-black uppercase tracking-widest">Poder</span>
+            <span className="text-base text-white font-black">{pct !== null ? `${Math.round(pct * 100)}%` : 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div 
@@ -162,128 +327,20 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`w-full h-full rounded-[20px] p-2 sm:p-3 overflow-hidden ${theme.frameClass} relative transition-transform duration-200 ease-out`}
+        className={`w-full h-full rounded-[20px] p-[6px] overflow-hidden ${theme.frameClass} relative transition-transform duration-200 ease-out`}
         style={{
           transform: isHovered ? `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)` : "rotateX(0) rotateY(0) scale(1)",
           transformStyle: "preserve-3d"
         }}
       >
-        {/* Inner Card Background */}
-        <div className={`w-full h-full rounded-[12px] flex flex-col ${theme.bgClass} overflow-hidden shadow-inner relative z-10 p-3`}>
-          
-          {/* Header: Name and HP */}
-          <div className="flex justify-between items-start mb-2">
-            <h3 className={`font-black text-sm sm:text-base md:text-lg truncate tracking-tighter ${theme.textClass} max-w-[65%] leading-tight`}>
-              {name}
-            </h3>
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-1 font-black text-red-600 dark:text-red-400">
-                <span className="text-[10px] sm:text-xs tracking-tighter">HP</span>
-                <span className="text-sm sm:text-base">{gami?.hp || 100}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Illustration Box */}
-          <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border-2 border-slate-900/10 dark:border-white/10 shadow-inner mb-2 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-            
-            {/* Holographic foil inside illustration for rare cards */}
-            {theme.holo && isHovered && (
-              <div className="absolute inset-0 z-10 mix-blend-color-dodge opacity-60"
-                   style={{
-                     background: `linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.4) 25%, transparent 30%, transparent 40%, rgba(255,255,255,0.4) 45%, transparent 50%)`,
-                     backgroundPosition: `${glareX}% ${glareY}%`,
-                     backgroundSize: '200% 200%'
-                   }} />
-            )}
-            
-            <div className="text-5xl sm:text-6xl font-black text-white mix-blend-overlay drop-shadow-xl z-20">
-              {name.charAt(0).toUpperCase()}
-            </div>
-            
-            {/* Type/Rank Badge inside image */}
-            <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2">
-              <div className={`px-2 py-0.5 rounded-full ${theme.typeColor} border border-white/30 text-white text-[8px] sm:text-[10px] font-black tracking-widest uppercase shadow-md flex items-center gap-1`}>
-                <Shield className="w-2.5 h-2.5" /> {rank}
-              </div>
-            </div>
-          </div>
-
-          {/* Info Bar (Level & Class) */}
-          <div className={`w-full bg-black/5 dark:bg-white/5 py-1 px-2 flex justify-between items-center text-[9px] sm:text-[10px] font-bold ${theme.textClass} rounded mb-3`}>
-            <span>Nivel {gami?.currentLevel || 1} • Estudiante</span>
-            <span>Racha: {gami?.streak || 0} 🔥</span>
-          </div>
-
-          {/* Attacks / Stats Section */}
-          <div className="flex-1 flex flex-col gap-2 sm:gap-3 justify-center">
-            
-            {/* Attack 1: XP Progress */}
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 flex items-center justify-center text-white flex-shrink-0 shadow-sm border border-white/20">
-                <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
-              </div>
-              <div className="flex-1">
-                <div className={`flex justify-between items-center text-[10px] sm:text-xs font-black ${theme.textClass} mb-1`}>
-                  <span>Experiencia</span>
-                  <span>{gami?.currentLevelXP}/{gami?.nextLevelXP}</span>
-                </div>
-                <div className="h-2 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, ((gami?.currentLevelXP || 0) / (gami?.nextLevelXP || 1)) * 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Attack 2: Recent Performance */}
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white flex-shrink-0 shadow-sm border border-white/20">
-                <Zap className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
-              </div>
-              <div className="flex-1 flex justify-between items-center">
-                <div className="flex flex-col">
-                  <span className={`text-[10px] sm:text-xs font-black ${theme.textClass}`}>Rendimiento</span>
-                  <span className={`text-[8px] sm:text-[9px] font-bold ${theme.textClass} opacity-70`}>Nota de la clase</span>
-                </div>
-                <span className={`text-sm sm:text-base font-black ${theme.textClass}`}>
-                  {pct !== null ? `${Math.round(pct * 100)}%` : 'N/A'}
-                </span>
-              </div>
-            </div>
-            
-          </div>
-
-          {/* Footer: Weakness / Resistance (Badges) */}
-          <div className="mt-auto pt-2 border-t border-black/10 dark:border-white/10">
-            <div className="flex gap-4">
-              <div className="flex flex-col">
-                <span className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${theme.textClass} opacity-60 mb-1`}>Logros</span>
-                <div className="flex gap-1">
-                  {activeBadges.length > 0 ? activeBadges.map((badge, i) => {
-                    const BIcon = ICONS[badge.icon] || Star;
-                    return (
-                      <div key={i} className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white dark:bg-slate-800 shadow flex items-center justify-center" title={badge.label}>
-                        <BIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-500" />
-                      </div>
-                    );
-                  }) : (
-                    <span className={`text-[9px] font-bold ${theme.textClass} opacity-40`}>Ninguno aún</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-        </div>
+        {layoutType === 'basic' && renderBasicLayout()}
+        {layoutType === 'pro' && renderProLayout()}
+        {layoutType === 'full-art' && renderFullArtLayout()}
 
         {/* Glare effect overlay */}
         {isHovered && (
           <div 
-            className="absolute inset-0 z-20 pointer-events-none rounded-[12px] mix-blend-overlay transition-opacity duration-200"
+            className="absolute inset-0 z-40 pointer-events-none rounded-[14px] mix-blend-overlay transition-opacity duration-200"
             style={{
               background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 60%)`,
             }}
@@ -293,7 +350,7 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
         {/* Holographic Foil overlay for rare cards */}
         {theme.holo && isHovered && (
           <div 
-            className="absolute inset-0 z-30 pointer-events-none rounded-[12px] mix-blend-color-dodge opacity-50"
+            className="absolute inset-0 z-50 pointer-events-none rounded-[14px] mix-blend-color-dodge opacity-50"
             style={{
               background: `linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.8) 25%, transparent 30%, transparent 40%, rgba(255,255,255,0.8) 45%, transparent 50%)`,
               backgroundPosition: `${glareX}% ${glareY}%`,
