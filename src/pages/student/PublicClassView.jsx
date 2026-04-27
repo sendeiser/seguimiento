@@ -583,9 +583,9 @@ export default function PublicClassView() {
                   </div>
                 </div>
               </div>
-            )})}
-          </div>
-        )}
+            );
+          })()}
+
       </div>
 
       {/* Achievement Toast */}
