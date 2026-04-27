@@ -6,7 +6,7 @@ import { es } from "date-fns/locale";
 import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart, ChevronRight } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import AchievementToast from "../../components/AchievementToast";
-import StudentCard from "../../components/StudentCard";
+import StudentCard from "../../components/gamification/StudentCard";
 
 export default function PublicClassView() {
   const { token } = useParams();
@@ -434,21 +434,156 @@ export default function PublicClassView() {
           </div>
         ) : (
           /* Cards View for Mobile/Alternative - Ultra Premium Aesthetic */
-          <div key={animKey} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
+          <div key={animKey} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto">
             {filteredStudents.map((st, idx) => {
+              const pct = calculateOverallPercentage(st.total, st.max);
               const isPinned = st.cs_id === pinnedStudent;
+              const isTop3 = idx < 3 && !isPinned;
 
               return (
                 <StudentCard 
                   key={st.cs_id}
-                  student={st}
-                  idx={idx}
+                  student={{...st, pct}}
                   isPinned={isPinned}
+                  isTop3={isTop3}
+                  rankIndex={idx}
                   onClick={() => st.token && navigate(`/live/${st.token}`)}
-                  className={`animate-spring stagger-${Math.min(idx + 1, 10)} ${isPinned ? "z-10 scale-105" : ""}`}
                 />
               );
             })}
+          </div>
+        )}
+
+        {/* Selected Student Details (When pinned) */}
+        {pinnedStudent && (() => {
+          const st = data.students.find(s => s.cs_id === pinnedStudent);
+          if (!st) return null;
+          const pct = calculateOverallPercentage(st.total, st.max);
+          
+          return (
+            <div className="mt-12 lg:mt-16 bg-white/90 backdrop-blur-xl rounded-[32px] p-6 md:p-8 shadow-2xl border-t-4 border-blue-500 relative overflow-hidden animate-spring">
+                
+                {/* Divider */}
+                <div className="mx-6 my-4 border-t-2 border-dashed border-slate-100" />
+
+                {/* Grades Section */}
+                <div className="px-6 pb-6 flex-1 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                       {sessionFilter === "all" ? <History className="w-4 h-4 text-blue-500" /> : <TrendingUp className="w-4 h-4 text-blue-500" />  }
+                       {sessionFilter === "all" ? "Historial Académico" : "Rendimiento Seleccionado"}
+                     </p>
+                  </div>
+                  
+                  <div className={`content-start relative ${sessionFilter === "all" ? 'max-h-[340px] overflow-y-auto pr-2 custom-scrollbar' : 'grid grid-cols-1 gap-3'}`}>
+                    
+                    {sessionFilter === "all" ? (
+                      /* AESTHETIC TIMELINE VIEW FOR HISTORY */
+                      <div className="relative pt-2">
+                        {/* Continuous Timeline Line */}
+                        <div className="absolute top-4 bottom-4 left-[15px] w-0.5 bg-gradient-to-b from-blue-200 via-slate-200 to-transparent rounded-full" />
+                        
+                        {Object.entries(
+                          visibleCriteria.reduce((acc, crit) => {
+                            if (!acc[crit.sessionDate]) acc[crit.sessionDate] = [];
+                            acc[crit.sessionDate].push(crit);
+                            return acc;
+                          }, {})
+                        )
+                        .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
+                        .map(([date, criteriaGrouping], groupIdx) => (
+                          <div key={date} className="relative mb-6 last:mb-0">
+                            {/* Timeline Date Header */}
+                            <div className="flex items-center gap-4 mb-3 relative z-10 w-full">
+                              <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0 group-hover:border-blue-300 transition-colors">
+                                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                              </div>
+                              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/60 w-full flex justify-between items-center shadow-sm">
+                                <h4 className="font-black text-xs uppercase tracking-widest text-slate-600">
+                                  {format(new Date(date + "T12:00:00"), "d MMM yyyy", { locale: es })}
+                                </h4>
+                                <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">
+                                  {criteriaGrouping.length} eval.
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Criteria Cards within Date */}
+                            <div className="pl-12 space-y-2 relative z-10">
+                              {criteriaGrouping.map(crit => {
+                                const score = st.grades?.[crit.id];
+                                return (
+                                  <div key={crit.id} className="flex justify-between items-center bg-white p-3 rounded-[14px] border border-slate-200 shadow-sm hover:border-blue-300 transition-all hover:shadow-md group/crit">
+                                    <div className="min-w-0 pr-3">
+                                      <p className="text-sm font-bold text-slate-700 truncate group-hover/crit:text-blue-700 transition-colors">{crit.name}</p>
+                                      <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest flex items-center gap-1">
+                                        Máx: {crit.max_score}
+                                      </p>
+                                    </div>
+                                    <div className="flex-shrink-0">
+                                       {score != null ? (
+                                          <div className={`flex flex-col items-center justify-center min-w-[3rem] h-[3rem] rounded-xl border-2 ${getScoreBadge(score, crit.max_score)} transition-transform group-hover/crit:scale-105`}>
+                                            <span className="font-black text-xl tracking-tighter leading-none">{score}</span>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center justify-center min-w-[3rem] h-[3rem] rounded-xl border-2 border-slate-100 bg-slate-50 text-slate-300">
+                                            <span className="font-black text-xl leading-none">—</span>
+                                          </div>
+                                        )}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                    ) : (
+
+                      /* FLAT LIST FOR RECENT VIEW */
+                      <>
+                        {visibleCriteria.slice(0, 6).map(crit => {
+                          const score = st.grades?.[crit.id];
+                          return (
+                            <div key={crit.id} className="flex justify-between items-center bg-slate-50/80 hover:bg-white p-3.5 rounded-2xl border border-slate-200/60 transition-all hover:shadow-md hover:border-blue-200 group/crit">
+                              <div className="min-w-0 pr-4">
+                                <p className="text-sm font-bold text-slate-800 truncate group-hover/crit:text-blue-700 transition-colors">{crit.name}</p>
+                                <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest flex items-center gap-1.5">
+                                  {format(new Date(crit.sessionDate + "T12:00:00"), "d MMM", { locale: es })}
+                                </p>
+                              </div>
+                              
+                              <div className="flex-shrink-0">
+                                 {score != null ? (
+                                    <div className={`flex flex-col items-center justify-center min-w-[3.5rem] h-[3.5rem] rounded-xl border-2 ${getScoreBadge(score, crit.max_score)} transition-transform group-hover/crit:scale-110`}>
+                                      <span className="font-black text-2xl tracking-tighter leading-none">{score}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-center min-w-[3.5rem] h-[3.5rem] rounded-xl border-2 border-slate-200 bg-white text-slate-300 shadow-sm">
+                                      <span className="font-black text-xl leading-none">—</span>
+                                    </div>
+                                  )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                        
+                        {sessionFilter === "latest" && visibleCriteria.length > 6 && (
+                          <button 
+                            onClick={() => setSessionFilter("all")}
+                            className="w-full flex items-center justify-center gap-2 py-3 mt-1 bg-white hover:bg-blue-50 text-blue-600 rounded-2xl border-2 border-blue-100 hover:border-blue-200 transition-all font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-md"
+                          >
+                             <History className="w-4 h-4" />
+                             +{visibleCriteria.length - 6} Evaluaciones Anteriores
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )})}
           </div>
         )}
       </div>
