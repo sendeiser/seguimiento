@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart, ChevronRight } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import AchievementToast from "../../components/AchievementToast";
+import StudentCard from "../../components/StudentCard";
 
 export default function PublicClassView() {
   const { token } = useParams();
@@ -431,254 +431,23 @@ export default function PublicClassView() {
               </table>
             </div>
           </div>
-        ) : (
-          /* Cards View for Mobile/Alternative - Ultra Premium Aesthetic */
-          <div key={animKey} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+              /* Cards View for Mobile/Alternative - Ultra Premium Aesthetic */
+          <div key={animKey} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
             {filteredStudents.map((st, idx) => {
-              const pct = calculateOverallPercentage(st.total, st.max);
               const isPinned = st.cs_id === pinnedStudent;
-              const isTop3 = idx < 3 && !isPinned;
-              // Streak glow class
-              const streakGlow = st.gami?.streak >= 5 ? "streak-glow-lg" : st.gami?.streak >= 3 ? "streak-glow-sm" : "";
 
               return (
-              <div 
-                key={st.cs_id} 
-                onClick={() => st.token && navigate(`/live/${st.token}`)}
-                className={`animate-spring stagger-${Math.min(idx + 1, 10)} cursor-pointer relative flex flex-col bg-white/80 backdrop-blur-xl rounded-[32px] overflow-hidden transition-all duration-300 group hover:-translate-y-1 ${streakGlow} ${
-                  isPinned
-                    ? "border-2 border-blue-500 shadow-2xl shadow-blue-500/20 ring-4 ring-blue-500/10 z-10" 
-                    : isTop3 && idx === 0 
-                      ? "border-2 border-amber-300 shadow-2xl shadow-amber-500/10"
-                      : "border border-white shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 hover:border-blue-200"
-                }`}
-              >
-                {/* Accent Top Bar */}
-                <div className={`absolute top-0 left-0 w-full h-1.5 ${
-                  isPinned ? "bg-blue-500" : idx === 0 ? "bg-amber-400" : idx === 1 ? "bg-slate-300" : idx === 2 ? "bg-orange-400" : "bg-transparent"
-                }`} />
-
-                {/* Card Header Section */}
-                <div className="p-6 pb-5 flex items-start justify-between relative overflow-hidden">
-                     {/* Rank background modifier glow */}
-                     <div className={`absolute -right-20 -top-20 w-40 h-40 blur-3xl opacity-20 pointer-events-none rounded-full ${st.gami?.rank?.bg?.replace('bg-', 'bg-') || 'bg-blue-500'}`} />
-                     
-                     <div className="flex gap-4 items-center relative z-10 w-full">
-                       <div className={`relative w-16 h-16 rounded-[24px] flex items-center justify-center text-3xl font-black shadow-md shrink-0 transition-transform group-hover:scale-105 border-2 ${st.gami?.rank?.bg || 'bg-slate-50'} ${st.gami?.rank?.color || 'text-slate-700'} ${st.gami?.rank?.border || 'border-slate-200'}`}>
-                        {st.name[0].toUpperCase()}
-                        {/* Status Dot */}
-                        <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${pct >= 75 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                      </div>
-                      <div className="min-w-0 pr-2 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                            {isPinned && (
-                               <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-600 bg-blue-100 px-2 py-0.5 rounded-lg border border-blue-200 shrink-0">
-                                 <Pin className="w-3 h-3 fill-current" />
-                               </div>
-                            )}
-                            {isTop3 && (
-                               <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg shrink-0 border ${
-                                 idx === 0 ? "text-amber-700 bg-amber-100 border-amber-200/50 shadow-sm" :
-                                 idx === 1 ? "text-slate-600 bg-slate-100 border-slate-200" :
-                                 "text-orange-800 bg-orange-100 border-orange-200"
-                               }`}>
-                                 <Medal className="w-2.5 h-2.5" /> #{idx + 1}
-                               </div>
-                            )}
-                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border shrink-0 ${st.gami?.rank?.color || 'text-slate-500'} ${st.gami?.rank?.bg || 'bg-slate-50'} ${st.gami?.rank?.border || 'border-slate-200'}`}>
-                               Nv. {st.gami?.currentLevel || 1}
-                            </span>
-                            {st.gami?.streak >= 3 && (
-                               <span className="flex items-center gap-0.5 text-[9px] font-black text-orange-600 bg-orange-100/50 border border-orange-200 px-2 py-0.5 rounded-md uppercase tracking-widest shrink-0">
-                                 <Flame className="w-3 h-3 fill-orange-500" /> x{st.gami.streak}
-                               </span>
-                            )}
-                        </div>
-                        <h3 className={`font-black text-2xl tracking-tight leading-none truncate ${isPinned ? "text-blue-900" : "text-slate-800"}`}>{st.name}</h3>
-                      </div>
-                     </div>
-                     
-                     <button 
-                        onClick={(e) => { e.stopPropagation(); togglePin(st.cs_id); }}
-                        className={`p-2.5 rounded-2xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 backdrop-blur-sm shrink-0 ${
-                          isPinned 
-                            ? "bg-blue-600 text-white hover:bg-blue-700 rotate-12" 
-                            : "bg-white text-slate-300 hover:text-blue-600 border border-slate-200 hover:border-blue-200 hover:bg-blue-50"
-                        }`}
-                        title={isPinned ? "Desfijar" : "Fijar estudiante"}
-                      >
-                        {isPinned ? <Pin className="w-5 h-5 fill-current" /> : <PinOff className="w-5 h-5" />}
-                      </button>
-                </div>
-
-                {/* Main Progress Bars (XP & HP) */}
-                <div className="px-6 pb-2 space-y-4">
-                   {/* XP Bar */}
-                   <div>
-                     <div className="flex items-end justify-between mb-1.5">
-                        <div className="flex items-baseline gap-1">
-                           <span className="font-black text-4xl tracking-tighter text-slate-800 leading-none">{st.total}</span>
-                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">xp acumulada</span>
-                        </div>
-                        <span className={`font-black tracking-tight text-xl ${
-                          pct >= 75 ? "text-emerald-500" : pct >= 50 ? "text-amber-500" : "text-rose-500"
-                        }`}>{pct}%</span>
-                     </div>
-                     <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner border border-slate-200/50 relative">
-                       <div 
-                          className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${
-                            pct >= 75 ? "bg-gradient-to-r from-emerald-400 to-emerald-500" : 
-                            pct >= 50 ? "bg-gradient-to-r from-amber-400 to-amber-500" : 
-                            "bg-gradient-to-r from-rose-400 to-rose-500"
-                          }`} 
-                          style={{ width: `${pct}%` }}
-                        >
-                           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/30 to-transparent" />
-                        </div>
-                     </div>
-                   </div>
-
-                   {/* HP Bar (Vitality) */}
-                   {st.gami && (
-                     <div className={`p-3 rounded-2xl border transition-all ${st.gami.hp <= 30 ? 'bg-red-50 border-red-200 animate-pulse' : 'bg-slate-50 border-slate-100'}`}>
-                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest mb-1.5">
-                          <span className="flex items-center gap-1 text-slate-600">
-                            <Heart className={`w-3 h-3 ${st.gami.hp <= 30 ? 'text-red-500 fill-red-500' : 'text-rose-400 fill-rose-200'}`} /> 
-                            Vitalidad (HP)
-                          </span>
-                          <span className={st.gami.hp <= 30 ? 'text-red-600' : 'text-slate-500'}>{st.gami.hp} HP</span>
-                        </div>
-                        <div className="w-full bg-slate-200/50 rounded-full h-1.5 overflow-hidden shadow-inner">
-                           <div 
-                             className={`h-full rounded-full transition-all duration-1000 ${st.gami.hp <= 30 ? 'bg-red-500' : 'bg-emerald-500'}`} 
-                             style={{ width: `${(st.gami.hp / st.gami.MAX_HP) * 100}%` }}
-                           />
-                        </div>
-                     </div>
-                   )}
-                </div>
-                
-                {/* Divider */}
-                <div className="mx-6 my-4 border-t-2 border-dashed border-slate-100" />
-
-                {/* Grades Section */}
-                <div className="px-6 pb-6 flex-1 flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                       {sessionFilter === "all" ? <History className="w-4 h-4 text-blue-500" /> : <TrendingUp className="w-4 h-4 text-blue-500" />  }
-                       {sessionFilter === "all" ? "Historial Académico" : "Rendimiento Seleccionado"}
-                     </p>
-                  </div>
-                  
-                  <div className={`content-start relative ${sessionFilter === "all" ? 'max-h-[340px] overflow-y-auto pr-2 custom-scrollbar' : 'grid grid-cols-1 gap-3'}`}>
-                    
-                    {sessionFilter === "all" ? (
-                      /* AESTHETIC TIMELINE VIEW FOR HISTORY */
-                      <div className="relative pt-2">
-                        {/* Continuous Timeline Line */}
-                        <div className="absolute top-4 bottom-4 left-[15px] w-0.5 bg-gradient-to-b from-blue-200 via-slate-200 to-transparent rounded-full" />
-                        
-                        {Object.entries(
-                          visibleCriteria.reduce((acc, crit) => {
-                            if (!acc[crit.sessionDate]) acc[crit.sessionDate] = [];
-                            acc[crit.sessionDate].push(crit);
-                            return acc;
-                          }, {})
-                        )
-                        .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
-                        .map(([date, criteriaGrouping], groupIdx) => (
-                          <div key={date} className="relative mb-6 last:mb-0">
-                            {/* Timeline Date Header */}
-                            <div className="flex items-center gap-4 mb-3 relative z-10 w-full">
-                              <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0 group-hover:border-blue-300 transition-colors">
-                                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                              </div>
-                              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/60 w-full flex justify-between items-center shadow-sm">
-                                <h4 className="font-black text-xs uppercase tracking-widest text-slate-600">
-                                  {format(new Date(date + "T12:00:00"), "d MMM yyyy", { locale: es })}
-                                </h4>
-                                <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">
-                                  {criteriaGrouping.length} eval.
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Criteria Cards within Date */}
-                            <div className="pl-12 space-y-2 relative z-10">
-                              {criteriaGrouping.map(crit => {
-                                const score = st.grades?.[crit.id];
-                                return (
-                                  <div key={crit.id} className="flex justify-between items-center bg-white p-3 rounded-[14px] border border-slate-200 shadow-sm hover:border-blue-300 transition-all hover:shadow-md group/crit">
-                                    <div className="min-w-0 pr-3">
-                                      <p className="text-sm font-bold text-slate-700 truncate group-hover/crit:text-blue-700 transition-colors">{crit.name}</p>
-                                      <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest flex items-center gap-1">
-                                        Máx: {crit.max_score}
-                                      </p>
-                                    </div>
-                                    <div className="flex-shrink-0">
-                                       {score != null ? (
-                                          <div className={`flex flex-col items-center justify-center min-w-[3rem] h-[3rem] rounded-xl border-2 ${getScoreBadge(score, crit.max_score)} transition-transform group-hover/crit:scale-105`}>
-                                            <span className="font-black text-xl tracking-tighter leading-none">{score}</span>
-                                          </div>
-                                        ) : (
-                                          <div className="flex items-center justify-center min-w-[3rem] h-[3rem] rounded-xl border-2 border-slate-100 bg-slate-50 text-slate-300">
-                                            <span className="font-black text-xl leading-none">—</span>
-                                          </div>
-                                        )}
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                    ) : (
-
-                      /* FLAT LIST FOR RECENT VIEW */
-                      <>
-                        {visibleCriteria.slice(0, 6).map(crit => {
-                          const score = st.grades?.[crit.id];
-                          return (
-                            <div key={crit.id} className="flex justify-between items-center bg-slate-50/80 hover:bg-white p-3.5 rounded-2xl border border-slate-200/60 transition-all hover:shadow-md hover:border-blue-200 group/crit">
-                              <div className="min-w-0 pr-4">
-                                <p className="text-sm font-bold text-slate-800 truncate group-hover/crit:text-blue-700 transition-colors">{crit.name}</p>
-                                <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest flex items-center gap-1.5">
-                                  {format(new Date(crit.sessionDate + "T12:00:00"), "d MMM", { locale: es })}
-                                </p>
-                              </div>
-                              
-                              <div className="flex-shrink-0">
-                                 {score != null ? (
-                                    <div className={`flex flex-col items-center justify-center min-w-[3.5rem] h-[3.5rem] rounded-xl border-2 ${getScoreBadge(score, crit.max_score)} transition-transform group-hover/crit:scale-110`}>
-                                      <span className="font-black text-2xl tracking-tighter leading-none">{score}</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center justify-center min-w-[3.5rem] h-[3.5rem] rounded-xl border-2 border-slate-200 bg-white text-slate-300 shadow-sm">
-                                      <span className="font-black text-xl leading-none">—</span>
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                        
-                        {sessionFilter === "latest" && visibleCriteria.length > 6 && (
-                          <button 
-                            onClick={() => setSessionFilter("all")}
-                            className="w-full flex items-center justify-center gap-2 py-3 mt-1 bg-white hover:bg-blue-50 text-blue-600 rounded-2xl border-2 border-blue-100 hover:border-blue-200 transition-all font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-md"
-                          >
-                             <History className="w-4 h-4" />
-                             +{visibleCriteria.length - 6} Evaluaciones Anteriores
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )})}
+                <StudentCard 
+                  key={st.cs_id}
+                  student={st}
+                  idx={idx}
+                  isPinned={isPinned}
+                  onClick={() => st.token && navigate(`/live/${st.token}`)}
+                  className={`animate-spring stagger-${Math.min(idx + 1, 10)} ${isPinned ? "z-10 scale-105" : ""}`}
+                />
+              );
+            })}
+          </div>
           </div>
         )}
       </div>
