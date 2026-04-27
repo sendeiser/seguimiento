@@ -431,7 +431,8 @@ export default function PublicClassView() {
               </table>
             </div>
           </div>
-              /* Cards View for Mobile/Alternative - Ultra Premium Aesthetic */
+        ) : (
+          /* Cards View for Mobile/Alternative - Ultra Premium Aesthetic */
           <div key={animKey} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
             {filteredStudents.map((st, idx) => {
               const isPinned = st.cs_id === pinnedStudent;
