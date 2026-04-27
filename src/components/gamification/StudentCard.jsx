@@ -56,6 +56,37 @@ const RANK_THEMES = {
   }
 };
 
+const SKIN_THEMES = {
+  "Cyberpunk Neon": {
+    frameClass: "bg-gradient-to-br from-purple-600 via-fuchsia-500 to-cyan-500 border-fuchsia-500",
+    bgClass: "bg-[#09090B] dark:bg-[#09090B]",
+    textClass: "text-fuchsia-400 dark:text-fuchsia-400",
+    typeColor: "bg-fuchsia-600",
+    holo: true
+  },
+  "Oro Holográfico": {
+    frameClass: "bg-gradient-to-br from-yellow-300 via-amber-200 to-yellow-500 border-yellow-400",
+    bgClass: "bg-gradient-to-b from-[#FFFDF0] to-[#FFF8D0] dark:bg-gradient-to-b dark:from-[#3A3315] dark:to-[#1A1608]",
+    textClass: "text-yellow-800 dark:text-yellow-200",
+    typeColor: "bg-yellow-500",
+    holo: true
+  },
+  "Galaxia": {
+    frameClass: "bg-gradient-to-br from-indigo-900 via-purple-900 to-black border-indigo-500",
+    bgClass: "bg-[#0B0C10] dark:bg-[#0B0C10]",
+    textClass: "text-indigo-300 dark:text-indigo-300",
+    typeColor: "bg-indigo-600",
+    holo: true
+  },
+  "Minimalista Oscuro": {
+    frameClass: "bg-gradient-to-br from-zinc-800 to-black border-zinc-700",
+    bgClass: "bg-[#18181B] dark:bg-[#18181B]",
+    textClass: "text-zinc-300 dark:text-zinc-300",
+    typeColor: "bg-zinc-700",
+    holo: false
+  }
+};
+
 const ICONS = { Star, Flame, TrendingUp, Heart, Sparkles, Award, Shield, Zap };
 
 export default function StudentCard({ student, isPinned, isTop3, rankIndex, onClick }) {
@@ -66,9 +97,13 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef(null);
 
-  const { gami, name, cs_id, token, pct } = student;
+  const { gami, name, cs_id, token, pct, equipped_skin } = student;
   const rank = gami?.rank?.name || "Hierro";
-  const theme = RANK_THEMES[rank] || RANK_THEMES["Hierro"];
+  
+  // Decide theme: skin overrides rank
+  const theme = equipped_skin && SKIN_THEMES[equipped_skin] 
+    ? SKIN_THEMES[equipped_skin] 
+    : RANK_THEMES[rank] || RANK_THEMES["Hierro"];
   
   // Streak glow effect based on gamification
   const streakGlow = gami?.streak >= 5 ? "streak-glow-lg" : gami?.streak >= 3 ? "streak-glow-sm" : "";
