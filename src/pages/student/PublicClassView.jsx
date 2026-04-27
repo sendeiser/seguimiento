@@ -449,7 +449,6 @@ export default function PublicClassView() {
               );
             })}
           </div>
-          </div>
         )}
       </div>
 
