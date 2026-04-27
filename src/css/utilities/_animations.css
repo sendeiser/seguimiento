@@ -1,10 +1,23 @@
 /* === Utilities === */
 @layer utilities {
-  .animate-in { animation: fade-in var(--primitive-transition-normal) forwards; }
-  .animate-slide-up { animation: slide-up var(--primitive-transition-normal) forwards; }
-  .animate-scale-in { animation: scale-in var(--primitive-transition-fast) forwards; }
-  .animate-float { animation: float 20s ease-in-out infinite; }
+  .animate-in        { animation: fade-in var(--primitive-transition-normal) both; }
+  .animate-slide-up  { animation: slide-up var(--primitive-transition-normal) both; }
+  .animate-scale-in  { animation: scale-in var(--primitive-transition-fast) both; }
+  .animate-float     { animation: float 20s ease-in-out infinite; }
   .animate-float-reverse { animation: float 25s ease-in-out infinite reverse; }
+
+  /* Spring pop — used for student cards */
+  .animate-spring    { animation: spring-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  /* Slide + fade — used for session filter transitions */
+  .animate-slide-fade { animation: slide-fade-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  /* Streak glow — applied on cards when streak >= 3 */
+  .streak-glow-sm    { animation: streak-pulse-sm 2.5s ease-in-out infinite; }
+  .streak-glow-lg    { animation: streak-pulse-lg 2s ease-in-out infinite; }
+
+  /* Grade flash — brief cell background flash on save */
+  .flash-success     { animation: flash-green 0.8s ease-out both; }
+  .flash-danger      { animation: flash-red 0.8s ease-out both; }
 
   .skeleton {
     background: linear-gradient(90deg, hsl(var(--color-bg-tertiary)) 0%, hsl(var(--color-bg-secondary)) 50%, hsl(var(--color-bg-tertiary)) 100%);
@@ -13,11 +26,17 @@
     border-radius: var(--primitive-radius-md);
   }
 
-  .stagger-1 { animation-delay: 50ms; }
-  .stagger-2 { animation-delay: 100ms; }
-  .stagger-3 { animation-delay: 150ms; }
-  .stagger-4 { animation-delay: 200ms; }
-  .stagger-5 { animation-delay: 250ms; }
+  /* Stagger delays (0–10) */
+  .stagger-1  { animation-delay: 50ms; }
+  .stagger-2  { animation-delay: 100ms; }
+  .stagger-3  { animation-delay: 150ms; }
+  .stagger-4  { animation-delay: 200ms; }
+  .stagger-5  { animation-delay: 250ms; }
+  .stagger-6  { animation-delay: 300ms; }
+  .stagger-7  { animation-delay: 350ms; }
+  .stagger-8  { animation-delay: 400ms; }
+  .stagger-9  { animation-delay: 450ms; }
+  .stagger-10 { animation-delay: 500ms; }
 
   /* Custom Scrollbar */
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -32,16 +51,61 @@
 }
 
 /* === Keyframes === */
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slide-up { from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: translateY(0); } }
-@keyframes scale-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-@keyframes float { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(5%, 5%) scale(1.1); } }
+@keyframes spin          { to { transform: rotate(360deg); } }
+@keyframes fade-in       { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-up      { from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scale-in      { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes shimmer       { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes float         { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(5%, 5%) scale(1.1); } }
 @keyframes pulse-critical { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-@keyframes diamond-glow { 0%, 100% { box-shadow: 0 0 30px hsl(var(--primitive-color-rank-diamante) / 0.4); } 50% { box-shadow: 0 0 50px hsl(var(--primitive-color-rank-diamante) / 0.6); } }
-@keyframes master-glow { 0%, 100% { box-shadow: 0 0 40px hsl(var(--primitive-color-rank-maestro) / 0.5); } 50% { box-shadow: 0 0 60px hsl(var(--primitive-color-rank-maestro) / 0.7); } }
+@keyframes diamond-glow  { 0%, 100% { box-shadow: 0 0 30px hsl(var(--primitive-color-rank-diamante) / 0.4); } 50% { box-shadow: 0 0 50px hsl(var(--primitive-color-rank-diamante) / 0.6); } }
+@keyframes master-glow   { 0%, 100% { box-shadow: 0 0 40px hsl(var(--primitive-color-rank-maestro) / 0.5); } 50% { box-shadow: 0 0 60px hsl(var(--primitive-color-rank-maestro) / 0.7); } }
 @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Spring pop — overshoots then settles */
+@keyframes spring-in {
+  0%   { opacity: 0; transform: scale(0.8) translateY(12px); }
+  60%  { opacity: 1; transform: scale(1.04) translateY(-3px); }
+  80%  { transform: scale(0.98) translateY(1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Slide + fade for list re-mounts */
+@keyframes slide-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Streak glow — amber for 3-4, orange for 5+ */
+@keyframes streak-pulse-sm {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35), 0 0 20px -4px rgba(251, 191, 36, 0.3); }
+  50%       { box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.6),  0 0 30px -2px rgba(251, 191, 36, 0.5); }
+}
+@keyframes streak-pulse-lg {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.4),  0 0 25px -4px rgba(234, 88, 12, 0.35); }
+  50%       { box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.7),  0 0 40px -2px rgba(234, 88, 12, 0.6); }
+}
+
+/* Grade flash */
+@keyframes flash-green {
+  0%   { background-color: rgb(167 243 208 / 0.8); }
+  100% { background-color: transparent; }
+}
+@keyframes flash-red {
+  0%   { background-color: rgb(254 202 202 / 0.8); }
+  100% { background-color: transparent; }
+}
+
+/* Achievement toast entrance */
+@keyframes achievement-in {
+  0%   { opacity: 0; transform: translateX(100%) scale(0.8); }
+  60%  { opacity: 1; transform: translateX(-8px) scale(1.03); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes achievement-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(110%); }
+}
 
 /* === Reduced Motion === */
 @media (prefers-reduced-motion: reduce) {

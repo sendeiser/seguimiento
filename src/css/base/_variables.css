@@ -59,7 +59,7 @@
   --primitive-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* === SEMANTIC === */
+/* === SEMANTIC (Light) === */
 :root {
   --color-bg-primary: 0 0% 100%;
   --color-bg-secondary: 210 40% 98%;
@@ -75,22 +75,55 @@
   --color-interactive-secondary-hover: 214.3 31.8% 91.4%;
   --color-border: 214.3 31.8% 91.4%;
   --color-border-hover: 221 83% 90%;
+
+  /* Shorthand CSS vars used by components via var(--bg-primary) etc. */
+  --bg-primary: hsl(var(--color-bg-primary));
+  --bg-secondary: hsl(var(--color-bg-secondary));
+  --bg-tertiary: hsl(var(--color-bg-tertiary));
+  --bg-elevated: hsl(var(--color-bg-elevated));
+  --text-primary: hsl(var(--color-text-primary));
+  --text-secondary: hsl(var(--color-text-secondary));
+  --text-muted: hsl(var(--color-text-muted));
+  --border: hsl(var(--color-border));
 }
 
-/* === COMPONENTS === */
-:root {
-
-}
-
-/* === DARK MODE === */
+/* === DARK MODE — Midnight === */
 .dark {
-  --color-bg-primary: 222 47% 11%;
-  --color-bg-secondary: 222 47% 18%;
-  --color-bg-tertiary: 222 47% 18%;
-  --color-bg-elevated: 222 47% 18%;
-  --color-text-primary: 210 40% 98%;
-  --color-text-secondary: 215 20% 65%;
-  --color-text-muted: 215 16% 47%;
-  --color-text-inverted: 222 47% 11%;
-  --color-border: 222 47% 18%;
+  /* Deep navy backgrounds */
+  --color-bg-primary: 225 39% 7%;        /* #0A0F1E */
+  --color-bg-secondary: 225 35% 10%;     /* #111827 */
+  --color-bg-tertiary: 226 30% 14%;      /* #192033 */
+  --color-bg-elevated: 225 32% 12%;      /* #141C2E */
+
+  /* Text */
+  --color-text-primary: 210 40% 96%;     /* near-white */
+  --color-text-secondary: 215 25% 65%;   /* slate-400 ish */
+  --color-text-muted: 220 15% 45%;
+  --color-text-inverted: 225 39% 7%;
+
+  /* Borders — subtle navy lines */
+  --color-border: 225 30% 18%;
+  --color-border-hover: 189 94% 50%;     /* cyan accent on hover */
+
+  /* Interactive */
+  --color-interactive-primary: 189 94% 50%;   /* cyan-400 accent */
+  --color-interactive-primary-hover: 189 94% 42%;
+  --color-interactive-secondary: 225 30% 14%;
+  --color-interactive-secondary-hover: 225 30% 18%;
+
+  /* Shorthand overrides */
+  --bg-primary: hsl(var(--color-bg-primary));
+  --bg-secondary: hsl(var(--color-bg-secondary));
+  --bg-tertiary: hsl(var(--color-bg-tertiary));
+  --bg-elevated: hsl(var(--color-bg-elevated));
+  --text-primary: hsl(var(--color-text-primary));
+  --text-secondary: hsl(var(--color-text-secondary));
+  --text-muted: hsl(var(--color-text-muted));
+  --border: hsl(var(--color-border));
+
+  /* Glow shadows for dark mode cards */
+  --primitive-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 0 0 1px rgb(189 239 255 / 0.04);
+  --primitive-shadow-md: 0 4px 20px -1px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(189 239 255 / 0.05);
+  --primitive-shadow-lg: 0 10px 40px -3px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(189 239 255 / 0.06);
+  --primitive-shadow-xl: 0 20px 60px -5px rgb(0 0 0 / 0.7), 0 0 30px -10px rgb(100 220 255 / 0.15);
 }

@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Star, Award, TrendingUp, Info, ChevronLeft, ChevronRight, LayoutGrid, Maximize2, Search, Table as TableIcon, CheckCircle2, XCircle, Download, Sparkles, ArrowLeft, PlusCircle, Save, Trash2, List, Users, X, Pencil } from "lucide-react";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 export default function LiveSession() {
   const { id } = useParams(); // session id
@@ -25,6 +26,8 @@ export default function LiveSession() {
   const [attendance, setAttendance] = useState({}); // { cs_id: boolean }
   const [inheritedGrades, setInheritedGrades] = useState({}); // { cs_id_criteriaName: score }
   const [showOverallAverage, setShowOverallAverage] = useState(false);
+  const [gradeFlash, setGradeFlash] = useState({}); // { key: 'success'|'danger' }
+  const [sparklineData, setSparklineData] = useState({}); // { cs_id: [{pct}] }
 
   const inputRefs = useRef({});
   const listRef = useRef(null);
@@ -124,6 +127,45 @@ export default function LiveSession() {
       }
     }
     setLoading(false);
+
+    // --- Sparkline: fetch last 6 sessions' scores per student ---
+    try {
+      const { data: allSess } = await supabase
+        .from("sessions")
+        .select("id, date")
+        .eq("class_id", s.classes.id)
+        .order("date", { ascending: false })
+        .limit(6);
+      
+      if (allSess?.length > 1) {
+        const allSessIds = allSess.map(ss => ss.id);
+        const { data: allCrit } = await supabase
+          .from("session_criteria")
+          .select("id, session_id, max_score")
+          .in("session_id", allSessIds);
+        const { data: allGr } = await supabase
+          .from("grades")
+          .select("class_student_id, criteria_id, score")
+          .in("criteria_id", (allCrit || []).map(c => c.id));
+
+        // Build sparkline per student: [{pct: 0-100}] sorted oldest first
+        const sData = {};
+        const sessionsOldFirst = [...allSess].reverse();
+        sessionsOldFirst.forEach(ss => {
+          const critForSess = (allCrit || []).filter(c => c.session_id === ss.id);
+          const maxTotal = critForSess.reduce((s, c) => s + (c.max_score || 0), 0);
+          (stData || []).forEach(st => {
+            if (!sData[st.id]) sData[st.id] = [];
+            const total = critForSess.reduce((sum, c) => {
+              const g = (allGr || []).find(g => g.class_student_id === st.id && g.criteria_id === c.id);
+              return sum + (g ? Number(g.score) : 0);
+            }, 0);
+            sData[st.id].push({ pct: maxTotal > 0 ? Math.round((total / maxTotal) * 100) : null });
+          });
+        });
+        setSparklineData(sData);
+      }
+    } catch (_) {}
   };
 
   const fetchGrades = async () => {
@@ -210,7 +252,7 @@ export default function LiveSession() {
     setGrades(prev => ({ ...prev, [key]: value }));
   };
 
-  const saveGrade = async (csId, criteriaId, value) => {
+  const saveGrade = async (csId, criteriaId, value, maxScore) => {
     const score = parseFloat(value);
     if (value === "" || isNaN(score)) return;
 
@@ -225,11 +267,16 @@ export default function LiveSession() {
     }, { onConflict: "class_student_id,criteria_id" });
 
     setSaving(prev => ({ ...prev, [key]: false }));
+
+    // Flash feedback
+    const flashType = maxScore > 0 && score / maxScore > 0.5 ? "success" : "danger";
+    setGradeFlash(prev => ({ ...prev, [key]: flashType }));
+    setTimeout(() => setGradeFlash(prev => { const n = {...prev}; delete n[key]; return n; }), 900);
   };
 
-  const setQuickGrade = async (csId, criteriaId, score) => {
+  const setQuickGrade = async (csId, criteriaId, score, maxScore) => {
     handleGradeChange(csId, criteriaId, score.toString());
-    await saveGrade(csId, criteriaId, score.toString());
+    await saveGrade(csId, criteriaId, score.toString(), maxScore);
   };
 
   const handleKeyDown = (e, studentIndex, criteriaIndex) => {
@@ -635,6 +682,10 @@ export default function LiveSession() {
                             </button>
                           </th>
                         ))}
+                        {/* Sparkline column header — desktop only */}
+                        <th className="hidden sm:table-cell px-4 py-2 sm:py-5 font-black text-[11px] uppercase tracking-[0.2em] text-gray-400 text-center min-w-[100px] border-l border-gray-50/50">
+                          Tendencia
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50 bg-white">
@@ -668,9 +719,15 @@ export default function LiveSession() {
                             const isSaving = saving[key];
                             const displayVal = val !== "" ? val : inheritedVal;
                             const isInherited = val === "" && inheritedVal !== "";
+                            const flash = gradeFlash[key];
 
                             return (
-                              <td key={c.id} className="px-0.5 sm:px-4 py-1 sm:py-5 text-center border-l border-gray-50/50 h-full align-middle">
+                              <td
+                                key={c.id}
+                                className={`px-0.5 sm:px-4 py-1 sm:py-5 text-center border-l border-gray-50/50 h-full align-middle transition-colors ${
+                                  flash === "success" ? "flash-success" : flash === "danger" ? "flash-danger" : ""
+                                }`}
+                              >
                                 <div className="relative inline-flex items-center justify-center group/input w-full h-full">
                                   <input
                                     ref={el => inputRefs.current[key] = el}
@@ -680,7 +737,7 @@ export default function LiveSession() {
                                     step="0.5"
                                     value={displayVal}
                                     onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)}
-                                    onBlur={e => saveGrade(student.cs_id, c.id, e.target.value)}
+                                    onBlur={e => saveGrade(student.cs_id, c.id, e.target.value, c.max_score)}
                                     onKeyDown={e => handleKeyDown(e, sIdx, cIdx)}
                                     placeholder="—"
                                     className={`w-7 sm:w-20 text-center border md:border-2 rounded sm:rounded-2xl px-0 sm:px-2 py-1 sm:py-3 font-black text-[10px] sm:text-xl outline-none transition-all focus:scale-100 group-hover/input:scale-100 ${
@@ -696,6 +753,28 @@ export default function LiveSession() {
                               </td>
                             );
                           })}
+                          {/* Sparkline cell — desktop only */}
+                          <td className="hidden sm:table-cell px-4 py-1 sm:py-5 border-l border-gray-50/50 align-middle">
+                            {(() => {
+                              const spark = sparklineData[student.cs_id]?.filter(d => d.pct !== null);
+                              if (!spark || spark.length < 2) return <span className="text-gray-200 text-xs font-bold">—</span>;
+                              const last = spark[spark.length - 1].pct;
+                              const prev = spark[spark.length - 2].pct;
+                              const color = last >= prev ? "#22c55e" : "#f43f5e";
+                              return (
+                                <div className="flex flex-col items-center gap-1">
+                                  <ResponsiveContainer width={80} height={32}>
+                                    <LineChart data={spark}>
+                                      <Line type="monotone" dataKey="pct" stroke={color} strokeWidth={2} dot={false} />
+                                    </LineChart>
+                                  </ResponsiveContainer>
+                                  <span className={`text-[10px] font-black ${last >= prev ? "text-emerald-500" : "text-rose-500"}`}>
+                                    {last >= prev ? "▲" : "▼"} {last}%
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                          </td>
                         </tr>
                       )})}
                     </tbody>

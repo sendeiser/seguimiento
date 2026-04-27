@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart, ChevronRight } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
+import AchievementToast from "../../components/AchievementToast";
 
 export default function PublicClassView() {
   const { token } = useParams();
@@ -17,6 +18,8 @@ export default function PublicClassView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [pinnedStudent, setPinnedStudent] = useState(null);
   const [sessionFilter, setSessionFilter] = useState("latest"); // "latest", "all", or session.id
+  const [animKey, setAnimKey] = useState(0);
+  const [newBadges, setNewBadges] = useState([]);
 
   useEffect(() => {
     // Load pinned student from local storage
@@ -40,6 +43,32 @@ export default function PublicClassView() {
     setData(result);
     setLastUpdated(new Date());
     setLoading(false);
+
+    // --- Achievement detection ---
+    // Only check for the pinned student (or first student) to avoid spamming
+    const students = result?.students || [];
+    const sessions = result?.sessions || [];
+    if (students.length > 0 && sessions.length > 0) {
+      const targetStudent = students.find(s => s.cs_id === localStorage.getItem(`pinned_${token}`)) || students[0];
+      if (targetStudent) {
+        const gami = calculateGamification(
+          sessions,
+          targetStudent.grades,
+          targetStudent.attendance,
+          targetStudent.spent_coins || 0
+        );
+        const seenKey = `seen_badges_${token}_${targetStudent.cs_id}`;
+        const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
+        const fresh = gami.unlockedBadges.filter(b => b.unlocked && !seen.includes(b.id));
+        if (fresh.length > 0) {
+          setNewBadges(fresh);
+          localStorage.setItem(seenKey, JSON.stringify([
+            ...seen,
+            ...fresh.map(b => b.id)
+          ]));
+        }
+      }
+    }
   };
 
   if (loading) return (
@@ -204,7 +233,7 @@ export default function PublicClassView() {
                <History className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                <select 
                  value={sessionFilter}
-                 onChange={(e) => setSessionFilter(e.target.value)}
+                 onChange={(e) => { setSessionFilter(e.target.value); setAnimKey(k => k + 1); }}
                  className="appearance-none bg-white border-2 border-slate-200 rounded-2xl py-3 pl-12 pr-10 text-sm font-black text-slate-700 outline-none focus:border-blue-500 hover:border-slate-300 transition-all shadow-sm cursor-pointer"
                >
                  <option value="latest">Clase de Hoy</option>
@@ -404,17 +433,19 @@ export default function PublicClassView() {
           </div>
         ) : (
           /* Cards View for Mobile/Alternative - Ultra Premium Aesthetic */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+          <div key={animKey} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
             {filteredStudents.map((st, idx) => {
               const pct = calculateOverallPercentage(st.total, st.max);
               const isPinned = st.cs_id === pinnedStudent;
               const isTop3 = idx < 3 && !isPinned;
+              // Streak glow class
+              const streakGlow = st.gami?.streak >= 5 ? "streak-glow-lg" : st.gami?.streak >= 3 ? "streak-glow-sm" : "";
 
               return (
               <div 
                 key={st.cs_id} 
                 onClick={() => st.token && navigate(`/live/${st.token}`)}
-                className={`cursor-pointer relative flex flex-col bg-white/80 backdrop-blur-xl rounded-[32px] overflow-hidden transition-all duration-300 group hover:-translate-y-1 ${
+                className={`animate-spring stagger-${Math.min(idx + 1, 10)} cursor-pointer relative flex flex-col bg-white/80 backdrop-blur-xl rounded-[32px] overflow-hidden transition-all duration-300 group hover:-translate-y-1 ${streakGlow} ${
                   isPinned
                     ? "border-2 border-blue-500 shadow-2xl shadow-blue-500/20 ring-4 ring-blue-500/10 z-10" 
                     : isTop3 && idx === 0 
@@ -651,6 +682,9 @@ export default function PublicClassView() {
           </div>
         )}
       </div>
+
+      {/* Achievement Toast */}
+      {newBadges.length > 0 && <AchievementToast badges={newBadges} />}
     </div>
   );
 }
