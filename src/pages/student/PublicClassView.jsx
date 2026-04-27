@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart, ChevronRight } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import AchievementToast from "../../components/AchievementToast";
