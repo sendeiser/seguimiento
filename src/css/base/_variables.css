@@ -89,27 +89,27 @@
 
 /* === DARK MODE — Midnight === */
 .dark {
-  /* Deep navy backgrounds */
-  --color-bg-primary: 225 39% 7%;        /* #0A0F1E */
-  --color-bg-secondary: 225 35% 10%;     /* #111827 */
-  --color-bg-tertiary: 226 30% 14%;      /* #192033 */
-  --color-bg-elevated: 225 32% 12%;      /* #141C2E */
+  /* Deep indigo/violet backgrounds for a more premium look */
+  --color-bg-primary: 245 45% 4%;        /* #05040a - Very deep black-violet */
+  --color-bg-secondary: 245 40% 6%;      /* #0a0814 */
+  --color-bg-tertiary: 245 35% 10%;      /* #120e24 */
+  --color-bg-elevated: 245 30% 12%;      /* #18142d */
 
-  /* Text */
-  --color-text-primary: 210 40% 96%;     /* near-white */
-  --color-text-secondary: 215 25% 65%;   /* slate-400 ish */
-  --color-text-muted: 220 15% 45%;
-  --color-text-inverted: 225 39% 7%;
+  /* Text - higher contrast */
+  --color-text-primary: 210 40% 98%;     
+  --color-text-secondary: 245 20% 70%;   
+  --color-text-muted: 245 15% 50%;
+  --color-text-inverted: 245 45% 4%;
 
-  /* Borders — subtle navy lines */
-  --color-border: 225 30% 18%;
-  --color-border-hover: 189 94% 50%;     /* cyan accent on hover */
+  /* Borders — vibrant neon lines */
+  --color-border: 245 30% 16%;
+  --color-border-hover: 289 73% 58%;     /* fuchsia accent on hover */
 
-  /* Interactive */
-  --color-interactive-primary: 189 94% 50%;   /* cyan-400 accent */
-  --color-interactive-primary-hover: 189 94% 42%;
-  --color-interactive-secondary: 225 30% 14%;
-  --color-interactive-secondary-hover: 225 30% 18%;
+  /* Interactive — bright fuchsia/cyan */
+  --color-interactive-primary: 289 73% 58%;   
+  --color-interactive-primary-hover: 289 73% 50%;
+  --color-interactive-secondary: 245 30% 12%;
+  --color-interactive-secondary-hover: 245 30% 16%;
 
   /* Shorthand overrides */
   --bg-primary: hsl(var(--color-bg-primary));

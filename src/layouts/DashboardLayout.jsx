@@ -47,22 +47,26 @@ export default function DashboardLayout() {
           <LayoutDashboard className="w-4 h-4" />
           {isTeacher ? "Mis Clases" : "Mis Materias"}
         </Link>
-        <Link
-          to="/ranking"
-          onClick={closeMenu}
-          className={`nav-item ${location.pathname === "/ranking" ? "active" : ""}`}
-        >
-          <Trophy className="w-4 h-4" />
-          Ranking Global
-        </Link>
-        <Link
-          to="/shop"
-          onClick={closeMenu}
-          className={`nav-item ${location.pathname === "/shop" ? "active" : ""}`}
-        >
-          <ShoppingBag className="w-4 h-4" />
-          Tienda Notyx
-        </Link>
+        {!isTeacher && (
+          <>
+            <Link
+              to="/ranking"
+              onClick={closeMenu}
+              className={`nav-item ${location.pathname === "/ranking" ? "active" : ""}`}
+            >
+              <Trophy className="w-4 h-4" />
+              Ranking Global
+            </Link>
+            <Link
+              to="/shop"
+              onClick={closeMenu}
+              className={`nav-item ${location.pathname === "/shop" ? "active" : ""}`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Tienda Notyx
+            </Link>
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-secondary)]/50">

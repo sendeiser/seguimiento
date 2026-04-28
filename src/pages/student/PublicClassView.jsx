@@ -129,8 +129,16 @@ export default function PublicClassView() {
 
   const students = data.students || [];
 
-  // Calculate totals per student
-  const studentTotals = students.map(st => {
+  // Calculate totals and raw XP per student (Pass 1)
+  const studentsWithRawXP = students.map(st => {
+    const gamiRaw = calculateGamification(sortedSessions, st.grades, st.attendance, st.spent_coins || 0);
+    return { ...st, gamiRaw };
+  });
+
+  const maxXP = Math.max(...studentsWithRawXP.map(s => s.gamiRaw.currentXP), 0);
+
+  // Calculate final gamification data (Pass 2 - Relative)
+  const studentTotals = studentsWithRawXP.map(st => {
     const total = visibleCriteria.reduce((sum, crit) => {
       const score = st.grades?.[crit.id];
       return sum + (score != null ? Number(score) : 0);
@@ -142,7 +150,7 @@ export default function PublicClassView() {
       return sum + (score != null ? Number(score) : 0);
     }, 0);
 
-    const gami = calculateGamification(sortedSessions, st.grades, st.attendance, st.spent_coins || 0);
+    const gami = calculateGamification(sortedSessions, st.grades, st.attendance, st.spent_coins || 0, maxXP);
 
     return { ...st, total, max, overallTotal, gami };
   });

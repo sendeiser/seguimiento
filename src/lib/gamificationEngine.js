@@ -114,7 +114,23 @@ export function calculateGamification(sessions = [], studentGradesDict = null, s
   const currentLevelXP = currentXP % XP_PER_LEVEL;
   const nextLevelXP = XP_PER_LEVEL;
   
-  const rank = RANKS.slice().reverse().find(r => currentXP >= r.minXP) || RANKS[0];
+  // RANK LOGIC (Relative if targetXP provided, otherwise absolute)
+  let rank;
+  if (arguments[4] && arguments[4] > 0) {
+     const target = Math.max(arguments[4], 2500); // Benchmark: at least 2500 XP
+     const pct = currentXP / target;
+     
+     // 0-15: Hierro, 15-30: Bronce, 30-45: Plata, 45-60: Oro, 60-75: Platino, 75-90: Diamante, 90-100: Maestro
+     if (pct >= 0.90) rank = RANKS[6]; // Maestro
+     else if (pct >= 0.75) rank = RANKS[5]; // Diamante
+     else if (pct >= 0.60) rank = RANKS[4]; // Platino
+     else if (pct >= 0.45) rank = RANKS[3]; // Oro
+     else if (pct >= 0.30) rank = RANKS[2]; // Plata
+     else if (pct >= 0.15) rank = RANKS[1]; // Bronce
+     else rank = RANKS[0]; // Hierro
+  } else {
+     rank = RANKS.slice().reverse().find(r => currentXP >= r.minXP) || RANKS[0];
+  }
 
   const badges = {
     first_blood: attendedClasses >= 1,
