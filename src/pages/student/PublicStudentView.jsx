@@ -547,6 +547,7 @@ export default function PublicStudentView() {
               </div>
            </div>
         </div>
+      )}
       {/* Skin Preview Modal */}
       {previewSkin && (
         <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-2xl z-[200] flex items-center justify-center p-6" onClick={() => setPreviewSkin(null)}>
