@@ -471,8 +471,46 @@ export default function PublicClassView() {
           return (
             <div className="mt-12 lg:mt-16 bg-white/90 backdrop-blur-xl rounded-[32px] p-6 md:p-8 shadow-2xl border-t-4 border-blue-500 relative overflow-hidden animate-spring">
                 
+                {/* Pinned Student Profile Header */}
+                <div className="flex flex-col md:flex-row items-center gap-8 mb-8 px-2 md:px-6">
+                   <div className="w-[200px] md:w-[220px] shrink-0">
+                      <StudentCard 
+                        student={{...st, pct}}
+                        isPinned={true}
+                        onClick={() => st.token && navigate(`/live/${st.token}`)}
+                      />
+                   </div>
+                   <div className="flex-1 space-y-6 text-center md:text-left">
+                      <div>
+                         <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-none mb-2">{st.name}</h2>
+                         <div className="flex items-center justify-center md:justify-start gap-2">
+                            <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-200">Perfil Seleccionado</span>
+                            {st.gami?.streak >= 3 && <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-200">🔥 Racha x{st.gami.streak}</span>}
+                         </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4 max-w-lg">
+                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nivel Actual</p>
+                            <p className="text-2xl font-black text-slate-800">{st.gami?.currentLevel || 1}</p>
+                         </div>
+                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Rendimiento</p>
+                            <p className="text-2xl font-black text-blue-600">{pct}%</p>
+                         </div>
+                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm col-span-2 sm:col-span-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Notyx Coins</p>
+                            <div className="flex items-center justify-center md:justify-start gap-2">
+                               <p className="text-2xl font-black text-orange-600">{st.gami?.notyxCoins || 0}</p>
+                               <span className="text-xl">💰</span>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
                 {/* Divider */}
-                <div className="mx-6 my-4 border-t-2 border-dashed border-slate-100" />
+                <div className="mx-2 md:mx-6 my-8 border-t-2 border-dashed border-slate-100" />
 
                 {/* Grades Section */}
                 <div className="px-6 pb-6 flex-1 flex flex-col">

@@ -193,7 +193,7 @@ export default function PublicStudentView() {
       <div className="container mx-auto px-4 py-8 max-w-[900px] space-y-12">
         {activeTab === "progress" && (
           <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-2xl overflow-hidden relative flex flex-col md:flex-row items-center gap-10">
+            <div className="bg-white rounded-[40px] p-6 md:p-10 border border-slate-100 shadow-2xl overflow-hidden relative flex flex-col md:flex-row items-center gap-8 md:gap-12">
                <div className="w-[240px] shrink-0 relative group">
                   <StudentCard 
                     student={{
