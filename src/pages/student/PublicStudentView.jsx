@@ -150,20 +150,35 @@ export default function PublicStudentView() {
     await fetchData();
   };
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-slate-50 font-black">Cargando...</div>;
+  if (error) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
+      <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6 shadow-inner"><XCircle className="w-10 h-10" /></div>
+      <h2 className="text-2xl font-black text-slate-800 mb-2">¡Ups! Algo salió mal</h2>
+      <p className="text-slate-500 font-medium mb-8 max-w-xs">{error}</p>
+      <button onClick={() => window.location.reload()} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-slate-900/20">Reintentar</button>
+    </div>
+  );
+
+  if (loading || !data) return <div className="flex min-h-screen items-center justify-center bg-slate-50 font-black">Cargando...</div>;
 
   const totalScore = data?.sessions?.reduce((acc, session) => acc + (session.criteria || []).reduce((a, c) => a + (c.score ?? 0), 0), 0);
   const maxTotal = data?.sessions?.reduce((acc, session) => acc + (session.criteria || []).reduce((a, c) => a + (c.max_score ?? 0), 0), 0);
   const overallPct = maxTotal > 0 ? totalScore / maxTotal : 0;
 
-  const hasPhotoPower = data.purchases?.some(p => {
-    const reward = data.rewards.find(r => r.id === p.reward_id);
+  const hasPhotoPower = data?.purchases?.some(p => {
+    const reward = data?.rewards?.find(r => r.id === p.reward_id);
     return reward?.metadata?.type === 'custom_avatar';
   });
 
-  const cosmetics = data.rewards.filter(r => r.category === 'cosmetic');
-  const powerups = data.rewards.filter(r => r.category === 'powerup');
-  const classRewards = data.rewards.filter(r => r.category === 'item' || r.category === 'game_pass');
+  const cosmetics = data?.rewards?.filter(r => r.category === 'cosmetic') || [];
+  const powerups = data?.rewards?.filter(r => r.category === 'powerup') || [];
+  const classRewards = data?.rewards?.filter(r => r.category === 'item' || r.category === 'game_pass') || [];
+
+  const currentEquippedSkin = (() => {
+    const equipped = data?.purchases?.find(p => p.status === 'equipped');
+    if (!equipped) return null;
+    return data?.rewards?.find(r => r.id === equipped.reward_id)?.name;
+  })();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] to-[#EFF6FF] pb-20">
@@ -201,7 +216,7 @@ export default function PublicStudentView() {
                       pct: overallPct,
                       gami: gami,
                       avatar_url: data.avatar_url,
-                      equipped_skin: data.purchases?.find(p => p.status === 'equipped')?.reward_id ? data.rewards.find(r => r.id === data.purchases.find(p => p.status === 'equipped').reward_id)?.name : null
+                      equipped_skin: currentEquippedSkin
                     }}
                   />
                   {hasPhotoPower && (
@@ -217,7 +232,7 @@ export default function PublicStudentView() {
                <div className="flex-1 w-full space-y-6">
                   <div className="space-y-1">
                     <h3 className="text-4xl font-black text-slate-800 tracking-tighter leading-none">Mi Perfil Notyx</h3>
-                    <p className="text-slate-400 font-bold text-sm">Tu nivel actual es {gami.rank.name}</p>
+                    <p className="text-slate-400 font-bold text-sm">Tu nivel actual es {gami?.rank?.name || 'Hierro'}</p>
                   </div>
                   
                   {hasPhotoPower && !data.avatar_url && (
