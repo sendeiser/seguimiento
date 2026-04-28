@@ -26,14 +26,14 @@ export default function DashboardLayout() {
 
   const NavContent = () => (
     <>
-      <div className="p-6 border-b border-[var(--border)]">
-        <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-2.5 rounded-xl shadow-md shadow-blue-600/20">
-            <GraduationCap className="w-5 h-5 text-white" />
+      <div className="p-5 md:p-6 border-b border-[var(--border)]">
+        <div className="flex items-center gap-2.5 md:gap-3">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-2 md:p-2.5 rounded-xl shadow-md shadow-blue-600/20">
+            <GraduationCap className="w-4 h-4 md:w-5 md:h-5 text-white" />
           </div>
           <div>
-            <p className="font-black text-[var(--text-primary)] text-base leading-none tracking-tight">Notyx</p>
-            <p className="text-[10px] uppercase font-bold text-[var(--text-muted)] mt-1 tracking-widest">Gestión Académica</p>
+            <p className="font-black text-[var(--text-primary)] text-sm md:text-base leading-none tracking-tight">Notyx</p>
+            <p className="text-[9px] md:text-[10px] uppercase font-bold text-[var(--text-muted)] mt-1 tracking-widest">Gestión Académica</p>
           </div>
         </div>
       </div>
@@ -124,7 +124,7 @@ export default function DashboardLayout() {
       )}
 
       {/* Mobile Header */}
-      <header className="md:hidden sticky top-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-md border-b border-[var(--border)]/50 shadow-sm px-4">
+      <header className="md:hidden z-50 bg-[var(--bg-primary)]/80 backdrop-blur-md border-b border-[var(--border)]/50 shadow-sm px-4">
         <div className="flex h-16 items-center justify-between">
           <button
             onClick={() => setIsMobileMenuOpen(true)}
@@ -140,13 +140,23 @@ export default function DashboardLayout() {
             <span className="font-black text-[var(--text-primary)] tracking-tight">Notyx</span>
           </div>
 
-          <div className="w-9" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-md border border-white/20">
+              {(profile?.full_name || "?")[0].toUpperCase()}
+            </div>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="md:pl-64 transition-all overflow-x-hidden">
-        <div className="max-w-6xl mx-auto p-4 md:p-8 lg:p-12">
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-10 lg:p-16">
           <Outlet />
         </div>
       </main>

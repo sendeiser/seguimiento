@@ -43,7 +43,7 @@ export default function Gateway() {
           </p>
         </div>
 
-        <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 p-10 rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
+        <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 p-6 md:p-10 rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-4">
               <label className="label-lg text-slate-500 ml-2">

@@ -189,7 +189,7 @@ export default function StudentDashboard() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {classes.map((c) => (
               <Link key={c.id} to={`/student/class/${c.id}`} className="group">
-                <div className="bg-white rounded-[40px] border border-slate-100 p-8 h-full transition-all duration-300 hover:shadow-2xl hover:shadow-slate-900/5 hover:-translate-y-1 relative overflow-hidden">
+                <div className="bg-white rounded-[32px] md:rounded-[40px] border border-slate-100 p-6 md:p-8 h-full transition-all duration-300 hover:shadow-2xl hover:shadow-slate-900/5 hover:-translate-y-1 relative overflow-hidden">
                   <div className="bg-slate-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
                     <BookOpen className="w-6 h-6" />
                   </div>

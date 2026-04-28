@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart, ChevronRight } from "lucide-react";
+import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart, ChevronRight, ChevronDown } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import AchievementToast from "../../components/AchievementToast";
 import StudentCard from "../../components/gamification/StudentCard";
@@ -183,7 +183,7 @@ export default function PublicClassView() {
 
   const calculateOverallPercentage = (total, max) => {
     if (max === 0) return 0;
-    return Math.round((total / max) * 100);
+    return total / max;
   };
 
   return (
@@ -197,88 +197,93 @@ export default function PublicClassView() {
       </div>
 
       {/* Glassmorphic Header */}
-      <header className="bg-white/70 backdrop-blur-2xl border-b border-slate-200/80 sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-4 py-4 md:py-5 flex flex-col md:flex-row items-center justify-between gap-5">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-3.5 rounded-[20px] shadow-lg shadow-blue-600/20 flex-shrink-0 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out" />
-              <GraduationCap className="w-8 h-8 text-white relative z-10" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="font-black text-2xl md:text-3xl tracking-tight text-slate-800 truncate">
-                {data.class_name}
-              </h1>
-              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                <div className="flex items-center gap-2 text-[10px] md:text-xs font-black text-emerald-700 bg-emerald-100/80 px-3 py-1 rounded-full border border-emerald-200/50">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  AULA EN VIVO
+      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200 z-50 shadow-sm">
+        <div className="w-full max-w-7xl mx-auto px-4 py-4 md:py-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            
+            {/* Class Info & Badges */}
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-3 rounded-2xl shadow-lg shadow-blue-600/20 shrink-0">
+                <GraduationCap className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-tight text-slate-800 truncate leading-tight">
+                  {data.class_name}
+                </h1>
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-[10px] md:text-xs font-black text-emerald-700 bg-emerald-100/80 px-3 py-1 rounded-full border border-emerald-200/50">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    SALA EN VIVO
+                  </div>
+                  {lastUpdated && (
+                    <span className="text-[10px] md:text-xs text-slate-500 font-bold tracking-wide flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      Actualizado {format(lastUpdated, "HH:mm")}
+                    </span>
+                  )}
                 </div>
-                {lastUpdated && (
-                  <span className="text-[10px] md:text-xs text-slate-500 font-bold tracking-wide flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    Actualizado {format(lastUpdated, "HH:mm")}
-                  </span>
-                )}
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-[320px]">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input 
-                type="text"
-                placeholder="Buscar tu libreta..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white border-2 border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-base font-bold text-slate-700 outline-none focus:border-blue-500 hover:border-slate-300 transition-all placeholder:text-slate-400 shadow-sm"
-              />
+            {/* Controls Row */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+              {/* Search bar - full width on mobile */}
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text"
+                  placeholder="Buscar alumno..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 hover:border-slate-300 transition-all shadow-sm"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {/* Session Filter */}
+                <div className="relative flex-1 sm:flex-none">
+                  <History className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <select 
+                    value={sessionFilter}
+                    onChange={(e) => { setSessionFilter(e.target.value); setAnimKey(k => k + 1); }}
+                    className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-8 text-[11px] font-black uppercase tracking-wider text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+                  >
+                    <option value="latest">Hoy</option>
+                    <option value="all">Todo</option>
+                    {sortedSessions.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {format(new Date(s.date + "T12:00:00"), "d/MM")}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                </div>
+                
+                {/* View Toggles */}
+                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+                  <button 
+                    onClick={() => setViewMode("table")}
+                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "table" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500"}`}
+                  >
+                    <List className="w-4 h-4" />
+                    <span className="text-[10px] sm:hidden font-black uppercase tracking-widest">Planilla</span>
+                  </button>
+                  <button 
+                    onClick={() => setViewMode("cards")}
+                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "cards" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500"}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    <span className="text-[10px] sm:hidden font-black uppercase tracking-widest">Tarjeta</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            
-            <div className="relative shrink-0">
-               <History className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-               <select 
-                 value={sessionFilter}
-                 onChange={(e) => { setSessionFilter(e.target.value); setAnimKey(k => k + 1); }}
-                 className="appearance-none bg-white border-2 border-slate-200 rounded-2xl py-3 pl-12 pr-10 text-sm font-black text-slate-700 outline-none focus:border-blue-500 hover:border-slate-300 transition-all shadow-sm cursor-pointer"
-               >
-                 <option value="latest">Clase de Hoy</option>
-                 <option value="all">Todo el Semestre</option>
-                 <optgroup label="Seleccionar Fecha">
-                   {sortedSessions.map(s => (
-                     <option key={s.id} value={s.id}>
-                       {format(new Date(s.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}
-                     </option>
-                   ))}
-                 </optgroup>
-               </select>
-               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                 <ChevronRight className="w-4 h-4 text-slate-400 rotate-90" />
-               </div>
-            </div>
-            
-            {/* Desktop & Mobile View Toggles */}
-            <div className="flex bg-slate-100 p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-slate-200">
-               <button 
-                  onClick={() => setViewMode("table")}
-                  className={`p-2 md:p-2.5 rounded-lg md:rounded-xl transition-all flex items-center gap-1 ${viewMode === "table" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500 hover:text-slate-700 font-medium"}`}
-                  title="Vista de Tabla"
-                >
-                  <List className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="text-[10px] md:hidden uppercase tracking-wider font-black">Planilla</span>
-                </button>
-                <button 
-                  onClick={() => setViewMode("cards")}
-                  className={`p-2 md:p-2.5 rounded-lg md:rounded-xl transition-all flex items-center gap-1 ${viewMode === "cards" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500 hover:text-slate-700 font-medium"}`}
-                  title="Vista de Libretas"
-                >
-                  <LayoutGrid className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="text-[10px] md:hidden uppercase tracking-wider font-black">Tarjetas</span>
-                </button>
-            </div>
+
           </div>
         </div>
       </header>
@@ -301,9 +306,9 @@ export default function PublicClassView() {
             <div className="overflow-x-auto">
               <table className="w-full text-base border-collapse table-fixed md:table-auto">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200">
-                    <th className="text-left px-2 md:px-8 py-2 md:py-6 font-black text-[9px] md:text-xs uppercase tracking-widest text-slate-500 sticky left-0 bg-slate-50/90 backdrop-blur-md z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[90px] md:w-auto">
-                      ALUMNO
+                  <tr className="bg-slate-50">
+                    <th className="text-left px-3 md:px-8 py-3 md:py-6 font-black text-[9px] md:text-xs uppercase tracking-widest text-slate-500 sticky left-0 bg-slate-50/90 backdrop-blur-md z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[110px] md:w-auto">
+                      Alumno
                     </th>
                     {(visibleSessions).map(session => (
                       <th
@@ -338,16 +343,16 @@ export default function PublicClassView() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.map((student, idx) => {
                     const pct = calculateOverallPercentage(student.total, student.max);
-                    // Abbreviate name on mobile to save horizontal space exactly as requested
                     const names = student.name.split(" ");
                     const mobileName = names.length > 1 ? `${names[0]} ${names[1][0]}.` : names[0];
+                    
                     return (
                     <tr
                       key={student.cs_id}
                       onClick={() => student.token && navigate(`/live/${student.token}`)}
                       className={`cursor-pointer transition-colors group hover:bg-slate-50/80 ${student.cs_id === pinnedStudent ? "bg-blue-50/40" : "bg-transparent"}`}
                     >
-                      <td className={`px-2 md:px-8 py-2 md:py-5 sticky left-0 z-10 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors group-hover:bg-white w-[90px] md:w-[300px] overflow-hidden ${student.cs_id === pinnedStudent ? "bg-blue-50/90" : "bg-white"}`}>
+                      <td className={`px-3 md:px-8 py-3 md:py-5 sticky left-0 z-10 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors group-hover:bg-white w-[110px] md:w-[300px] overflow-hidden ${student.cs_id === pinnedStudent ? "bg-blue-50/90" : "bg-white"}`}>
                         <div className="flex items-center gap-1 md:gap-4">
                           <button 
                             onClick={(e) => { e.stopPropagation(); togglePin(student.cs_id); }}
@@ -421,7 +426,7 @@ export default function PublicClassView() {
                                </span>
                                <span className="text-[11px] font-black uppercase text-blue-400 tracking-widest leading-none hidden md:inline">/ {student.max}</span>
                              </div>
-                             <span className="text-[8px] md:text-sm font-black text-blue-600 md:bg-white md:px-2 py-0.5 rounded md:rounded-lg md:border md:border-blue-100 shadow-[none] md:shadow-sm mt-0 md:mt-0">{pct}%</span>
+                             <span className="text-[8px] md:text-sm font-black text-blue-600 md:bg-white md:px-2 py-0.5 rounded md:rounded-lg md:border md:border-blue-100 shadow-[none] md:shadow-sm mt-0 md:mt-0">{Math.round(pct * 100)}%</span>
                            </div>
                            
                            {/* Mini Progress Bar in Table */}
@@ -496,7 +501,7 @@ export default function PublicClassView() {
                          </div>
                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Rendimiento</p>
-                            <p className="text-2xl font-black text-blue-600">{pct}%</p>
+                            <p className="text-2xl font-black text-blue-600">{Math.round(pct * 100)}%</p>
                          </div>
                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm col-span-2 sm:col-span-1">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Notyx Coins</p>

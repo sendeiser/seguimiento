@@ -5,6 +5,28 @@
   box-sizing: border-box;
 }
 
+:root {
+  font-size: 14px; /* Mobile first base */
+}
+
+@media (min-width: 768px) {
+  :root {
+    font-size: 15px; /* Tablet scale */
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    font-size: 16px; /* Desktop scale */
+  }
+}
+
+@media (min-width: 1536px) {
+  :root {
+    font-size: 18px; /* Ultra-wide scale */
+  }
+}
+
 body {
   background-color: hsl(var(--color-bg-primary));
   color: hsl(var(--color-text-primary));
@@ -12,7 +34,7 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
+  line-height: 1.5; /* Slightly tighter line height for more compact feel */
 }
 
 .dark body {

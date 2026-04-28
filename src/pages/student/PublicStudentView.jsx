@@ -131,10 +131,10 @@ export default function PublicStudentView() {
 
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
-      const { error: updateError } = await supabase
-        .from("class_students")
-        .update({ avatar_url: publicUrl })
-        .eq("id", data.cs_id);
+      const { error: updateError } = await supabase.rpc("update_student_avatar", { 
+        p_token: token, 
+        p_avatar_url: publicUrl 
+      });
 
       if (updateError) throw updateError;
 
@@ -182,30 +182,35 @@ export default function PublicStudentView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] to-[#EFF6FF] pb-20">
-      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-4">
-          <div className="flex items-center gap-4 w-full flex-1">
-             <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200"><ChevronLeft className="w-6 h-6" /></button>
-             <div className="flex-1 min-w-0">
-                <h1 className="font-black text-xl md:text-2xl tracking-tight text-slate-800 truncate leading-none mb-1">{data.class_name}</h1>
-                <p className="text-sm font-bold text-slate-500 truncate opacity-80">{data.student_name}</p>
-             </div>
-          </div>
-          <div className="flex items-center gap-4 w-full md:w-auto">
-             <div className="flex items-center gap-3 bg-orange-50 border border-orange-100 px-5 py-2.5 rounded-2xl shadow-sm">
-                <CoinsIcon className="w-5 h-5 text-orange-500" />
-                <span className="text-xl font-black text-orange-700 leading-none">{gami?.notyxCoins || 0}</span>
-             </div>
-             <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
-                <button onClick={() => setActiveTab("progress")} className={`px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'progress' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Progreso</button>
-                <button onClick={() => setActiveTab("shop")} className={`px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Tienda</button>
-                <button onClick={() => setActiveTab("games")} className={`px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'games' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Arena</button>
-             </div>
+      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200 z-50 shadow-sm">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex flex-col gap-4">
+            {/* Top row: Back + Info + Coins */}
+            <div className="flex items-center gap-3 w-full">
+               <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
+                 <ChevronLeft className="w-5 h-5" />
+               </button>
+               <div className="flex-1 min-w-0 pr-2">
+                   <h1 className="font-black text-base sm:text-lg md:text-2xl tracking-tight text-slate-800 truncate leading-tight">{data.class_name}</h1>
+                   <p className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-400 truncate uppercase tracking-widest leading-none mt-1">{data.student_name}</p>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-orange-50 border border-orange-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl shadow-sm shrink-0">
+                   <CoinsIcon className="w-3.5 h-3.5 sm:w-4 h-4 text-orange-500" />
+                   <span className="text-sm sm:text-base font-black text-orange-700 leading-none">{gami?.notyxCoins || 0}</span>
+                </div>
+            </div>
+            
+            {/* Bottom row: Navigation Tabs */}
+            <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200 w-full">
+               <button onClick={() => setActiveTab("progress")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'progress' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Progreso</button>
+               <button onClick={() => setActiveTab("shop")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Tienda</button>
+               <button onClick={() => setActiveTab("games")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'games' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Arena</button>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-[900px] space-y-12">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-12">
         {activeTab === "progress" && (
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="bg-white rounded-[40px] p-6 md:p-10 border border-slate-100 shadow-2xl overflow-hidden relative flex flex-col md:flex-row items-center gap-8 md:gap-12">
@@ -229,19 +234,27 @@ export default function PublicStudentView() {
                     </button>
                   )}
                </div>
-               <div className="flex-1 w-full space-y-6">
-                  <div className="space-y-1">
-                    <h3 className="text-4xl font-black text-slate-800 tracking-tighter leading-none">Mi Perfil Notyx</h3>
-                    <p className="text-slate-400 font-bold text-sm">Tu nivel actual es {gami?.rank?.name || 'Hierro'}</p>
+               <div className="flex-1 w-full space-y-5">
+                  <div className="space-y-1 text-center md:text-left">
+                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-800 tracking-tighter leading-none">Mi Perfil Notyx</h2>
+                     <p className="text-slate-400 font-bold text-xs md:text-sm">Tu rango actual es <span className="text-blue-600 uppercase tracking-widest">{gami?.rank?.name || 'Hierro'}</span></p>
                   </div>
                   
                   {hasPhotoPower && !data.avatar_url && (
-                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-3xl flex items-center gap-4">
-                       <div className="bg-blue-500 text-white p-2 rounded-xl"><Upload className="w-5 h-5" /></div>
-                       <div className="flex-1">
-                          <p className="text-xs font-black text-blue-800 uppercase tracking-widest">¡Poder de Foto Activado!</p>
-                          <p className="text-[10px] text-blue-600 font-bold">Haz clic en la cámara para subir tu foto personalizada.</p>
-                       </div>
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-left duration-500">
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                        <Camera className="w-5 h-5 text-blue-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-0.5">¡Poder Desbloqueado!</p>
+                        <p className="text-xs font-bold text-slate-600 truncate">Sube tu foto personalizada</p>
+                      </div>
+                      <button 
+                        onClick={() => fileInputRef.current.click()}
+                        className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest"
+                      >
+                        Subir
+                      </button>
                     </div>
                   )}
 
@@ -279,14 +292,14 @@ export default function PublicStudentView() {
                </div>
                
                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                     <table className="w-full">
+                  <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                     <table className="w-full text-base border-collapse min-w-[500px] md:min-w-full">
                         <thead>
-                           <tr className="bg-slate-50 border-b border-slate-100">
-                              <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
-                              <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Asistencia</th>
-                              <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Rendimiento</th>
-                              <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Puntaje</th>
+                           <tr className="border-b-2 border-slate-100">
+                              <th className="px-4 md:px-6 py-4 text-left text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
+                              <th className="px-4 md:px-6 py-4 text-left text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Asistencia</th>
+                              <th className="px-4 md:px-6 py-4 text-left text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Rendimiento</th>
+                              <th className="px-4 md:px-6 py-4 text-right text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Puntaje</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -331,19 +344,19 @@ export default function PublicStudentView() {
 
         {activeTab === "shop" && (
           <div className="space-y-12 animate-in slide-up">
-             <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden">
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                   <div className="flex items-center gap-6">
-                      <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-xl border border-white/20"><ShoppingBag className="w-10 h-10" /></div>
+             <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl relative overflow-hidden">
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 text-center md:text-left">
+                   <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                      <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-xl border border-white/20"><ShoppingBag className="w-8 h-8 md:w-10 md:h-10" /></div>
                       <div>
-                         <h2 className="text-4xl font-black tracking-tight leading-none mb-2">Bazar Estudiantil</h2>
-                         <p className="text-orange-100 text-lg font-medium italic">Canjea tus monedas por gloria y estilo</p>
+                         <h2 className="text-2xl md:text-4xl font-black tracking-tight leading-none mb-1 md:mb-2">Bazar Estudiantil</h2>
+                         <p className="text-orange-100 text-sm md:text-lg font-medium italic">Canjea tus monedas por estilo</p>
                       </div>
                    </div>
-                   <div className="bg-white text-orange-600 px-10 py-5 rounded-[2rem] flex flex-col items-center shadow-xl border-4 border-orange-100">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-60">Tu Fortuna</span>
-                      <div className="flex items-center gap-2 font-black text-4xl">
-                         <CoinsIcon className="w-8 h-8" /> {gami?.notyxCoins || 0}
+                   <div className="bg-white text-orange-600 px-8 py-4 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] flex flex-col items-center shadow-xl border-2 md:border-4 border-orange-100">
+                      <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-60">Tu Fortuna</span>
+                      <div className="flex items-center gap-2 font-black text-2xl md:text-4xl">
+                         <CoinsIcon className="w-6 h-6 md:w-8 md:h-8" /> {gami?.notyxCoins || 0}
                       </div>
                    </div>
                 </div>
@@ -465,14 +478,14 @@ export default function PublicStudentView() {
                 <MathBlitzGame studentId={data.cs_id} onExit={() => setActiveGame(null)} onWin={handleGameWin} />
               ) : (
                 <>
-                  <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden">
+                  <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                       <div className="flex items-center gap-6">
-                          <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-xl border border-white/20"><Gamepad2 className="w-10 h-10" /></div>
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 text-center md:text-left">
+                       <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                          <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-xl border border-white/20"><Gamepad2 className="w-8 h-8 md:w-10 md:h-10" /></div>
                           <div>
-                             <h2 className="text-4xl font-black tracking-tight leading-none mb-2">Arena de Juegos</h2>
-                             <p className="text-indigo-100 text-lg font-medium italic">Entrena tu mente y gana monedas extra</p>
+                             <h2 className="text-2xl md:text-4xl font-black tracking-tight leading-none mb-1 md:mb-2">Arena de Juegos</h2>
+                             <p className="text-indigo-100 text-sm md:text-lg font-medium italic">Entrena tu mente y gana monedas</p>
                           </div>
                        </div>
                     </div>
@@ -480,12 +493,12 @@ export default function PublicStudentView() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     {/* Sudoku Game Card */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border-2 border-slate-100 hover:border-indigo-200 transition-all flex flex-col group relative overflow-hidden">
+                    <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border-2 border-slate-100 hover:border-indigo-200 transition-all flex flex-col group relative overflow-hidden">
                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform" />
                        <div className="relative z-10">
-                          <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center mb-6"><Brain className="w-8 h-8" /></div>
-                          <h3 className="text-2xl font-black text-slate-800 mb-2">Sudyx (4x4)</h3>
-                          <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">Completa el desafío lógico de números.</p>
+                          <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-50 text-indigo-500 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6"><Brain className="w-6 h-6 md:w-8 md:h-8" /></div>
+                          <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">Sudyx (4x4)</h3>
+                          <p className="text-slate-500 text-xs md:text-sm font-medium mb-6 md:mb-8 leading-relaxed">Completa el desafío lógico de números.</p>
                           {activeUnlocks.some(u => u.unlock_type === 'game' && u.unlock_key === 'Sudoku') ? (
                             <Button onClick={() => setActiveGame('Sudoku')} className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2"><Play className="w-4 h-4 fill-white" /> Jugar Ahora</Button>
                           ) : (
@@ -495,12 +508,12 @@ export default function PublicStudentView() {
                     </div>
 
                     {/* Pyramid Game Card */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border-2 border-slate-100 hover:border-emerald-200 transition-all flex flex-col group relative overflow-hidden">
+                    <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border-2 border-slate-100 hover:border-emerald-200 transition-all flex flex-col group relative overflow-hidden">
                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform" />
                        <div className="relative z-10">
-                          <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mb-6"><Binary className="w-8 h-8" /></div>
-                          <h3 className="text-2xl font-black text-slate-800 mb-2">Pyramyx</h3>
-                          <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">Suma y construye la pirámide numérica.</p>
+                          <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-50 text-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6"><Binary className="w-6 h-6 md:w-8 md:h-8" /></div>
+                          <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">Pyramyx</h3>
+                          <p className="text-slate-500 text-xs md:text-sm font-medium mb-6 md:mb-8 leading-relaxed">Suma y construye la pirámide numérica.</p>
                           {activeUnlocks.some(u => u.unlock_type === 'game' && u.unlock_key === 'Pyramid') ? (
                             <Button onClick={() => setActiveGame('Pyramid')} className="w-full h-14 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2"><Play className="w-4 h-4 fill-white" /> Jugar Ahora</Button>
                           ) : (

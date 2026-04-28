@@ -324,11 +324,13 @@ export default function ClassView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-[24px] w-fit border border-slate-200/50">
-        <button onClick={() => setActiveTab("sessions")} className={`tab-btn ${activeTab === 'sessions' ? 'active' : ''}`}><CalendarPlus className="w-4 h-4" /> Sesiones</button>
-        <button onClick={() => setActiveTab("students")} className={`tab-btn ${activeTab === 'students' ? 'active' : ''}`}><Users className="w-4 h-4" /> Alumnos</button>
-        <button onClick={() => setActiveTab("gamification")} className={`tab-btn ${activeTab === 'gamification' ? 'active' : ''}`}><Trophy className="w-4 h-4" /> Gamificación</button>
-        <button onClick={() => setActiveTab("arena")} className={`tab-btn ${activeTab === 'arena' ? 'active' : ''}`}><Gamepad2 className="w-4 h-4" /> Arena</button>
+      <div className="w-full overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-[24px] w-fit border border-slate-200/50 min-w-full sm:min-w-0">
+          <button onClick={() => setActiveTab("sessions")} className={`tab-btn flex-shrink-0 ${activeTab === 'sessions' ? 'active' : ''}`}><CalendarPlus className="w-4 h-4" /> Sesiones</button>
+          <button onClick={() => setActiveTab("students")} className={`tab-btn flex-shrink-0 ${activeTab === 'students' ? 'active' : ''}`}><Users className="w-4 h-4" /> Alumnos</button>
+          <button onClick={() => setActiveTab("gamification")} className={`tab-btn flex-shrink-0 ${activeTab === 'gamification' ? 'active' : ''}`}><Trophy className="w-4 h-4" /> Gamificación</button>
+          <button onClick={() => setActiveTab("arena")} className={`tab-btn flex-shrink-0 ${activeTab === 'arena' ? 'active' : ''}`}><Gamepad2 className="w-4 h-4" /> Arena</button>
+        </div>
       </div>
 
       {/* 1. SESSIONS TAB */}
@@ -397,65 +399,117 @@ export default function ClassView() {
                    onChange={e => setSearchTerm(e.target.value)}
                  />
               </div>
-           </div>
-
+            {/* Students List - Responsive Table/Cards */}
            <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                 <thead>
-                    <tr className="bg-slate-50 border-b border-slate-100">
-                       <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Estudiante</th>
-                       <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">DNI / Validación</th>
-                       <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Casa / Escudo</th>
-                       <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Acciones</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-50">
-                    {filteredStudents.map(st => (
-                      <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
-                         <td className="px-8 py-6">
-                            <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-black">
-                                  {getStudentName(st)[0]}
-                               </div>
-                               <div>
-                                  <span className="font-black text-slate-800 text-base">{getStudentName(st)}</span>
-                                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-0.5">ID: {st.public_token?.slice(0, 8)}</p>
-                               </div>
-                            </div>
-                         </td>
-                         <td className="px-8 py-6">
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                   <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100">
+                         <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Estudiante</th>
+                         <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">DNI / Validación</th>
+                         <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Casa / Escudo</th>
+                         <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Acciones</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-50">
+                      {filteredStudents.map(st => (
+                        <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
+                           <td className="px-8 py-6">
+                              <div className="flex items-center gap-4">
+                                 <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-black">
+                                    {getStudentName(st)[0]}
+                                 </div>
+                                 <div>
+                                    <span className="font-black text-slate-800 text-base">{getStudentName(st)}</span>
+                                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-0.5">ID: {st.public_token?.slice(0, 8)}</p>
+                                 </div>
+                              </div>
+                           </td>
+                           <td className="px-8 py-6">
+                              <input 
+                                 placeholder="DNI del alumno"
+                                 className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none focus:border-blue-400 w-32"
+                                 value={st.dni || ""}
+                                 onChange={e => updateStudentDni(st.id, e.target.value)}
+                              />
+                           </td>
+                           <td className="px-8 py-6">
+                              <select 
+                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none"
+                                value={st.house_id || ""}
+                                onChange={e => updateStudentHouse(st.id, e.target.value)}
+                              >
+                                 <option value="">Sin Casa</option>
+                                 {houses.map(h => (
+                                   <option key={h.id} value={h.id}>{h.icon} {h.name}</option>
+                                 ))}
+                              </select>
+                           </td>
+                           <td className="px-8 py-6 text-right space-x-2">
+                              <Link to={`/class-live/${st.public_token}`} target="_blank">
+                                 <Button variant="ghost" size="icon" className="rounded-xl" title="Ver Perfil Público"><ExternalLink className="w-4 h-4" /></Button>
+                              </Link>
+                              <Button onClick={() => handleDeleteStudent(st.id)} variant="ghost" size="icon" className="rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
+                           </td>
+                        </tr>
+                      ))}
+                   </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden grid grid-cols-1 gap-1 p-1 bg-slate-50">
+                 {filteredStudents.map(st => (
+                   <div key={st.id} className="bg-white p-6 rounded-[32px] space-y-5 shadow-sm border border-slate-100">
+                      <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg">
+                            {getStudentName(st)[0]}
+                         </div>
+                         <div className="flex-1 min-w-0">
+                            <h4 className="font-black text-slate-800 text-lg truncate leading-tight">{getStudentName(st)}</h4>
+                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">Token: {st.public_token?.slice(0, 8)}</p>
+                         </div>
+                         <div className="flex gap-2">
+                            <Link to={`/class-live/${st.public_token}`} target="_blank">
+                               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-100"><ExternalLink className="w-4 h-4 text-slate-600" /></Button>
+                            </Link>
+                            <Button onClick={() => handleDeleteStudent(st.id)} variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-red-50 border border-red-100"><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">DNI / Validación</label>
                             <input 
-                               placeholder="DNI del alumno"
-                               className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none focus:border-blue-400 w-32"
+                               placeholder="DNI"
+                               className="bg-slate-50 border border-slate-100 rounded-xl px-4 h-12 w-full font-bold text-sm outline-none"
                                value={st.dni || ""}
                                onChange={e => updateStudentDni(st.id, e.target.value)}
                             />
-                         </td>
-                         <td className="px-8 py-6">
+                         </div>
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Casa / Escudo</label>
                             <select 
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none"
-                              value={st.house_id || ""}
-                              onChange={e => updateStudentHouse(st.id, e.target.value)}
+                               className="bg-slate-50 border border-slate-100 rounded-xl px-4 h-12 w-full font-bold text-sm outline-none"
+                               value={st.house_id || ""}
+                               onChange={e => updateStudentHouse(st.id, e.target.value)}
                             >
                                <option value="">Sin Casa</option>
                                {houses.map(h => (
                                  <option key={h.id} value={h.id}>{h.icon} {h.name}</option>
                                ))}
                             </select>
-                         </td>
-                         <td className="px-8 py-6 text-right space-x-2">
-                            <Link to={`/class-live/${st.public_token}`} target="_blank">
-                               <Button variant="ghost" size="icon" className="rounded-xl" title="Ver Perfil Público"><ExternalLink className="w-4 h-4" /></Button>
-                            </Link>
-                            <Button onClick={() => handleDeleteStudent(st.id)} variant="ghost" size="icon" className="rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
-                         </td>
-                      </tr>
-                    ))}
-                 </tbody>
-              </table>
+                         </div>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+
               {filteredStudents.length === 0 && (
                 <div className="p-20 text-center text-slate-400 font-bold italic">No hay alumnos registrados aún o que coincidan con la búsqueda.</div>
               )}
+           </div>
            </div>
         </div>
       )}

@@ -160,25 +160,25 @@ export default function GlobalMarketplace() {
         <div className="absolute bottom-[20%] right-[-5%] w-[400px] h-[400px] bg-fuchsia-400/5 rounded-full blur-[100px]" />
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        <div>
-           <div className="flex items-center gap-3 mb-2">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-8">
+        <div className="text-center lg:text-left">
+           <div className="flex items-center justify-center lg:justify-start gap-3 mb-2">
              <div className="bg-yellow-400 p-2 rounded-xl shadow-lg shadow-yellow-400/20">
                <ShoppingBag className="w-6 h-6 text-yellow-900" />
              </div>
-             <h1 className="text-5xl font-black text-slate-900 tracking-tighter">Bazar Notyx</h1>
+             <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter">Bazar Notyx</h1>
            </div>
-           <p className="text-slate-500 font-medium text-lg">Personaliza tu leyenda con skins exclusivas y recompensas de clase.</p>
+           <p className="text-slate-500 font-medium text-base md:text-lg">Personaliza tu leyenda con skins exclusivas.</p>
         </div>
         
-        <div className="flex items-center gap-6">
-          <div className="bg-white border-2 border-slate-100 p-6 rounded-[32px] flex items-center gap-4 shadow-xl shadow-slate-200/40 min-w-[240px]">
-             <div className="bg-yellow-100 p-3 rounded-2xl flex items-center justify-center">
-                <Coins className="w-8 h-8 text-yellow-600 animate-bounce" />
+        <div className="flex items-center justify-center lg:justify-end gap-4 w-full lg:w-auto">
+          <div className="bg-white border-2 border-slate-100 p-5 md:p-6 rounded-[28px] md:rounded-[32px] flex items-center gap-4 shadow-xl shadow-slate-200/40 w-full md:min-w-[240px]">
+             <div className="bg-yellow-100 p-3 rounded-2xl flex items-center justify-center shrink-0">
+                <Coins className="w-6 h-6 md:w-8 md:h-8 text-yellow-600 animate-bounce" />
              </div>
-             <div>
+             <div className="min-w-0">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Saldo Notyx</span>
-                <span className="text-4xl font-black text-slate-900 leading-none">
+                <span className="text-3xl md:text-4xl font-black text-slate-900 leading-none">
                    {notyxCoins}
                 </span>
              </div>
@@ -188,10 +188,10 @@ export default function GlobalMarketplace() {
 
       {/* --- PREVIEW SECTION --- */}
       {previewSkin && (
-        <div className="bg-slate-900 rounded-[48px] p-8 md:p-12 text-white flex flex-col md:flex-row items-center gap-12 animate-in zoom-in-95 duration-500 shadow-2xl shadow-slate-900/40 border border-slate-800 relative overflow-hidden group">
+        <div className="bg-slate-900 rounded-[32px] md:rounded-[48px] p-6 md:p-12 text-white flex flex-col md:flex-row items-center gap-10 md:gap-12 animate-in zoom-in-95 duration-500 shadow-2xl shadow-slate-900/40 border border-slate-800 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-fuchsia-600/10 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
           
-          <div className="w-[280px] shrink-0 transform hover:scale-105 transition-transform duration-500">
+          <div className="w-[240px] md:w-[280px] shrink-0 transform hover:scale-105 transition-transform duration-500">
             <StudentCard 
               student={{
                 name: userProfile?.full_name || "Tu Nombre",
@@ -208,8 +208,8 @@ export default function GlobalMarketplace() {
             <div className="inline-flex items-center gap-2 bg-fuchsia-500/20 text-fuchsia-300 px-4 py-2 rounded-full border border-fuchsia-500/30 text-xs font-black uppercase tracking-widest mb-2">
               <Sparkles className="w-4 h-4" /> Vista Previa de Skin
             </div>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight">{previewSkin.name}</h2>
-            <p className="text-slate-400 text-lg leading-relaxed max-w-xl">{previewSkin.description}</p>
+             <h2 className="text-3xl md:text-5xl font-black tracking-tight">{previewSkin.name}</h2>
+            <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-xl">{previewSkin.description}</p>
             
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
               <Button 
@@ -256,7 +256,7 @@ export default function GlobalMarketplace() {
                 const canAfford = notyxCoins >= reward.cost_coins;
 
                 return (
-                  <div key={reward.id} className={`bg-white rounded-[40px] p-8 border shadow-xl hover:shadow-2xl transition-all group flex flex-col h-full relative overflow-hidden ${isEquipped ? 'border-fuchsia-400 ring-4 ring-fuchsia-100' : 'border-slate-100'}`}>
+                  <div key={reward.id} className={`bg-white rounded-[32px] md:rounded-[40px] p-6 md:p-8 border shadow-xl hover:shadow-2xl transition-all group flex flex-col h-full relative overflow-hidden ${isEquipped ? 'border-fuchsia-400 ring-4 ring-fuchsia-100' : 'border-slate-100'}`}>
                     {isEquipped && <div className="absolute top-0 right-0 bg-fuchsia-500 text-white text-[10px] font-black uppercase tracking-widest py-1.5 px-4 rounded-bl-2xl z-10">Equipada</div>}
                     
                     <div className="relative mb-6">
