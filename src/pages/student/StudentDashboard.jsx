@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { BookOpen, TrendingUp, Award, Flame, Coins, ShoppingBag, Trophy, Star, Shield, ArrowRight } from "lucide-react";
+import { BookOpen, TrendingUp, Award, Flame, Coins, ShoppingBag, Trophy, Star, Shield, ArrowRight, Lock, CheckCircle2, Flag } from "lucide-react";
 import { calculateGamification, RANKS, BADGE_DEFS } from "../../lib/gamificationEngine";
 
 export default function StudentDashboard() {
@@ -205,7 +205,57 @@ export default function StudentDashboard() {
               </Link>
             ))}
           </div>
-        )}
+)}
+
+      {/* Logros Detallados */}
+      {gamificationData && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+              <Award className="w-6 h-6 text-amber-500" /> Mis Logros
+            </h3>
+            <span className="text-slate-400 font-bold text-sm uppercase tracking-widest">
+              {gamificationData.unlockedBadges.filter(b => b.unlocked).length} / {Object.keys(BADGE_DEFS).length} Desbloqueados
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Object.keys(BADGE_DEFS).map((key) => {
+              const badge = BADGE_DEFS[key];
+              const isUnlocked = gamificationData.unlockedBadges?.find(b => b.id === key)?.unlocked;
+              const BadgeIcon = { Star, Flame, Crown, TrendingUp, Heart, Sparkles, Flag, Shield }[badge.icon] || Star;
+
+              return (
+                <div 
+                  key={key}
+                  className={`relative p-5 rounded-3xl border-2 transition-all duration-300 ${
+                    isUnlocked 
+                      ? 'bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-300 shadow-lg shadow-amber-500/20' 
+                      : 'bg-slate-50 border-slate-200 opacity-60'
+                  }`}
+                >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${
+                    isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
+                  }`}>
+                    {isUnlocked ? <BadgeIcon className="w-6 h-6" /> : <Lock className="w-5 h-5" />}
+                  </div>
+                  <h4 className={`font-black text-sm mb-1 ${isUnlocked ? 'text-amber-900' : 'text-slate-400'}`}>
+                    {badge.label}
+                  </h4>
+                  <p className={`text-[10px] font-medium leading-tight ${isUnlocked ? 'text-amber-700' : 'text-slate-400'}`}>
+                    {badge.req}
+                  </p>
+                  {isUnlocked && (
+                    <div className="absolute top-3 right-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

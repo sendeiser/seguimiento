@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { GraduationCap, Mail, Lock, ArrowRight, Loader2, UserPlus, Sun, Moon } from "lucide-react";
+import { GraduationCap, Mail, Lock, ArrowRight, Loader2, UserPlus, Sun, Moon, Sparkles } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 
 export default function Login() {
@@ -22,103 +22,147 @@ export default function Login() {
     setLoading(false);
   };
 
+  const isDark = theme === 'dark';
+
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Abstract Background Shapes */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none -z-10">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/5 blur-[100px] rounded-full animate-float" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/5 blur-[100px] rounded-full animate-float-reverse" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Gradient Background */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-[10%] left-[10%] w-[400px] h-[400px] rounded-full animate-pulse opacity-40" 
+            style={{ background: 'radial-gradient(circle, hsl(262 83% 60% / 0.4), transparent 70%)' }} />
+          <div className="absolute bottom-[20%] right-[20%] w-[300px] h-[300px] rounded-full opacity-30 animate-pulse" 
+            style={{ background: 'radial-gradient(circle, hsl(185 85% 60% / 0.4), transparent 70%)', animationDelay: '1s' }} />
+          <div className="absolute top-[50%] left-[50%] w-[500px] h-[500px] rounded-full opacity-20" 
+            style={{ background: 'radial-gradient(circle, hsl(270 70% 65% / 0.3), transparent 70%)', transform: 'translate(-50%, -50%)' }} />
+        </div>
       </div>
 
-      {/* Theme Toggle */}
+      {/* Theme Toggle - Glass Button */}
       <button
         onClick={toggleTheme}
-        className="absolute top-4 right-4 p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+        className="absolute top-6 right-6 z-50 p-3.5 rounded-2xl transition-all hover:scale-110"
+        style={{
+          background: 'linear-gradient(135deg, hsl(0 0% 100% / 0.15), hsl(0 0% 100% / 0.05))',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid hsl(0 0% 100% / 0.1)',
+          boxShadow: '0 8px 32px rgb(0 0 0 / 0.1)'
+        }}
       >
-        {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        {isDark ? <Sun className="w-5 h-5" style={{ color: 'hsl(25 95% 60%)' }} /> : <Moon className="w-5 h-5" style={{ color: 'hsl(262 60% 50%)' }} />}
       </button>
 
-      <div className="w-full max-w-md animate-in slide-up">
-        <div className="text-center mb-8 relative">
-          <div className="absolute top-0 left-0">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] border-transparent">
-                Volver al inicio
-              </Button>
-            </Link>
+      <div className="w-full max-w-md relative">
+        {/* Logo Section */}
+        <div className="text-center mb-10">
+          <div className="relative inline-block mb-6 mt-10">
+            {/* Glow */}
+            <div className="absolute inset-0 rounded-[3rem] blur-2xl opacity-60" style={{ background: 'linear-gradient(135deg, hsl(262 83% 60%), hsl(185 85% 60%))' }} />
+            
+            {/* Logo - Glass Circle */}
+            <div className="relative p-8 rounded-[3rem] transition-all hover:scale-105 duration-300"
+              style={{
+                background: 'linear-gradient(135deg, hsl(262 83% 60% / 0.8), hsl(270 70% 55% / 0.9))',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid hsl(0 0% 100% / 0.2)',
+                boxShadow: '0 8px 40px hsl(262 83% 60% / 0.4)'
+              }}>
+              <GraduationCap className="w-14 h-14 text-white" />
+              <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-white/80 animate-pulse" />
+            </div>
           </div>
-          <div className="inline-flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-[1.5rem] shadow-2xl shadow-blue-600/20 mb-6 border border-white/20 mt-12">
-            <GraduationCap className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-4xl font-black text-[var(--text-primary)] tracking-tight">Notyx</h1>
-          <p className="text-[var(--text-secondary)] font-bold uppercase tracking-[0.3em] text-[10px] mt-2">Progreso en Tiempo Real</p>
+          
+          <h1 className="text-5xl font-['Outfit'] font-extrabold tracking-tight"
+            style={{
+              background: 'linear-gradient(135deg, hsl(262 70% 55%), hsl(185 85% 60%))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 2px 4px hsl(262 83% 60% / 0.3))'
+            }}>
+            Notyx
+          </h1>
+          
+          <p className="font-['DM_Sans'] font-medium text-sm mt-4 tracking-[0.15em] uppercase" style={{ color: 'hsl(var(--color-text-secondary))' }}>
+            Level Up Your Learning
+          </p>
         </div>
 
-        <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-slate-200/50 dark:shadow-slate-900/50 bg-[var(--bg-primary)]/80 backdrop-blur-xl overflow-hidden group">
-          <div className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-60 group-hover:opacity-100 transition-opacity" />
-          <CardHeader className="space-y-2 pt-10 pb-6 px-10 text-center">
-            <CardTitle className="text-2xl font-black text-[var(--text-primary)]">Bienvenido de nuevo</CardTitle>
-            <CardDescription className="font-bold text-[var(--text-secondary)]">Gestioná tus clases con un solo clic.</CardDescription>
+        {/* Login Card - Glassmorphism */}
+        <Card className="card-elevated" style={{ background: isDark 
+          ? 'linear-gradient(145deg, hsl(220 20% 12% / 0.6), hsl(220 20% 8% / 0.3))' 
+          : 'linear-gradient(145deg, hsl(0 0% 100% / 0.6), hsl(0 0% 100% / 0.3))' }}>
+          {/* Gradient top bar */}
+          <div className="h-1.5 w-full" style={{
+            background: 'linear-gradient(90deg, hsl(262 83% 60%), hsl(185 85% 60%), hsl(270 70% 65%), hsl(262 83% 60%))',
+            backgroundSize: '200% 100%',
+            animation: 'gradient-shift 3s ease infinite'
+          }} />
+          
+          <CardHeader className="text-center pt-12 pb-4 px-8">
+            <CardTitle className="text-2xl font-['Outfit'] font-bold" style={{ color: 'hsl(var(--color-text-primary))' }}>
+              Welcome Back
+            </CardTitle>
+            <CardDescription className="font-['DM_Sans'] mt-2" style={{ color: 'hsl(var(--color-text-secondary))' }}>
+              Sign in to continue your journey
+            </CardDescription>
           </CardHeader>
-          <CardContent className="px-10 pb-12">
+          
+          <CardContent className="px-8 pb-10">
             <form onSubmit={handleLogin} className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="label">Email Institucional</label>
-                  <div className="input-wrapper group">
-                    <Mail className="input-icon w-5 h-5" />
-                    <input
-                      type="email"
-                      placeholder="nombre@colegio.com"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="input input-with-icon"
-                    />
+              <div className="space-y-5">
+                <div className="space-y-2.5">
+                  <label className="label">Email</label>
+                  <div className="input-wrapper">
+                    <Mail className="input-icon" />
+                    <input type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)}
+                      className="input" style={{
+                        background: isDark ? 'rgb(0 0 0 / 0.2)' : 'rgb(255 255 255 / 0.5)',
+                        backdropFilter: 'blur(10px)',
+                        border: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 100% / 0.1)',
+                        color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)'
+                      }} />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="label">Contraseña</label>
-                  <div className="input-wrapper group">
-                    <Lock className="input-icon w-5 h-5" />
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="input input-with-icon"
-                    />
+                <div className="space-y-2.5">
+                  <label className="label">Password</label>
+                  <div className="input-wrapper">
+                    <Lock className="input-icon" />
+                    <input type="password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)}
+                      className="input" style={{
+                        background: isDark ? 'rgb(0 0 0 / 0.2)' : 'rgb(255 255 255 / 0.5)',
+                        backdropFilter: 'blur(10px)',
+                        border: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 100% / 0.1)',
+                        color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)'
+                      }} />
                   </div>
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-14 rounded-2xl shadow-xl shadow-blue-600/20 font-black text-lg gap-3"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Iniciar Sesión"}
-                {!loading && <ArrowRight className="w-5 h-5" />}
+              <Button type="submit" disabled={loading} className="btn-primary w-full h-12 rounded-xl font-['DM_Sans'] font-bold text-base gap-2.5">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><span>Sign In</span> <ArrowRight className="w-4 h-4" /></>}
               </Button>
             </form>
 
-            <div className="mt-10 pt-8 border-t border-[var(--border)] flex flex-col items-center gap-4">
-              <p className="text-sm font-bold text-[var(--text-secondary)]">¿Sos docente y no tenés cuenta?</p>
+            <div className="mt-8 pt-6 flex flex-col items-center gap-4" style={{ borderTop: '1px solid hsl(0 0% 0% / 0.05)' }}>
+              <p className="text-sm font-['DM_Sans']" style={{ color: 'hsl(var(--color-text-secondary))' }}>Don't have an account?</p>
               <Link to="/register" className="w-full">
-                <Button variant="outline" className="w-full h-12 rounded-2xl font-black gap-2 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]">
-                  <UserPlus className="w-4 h-4" /> Registrarse como docente
+                <Button variant="secondary" className="w-full h-11 rounded-xl font-['DM_Sans'] font-bold gap-2">
+                  <UserPlus className="w-4 h-4" /> Create Teacher Account
                 </Button>
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        <p className="mt-8 text-center text-[var(--text-secondary)] text-xs font-bold leading-relaxed px-10">
-          Uso exclusivo para instituciones educativas. Si sos alumno, solicitá el link a tu docente.
+        <p className="mt-8 text-center text-xs font-['DM_Sans'] leading-relaxed px-4" style={{ color: 'hsl(var(--color-text-muted))' }}>
+          For educational institutions only.<br />Students can join via links shared by their teachers.
         </p>
       </div>
+
+      <style>{`
+        @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+      `}</style>
     </div>
   );
 }

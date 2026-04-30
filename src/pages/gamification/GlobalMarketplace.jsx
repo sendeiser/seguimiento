@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { ShoppingBag, Coins, ShoppingCart, CheckCircle2, Star, Clock, Shield, Sparkles, Eye } from "lucide-react";
+import { ShoppingBag, Coins, ShoppingCart, CheckCircle2, Star, Clock, Shield, Sparkles, Eye, Gem } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import StudentCard from "../../components/gamification/StudentCard";
+import { ShopCard } from "../../components/shop/ShopCards";
 import { useAuth } from "../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../../providers/ThemeProvider";
 
 export default function GlobalMarketplace() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [rewards, setRewards] = useState([]);
   const [myPurchases, setMyPurchases] = useState([]);
   const [notyxCoins, setNotyxCoins] = useState(0);
@@ -32,16 +35,12 @@ export default function GlobalMarketplace() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch profile to get name for preview
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       setUserProfile(profile);
 
-      // Fetch class associations to get class-specific rewards
       const { data: classStudents } = await supabase.from("class_students").select("class_id").eq("student_id", user.id);
       const classIds = classStudents?.map(cs => cs.class_id) || [];
 
-      // Fetch rewards, grades, attendance, and purchases
-      // We merge all rewards into one query to be safer
       const [
         { data: allRwData, error: rwError },
         { data: pData },
@@ -58,7 +57,6 @@ export default function GlobalMarketplace() {
 
       if (rwError) console.error("Error fetching rewards:", rwError);
 
-      // Filter rewards: global cosmetics OR rewards in my classes
       const filteredRewards = (allRwData || []).filter(r => 
         r.category === 'cosmetic' || (r.class_id && classIds.includes(r.class_id))
       );
@@ -94,7 +92,6 @@ export default function GlobalMarketplace() {
 
     const initialStatus = reward.category === 'cosmetic' ? 'equipped' : 'pending';
 
-    // If cosmetic, unequip others first
     if (reward.category === 'cosmetic') {
       const cosmeticIds = rewards.filter(r => r.category === 'cosmetic').map(r => r.id);
       if (cosmeticIds.length > 0) {
@@ -123,8 +120,6 @@ export default function GlobalMarketplace() {
 
   const handleEquip = async (reward) => {
     const { data: { user } } = await supabase.auth.getUser();
-    
-    // Unequip others
     const cosmeticIds = rewards.filter(r => r.category === 'cosmetic').map(r => r.id);
     if (cosmeticIds.length > 0) {
       await supabase.from("student_purchases")
@@ -133,7 +128,6 @@ export default function GlobalMarketplace() {
         .in('reward_id', cosmeticIds);
     }
 
-    // Equip selected
     await supabase.from("student_purchases")
       .update({ status: 'equipped' })
       .eq('student_id', user.id)
@@ -143,253 +137,285 @@ export default function GlobalMarketplace() {
   };
 
   if (loading) return (
-    <div className="p-20 text-center flex flex-col items-center">
-      <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="font-black text-slate-800 animate-pulse uppercase tracking-widest text-sm">Cargando el Mercado Notyx...</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? 'hsl(220 25% 6%)' : 'hsl(220 40% 98%)' }}>
+      <div className="relative">
+        <div className="absolute inset-0 rounded-full blur-xl animate-pulse" style={{ background: 'hsl(262 83% 60% / 0.4)' }} />
+        <div className="w-12 h-12 rounded-full animate-spin" style={{ border: '3px solid hsl(262 83% 60% / 0.2)', borderTopColor: 'hsl(262 83% 60%)' }} />
+      </div>
     </div>
   );
 
   const classRewards = rewards.filter(r => r.category !== 'cosmetic');
   const cosmetics = rewards.filter(r => r.category === 'cosmetic');
 
+  const glassCard = {
+    background: isDark 
+      ? 'linear-gradient(145deg, hsl(220 20% 15% / 0.8), hsl(220 25% 8% / 0.5))'
+      : 'linear-gradient(145deg, hsl(0 0% 100% / 0.8), hsl(0 0% 100% / 0.5))',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: isDark ? '1px solid hsl(0 0% 100% / 0.1)' : '1px solid hsl(0 0% 100% / 0.15)',
+  };
+
+  const glassButton = {
+    background: isDark ? 'hsl(0 0% 100% / 0.08)' : 'hsl(0 0% 100% / 0.5)',
+    backdropFilter: 'blur(10px)',
+    border: isDark ? '1px solid hsl(0 0% 100% / 0.1)' : '1px solid hsl(0 0% 100% / 0.1)',
+  };
+
   return (
-    <div className="space-y-16 animate-in fade-in duration-1000 pb-20 relative">
-      {/* Background Decorative Elements */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/5 rounded-full blur-[100px]" />
-        <div className="absolute bottom-[20%] right-[-5%] w-[400px] h-[400px] bg-fuchsia-400/5 rounded-full blur-[100px]" />
+    <div className="min-h-screen p-4 md:p-8 relative" style={{ background: isDark ? 'hsl(220 25% 6%)' : 'hsl(220 40% 98%)' }}>
+      {/* Background Effects */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full opacity-25 animate-pulse" style={{ background: 'radial-gradient(circle, hsl(262 83% 60% / 0.4), transparent 70%)' }} />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full opacity-20" style={{ background: 'radial-gradient(circle, hsl(185 85% 60% / 0.3), transparent 70%)' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-10" style={{ background: 'radial-gradient(circle, hsl(270 70% 65% / 0.3), transparent 70%)' }} />
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-8">
-        <div className="text-center lg:text-left">
-           <div className="flex items-center justify-center lg:justify-start gap-3 mb-2">
-             <div className="bg-yellow-400 p-2 rounded-xl shadow-lg shadow-yellow-400/20">
-               <ShoppingBag className="w-6 h-6 text-yellow-900" />
-             </div>
-             <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter">Bazar Notyx</h1>
-           </div>
-           <p className="text-slate-500 font-medium text-base md:text-lg">Personaliza tu leyenda con skins exclusivas.</p>
-        </div>
-        
-        <div className="flex items-center justify-center lg:justify-end gap-4 w-full lg:w-auto">
-          <div className="bg-white border-2 border-slate-100 p-5 md:p-6 rounded-[28px] md:rounded-[32px] flex items-center gap-4 shadow-xl shadow-slate-200/40 w-full md:min-w-[240px]">
-             <div className="bg-yellow-100 p-3 rounded-2xl flex items-center justify-center shrink-0">
-                <Coins className="w-6 h-6 md:w-8 md:h-8 text-yellow-600 animate-bounce" />
-             </div>
-             <div className="min-w-0">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Saldo Notyx</span>
-                <span className="text-3xl md:text-4xl font-black text-slate-900 leading-none">
-                   {notyxCoins}
-                </span>
-             </div>
+      <div className="max-w-7xl mx-auto space-y-12">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="text-center lg:text-left">
+            <div className="flex items-center justify-center lg:justify-start gap-4 mb-3">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-2xl blur-xl animate-pulse" style={{ background: 'hsl(45 90% 50% / 0.4)' }} />
+                <div className="relative p-3 rounded-2xl" style={{ 
+                  background: 'linear-gradient(135deg, hsl(45 90% 50%), hsl(45 95% 65%))',
+                  boxShadow: '0 8px 30px hsl(45 90% 50% / 0.4)'
+                }}>
+                  <ShoppingBag className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-['Outfit'] font-extrabold tracking-tight" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>
+                Bazar Notyx
+              </h1>
+            </div>
+            <p className="font-['DM_Sans'] font-medium" style={{ color: isDark ? 'hsl(220 10% 60%)' : 'hsl(220 8% 35%)' }}>
+              Personaliza tu leyenda con skins exclusivas.
+            </p>
           </div>
-        </div>
-      </div>
-
-      {/* --- PREVIEW SECTION --- */}
-      {previewSkin && (
-        <div className="bg-slate-900 rounded-[32px] md:rounded-[48px] p-6 md:p-12 text-white flex flex-col md:flex-row items-center gap-10 md:gap-12 animate-in zoom-in-95 duration-500 shadow-2xl shadow-slate-900/40 border border-slate-800 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-fuchsia-600/10 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
           
-          <div className="w-[240px] md:w-[280px] shrink-0 transform hover:scale-105 transition-transform duration-500">
-            <StudentCard 
-              student={{
-                name: userProfile?.full_name || "Tu Nombre",
-                pct: 0.85, // Show as Full Art in preview
-                gami: { currentLevel: 10, streak: 5, hp: 100, MAX_HP: 100, currentLevelXP: 450, nextLevelXP: 1000, rank: { name: "Oro" } },
-                equipped_skin: previewSkin.name
-              }}
-              isPinned={false}
-              isTop3={false}
-            />
-          </div>
-
-          <div className="flex-1 space-y-6 relative z-10 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 bg-fuchsia-500/20 text-fuchsia-300 px-4 py-2 rounded-full border border-fuchsia-500/30 text-xs font-black uppercase tracking-widest mb-2">
-              <Sparkles className="w-4 h-4" /> Vista Previa de Skin
-            </div>
-             <h2 className="text-3xl md:text-5xl font-black tracking-tight">{previewSkin.name}</h2>
-            <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-xl">{previewSkin.description}</p>
-            
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-              <Button 
-                onClick={() => handleBuy(previewSkin)}
-                className="h-16 px-10 rounded-2xl bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-black uppercase tracking-widest shadow-xl shadow-yellow-400/20 flex items-center gap-3"
-              >
-                <ShoppingCart className="w-6 h-6" /> Comprar por {previewSkin.cost_coins}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setPreviewSkin(null)}
-                className="h-16 px-10 rounded-2xl border-2 border-white/10 hover:bg-white/5 text-white font-black uppercase tracking-widest"
-              >
-                Cerrar Preview
-              </Button>
+          {/* Coins Balance */}
+          <div className="flex items-center justify-center lg:justify-end">
+            <div className="p-1 rounded-[1.5rem]" style={{
+              background: isDark 
+                ? 'linear-gradient(145deg, hsl(220 20% 15% / 0.8), hsl(220 25% 8% / 0.5))'
+                : 'linear-gradient(145deg, hsl(0 0% 100% / 0.8), hsl(0 0% 100% / 0.5))',
+              backdropFilter: 'blur(20px)',
+              border: isDark ? '1px solid hsl(0 0% 100% / 0.1)' : '1px solid hsl(0 0% 100% / 0.15)',
+              boxShadow: '0 8px 30px rgb(0 0 0 / 0.15)'
+            }}>
+              <div className="flex items-center gap-4 px-6 py-4 rounded-[1.25rem]" style={glassButton}>
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-xl blur-md animate-pulse" style={{ background: 'hsl(45 90% 50% / 0.4)' }} />
+                  <div className="relative p-2 rounded-xl" style={{ 
+                    background: 'linear-gradient(135deg, hsl(45 90% 50% / 0.3), hsl(45 95% 65% / 0.2))',
+                    border: '1px solid hsl(45 90% 50% / 0.3)'
+                  }}>
+                    <Coins className="w-6 h-6 md:w-8 md:h-8" style={{ color: '#f59e0b', filter: 'drop-shadow(0 0 6px hsl(45 90% 50%))' }} />
+                  </div>
+                </div>
+                <div>
+                  <span className="font-['DM_Sans'] font-bold text-[10px] uppercase tracking-widest block" style={{ color: isDark ? 'hsl(220 10% 50%)' : 'hsl(220 10% 55%)' }}>Saldo Notyx</span>
+                  <span className="text-3xl md:text-4xl font-['Outfit'] font-extrabold" style={{ 
+                    color: '#f59e0b',
+                    textShadow: '0 0 20px hsl(45 90% 50% / 0.5)'
+                  }}>
+                    {notyxCoins}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Seccion: Cosméticos Globales */}
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        {/* Preview Section */}
+        {previewSkin && (
+          <div className="p-6 md:p-10 rounded-[2.5rem] relative overflow-hidden transition-all duration-500 hover:scale-[1.01]" style={{
+            background: isDark 
+              ? 'linear-gradient(145deg, hsl(220 20% 15% / 0.9), hsl(220 25% 8% / 0.6))'
+              : 'linear-gradient(145deg, hsl(0 0% 100% / 0.8), hsl(0 0% 100% / 0.5))',
+            backdropFilter: 'blur(25px)',
+            border: isDark ? '1px solid hsl(0 0% 100% / 0.12)' : '1px solid hsl(0 0% 100% / 0.15)',
+            boxShadow: '0 25px 50px -20px rgb(0 0 0 / 0.3)'
+          }}>
+            {/* Glow Background */}
+            <div className="absolute inset-0 -z-10" style={{
+              background: 'radial-gradient(circle at 30% 50%, hsl(262 83% 60% / 0.15), transparent 50%), radial-gradient(circle at 70% 50%, hsl(270 70% 65% / 0.1), transparent 50%)'
+            }} />
+
+            <div className="absolute top-0 left-0 right-0 h-1.5" style={{
+              background: 'linear-gradient(90deg, hsl(262 83% 60%), hsl(185 85% 60%), hsl(270 70% 65%), hsl(262 83% 60%))',
+              backgroundSize: '200% 100%',
+              animation: 'gradient-shift 3s ease infinite'
+            }} />
+
+            <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+              <div className="shrink-0 transform hover:scale-105 transition-transform duration-500">
+                <StudentCard 
+                  student={{
+                    name: userProfile?.full_name || "Tu Nombre",
+                    pct: 0.85,
+                    gami: { currentLevel: 10, streak: 5, hp: 100, MAX_HP: 100, currentLevelXP: 450, nextLevelXP: 1000, rank: { name: "Oro" } },
+                    equipped_skin: previewSkin.name
+                  }}
+                  isPinned={false}
+                  isTop3={false}
+                />
+              </div>
+
+              <div className="flex-1 text-center md:text-left space-y-5">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{
+                  background: 'linear-gradient(135deg, hsl(270 70% 60% / 0.2), hsl(270 70% 50% / 0.1))',
+                  border: '1px solid hsl(270 70% 60% / 0.2)'
+                }}>
+                  <Sparkles className="w-4 h-4" style={{ color: 'hsl(270 70% 70%)' }} />
+                  <span className="font-['DM_Sans'] font-bold text-xs uppercase tracking-widest" style={{ color: 'hsl(270 70% 70%)' }}>Vista Previa</span>
+                </div>
+                
+                <h2 className="text-3xl md:text-5xl font-['Outfit'] font-extrabold" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>
+                  {previewSkin.name}
+                </h2>
+                <p className="font-['DM_Sans'] font-medium text-base max-w-xl" style={{ color: isDark ? 'hsl(220 10% 60%)' : 'hsl(220 8% 35%)' }}>
+                  {previewSkin.description}
+                </p>
+                
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                  <Button 
+                    onClick={() => handleBuy(previewSkin)}
+                    className="h-14 px-8 rounded-2xl font-['DM_Sans'] font-bold uppercase tracking-wider flex items-center gap-3 transition-all hover:scale-105"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(45 90% 50%), hsl(45 95% 65%))',
+                      color: 'white',
+                      boxShadow: '0 8px 30px hsl(45 90% 50% / 0.4)'
+                    }}
+                  >
+                    <ShoppingCart className="w-5 h-5" /> Comprar por {previewSkin.cost_coins}
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    onClick={() => setPreviewSkin(null)}
+                    className="h-14 px-8 rounded-2xl font-['DM_Sans'] font-bold uppercase tracking-wider transition-all hover:scale-105"
+                    style={glassButton}
+                  >
+                    Cerrar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Skins Legendarias Section */}
+        <div className="space-y-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-xl blur-md animate-pulse" style={{ background: 'hsl(270 70% 60% / 0.4)' }} />
+                <div className="relative p-3 rounded-xl" style={{
+                  background: 'linear-gradient(135deg, hsl(270 70% 60% / 0.3), hsl(270 70% 50% / 0.2))',
+                  border: '1px solid hsl(270 70% 60% / 0.2)'
+                }}>
+                  <Star className="w-6 h-6" style={{ color: 'hsl(270 70% 70%)' }} />
+                </div>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-['Outfit'] font-extrabold" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>
+                Skins Legendarias
+              </h2>
+            </div>
+            <span className="font-['DM_Sans'] font-bold text-xs uppercase tracking-widest px-3 py-1 rounded-full" style={{ 
+              background: 'hsl(0 0% 100% / 0.05)', 
+              color: isDark ? 'hsl(220 10% 50%)' : 'hsl(220 10% 55%)' 
+            }}>
+              {cosmetics.length} Disponibles
+            </span>
+          </div>
+          
+          {cosmetics.length === 0 ? (
+            <div className="py-20 text-center rounded-[2.5rem]" style={glassCard}>
+              <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 rounded-[3rem] blur-xl animate-pulse" style={{ background: 'hsl(270 70% 60% / 0.2)' }} />
+                <div className="relative w-20 h-20 rounded-[3rem] flex items-center justify-center" style={{
+                  background: 'linear-gradient(135deg, hsl(270 70% 60% / 0.2), hsl(270 70% 50% / 0.1))',
+                  border: '1px solid hsl(270 70% 60% / 0.15)'
+                }}>
+                  <Sparkles className="w-10 h-10" style={{ color: 'hsl(270 70% 60%)', opacity: 0.5 }} />
+                </div>
+              </div>
+              <h3 className="font-['Outfit'] font-extrabold text-xl" style={{ color: isDark ? 'hsl(220 20% 70%)' : 'hsl(220 10% 40%)' }}>Próximamente...</h3>
+              <p className="font-['DM_Sans'] font-medium mt-2" style={{ color: isDark ? 'hsl(220 10% 50%)' : 'hsl(220 8% 35%)' }}>Estamos forjando nuevas skins épicas.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {cosmetics.map(reward => (
+                <ShopCard
+                  key={reward.id}
+                  reward={reward}
+                  purchase={myPurchases.find(p => p.reward_id === reward.id)}
+                  notyxCoins={notyxCoins}
+                  onBuy={() => handleBuy(reward)}
+                  onEquip={() => handleEquip(reward)}
+                  onPreview={() => setPreviewSkin(reward)}
+                  isDark={isDark}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Botín de Clase Section */}
+        <div className="space-y-8 pt-8" style={{ borderTop: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 0% / 0.05)' }}>
           <div className="flex items-center gap-4">
-            <div className="bg-fuchsia-100 p-3 rounded-2xl">
-              <Star className="w-6 h-6 text-fuchsia-600" />
+            <div className="relative">
+              <div className="absolute inset-0 rounded-xl blur-md animate-pulse" style={{ background: 'hsl(195 90% 55% / 0.4)' }} />
+              <div className="relative p-3 rounded-xl" style={{
+                background: 'linear-gradient(135deg, hsl(195 90% 55% / 0.3), hsl(195 90% 45% / 0.2))',
+                border: '1px solid hsl(195 90% 55% / 0.2)'
+              }}>
+                <ShoppingBag className="w-6 h-6" style={{ color: 'hsl(195 90% 55%)' }} />
+              </div>
             </div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Skins Legendarias</h2>
+            <h2 className="text-2xl md:text-3xl font-['Outfit'] font-extrabold" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>
+              Botín de Clase
+            </h2>
           </div>
-          <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">{cosmetics.length} Disponibles</span>
+
+          {classRewards.length === 0 ? (
+            <div className="py-24 text-center rounded-[2.5rem]" style={glassCard}>
+               <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 rounded-[3rem] blur-xl animate-pulse" style={{ background: 'hsl(195 90% 55% / 0.2)' }} />
+                <div className="relative w-20 h-20 rounded-[3rem] flex items-center justify-center" style={{
+                  background: 'linear-gradient(135deg, hsl(195 90% 55% / 0.2), hsl(195 90% 45% / 0.1))',
+                  border: '1px solid hsl(195 90% 55% / 0.15)'
+                }}>
+                  <Shield className="w-10 h-10" style={{ color: 'hsl(195 90% 55%)', opacity: 0.5 }} />
+                </div>
+              </div>
+              <h3 className="font-['Outfit'] font-extrabold text-2xl" style={{ color: isDark ? 'hsl(220 20% 70%)' : 'hsl(220 10% 40%)' }}>Sin premios locales</h3>
+              <p className="font-['DM_Sans'] font-medium mt-2 max-w-xs mx-auto" style={{ color: isDark ? 'hsl(220 10% 50%)' : 'hsl(220 8% 35%)' }}>Espera a que tus profesores activen el botín exclusivo para esta clase.</p>
+            </div>
+) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+               {classRewards.map(reward => (
+                 <ShopCard
+                   key={reward.id}
+                   reward={reward}
+                   purchase={myPurchases.find(p => p.reward_id === reward.id)}
+                   notyxCoins={notyxCoins}
+                   onBuy={() => handleBuy(reward)}
+                   onEquip={() => {}}
+                   onPreview={() => {}}
+                   isDark={isDark}
+                 />
+               ))}
+            </div>
+          )}
         </div>
-        
-        {cosmetics.length === 0 ? (
-          <div className="py-20 text-center bg-white rounded-[48px] border-2 border-dashed border-slate-100 shadow-inner">
-             <h3 className="text-xl font-black text-slate-300 uppercase tracking-widest">Próximamente...</h3>
-             <p className="text-slate-400 mt-2 font-medium">Estamos forjando nuevas skins épicas.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {cosmetics.map(reward => {
-                const purchase = myPurchases.find(p => p.reward_id === reward.id);
-                const isBought = !!purchase;
-                const isEquipped = purchase?.status === 'equipped';
-                const canAfford = notyxCoins >= reward.cost_coins;
-
-                return (
-                  <div key={reward.id} className={`bg-white rounded-[32px] md:rounded-[40px] p-6 md:p-8 border shadow-xl hover:shadow-2xl transition-all group flex flex-col h-full relative overflow-hidden ${isEquipped ? 'border-fuchsia-400 ring-4 ring-fuchsia-100' : 'border-slate-100'}`}>
-                    {isEquipped && <div className="absolute top-0 right-0 bg-fuchsia-500 text-white text-[10px] font-black uppercase tracking-widest py-1.5 px-4 rounded-bl-2xl z-10">Equipada</div>}
-                    
-                    <div className="relative mb-6">
-                      <div className="bg-slate-900 w-16 h-16 rounded-[28px] flex items-center justify-center text-4xl shadow-inner group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                          {reward.icon || '✨'}
-                      </div>
-                      <button 
-                        onClick={() => setPreviewSkin(reward)}
-                        className="absolute -top-2 -right-2 bg-white text-slate-400 hover:text-blue-600 p-2 rounded-full border border-slate-100 shadow-md transition-all hover:scale-110 active:scale-95"
-                        title="Ver Vista Previa"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <h3 className="font-black text-2xl text-slate-900 leading-tight mb-2 truncate">{reward.name}</h3>
-                    <p className="text-[10px] font-black text-fuchsia-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-1">
-                        Cosmético Global
-                    </p>
-                    <p className="text-sm text-slate-500 font-medium leading-relaxed mb-8 flex-1">{reward.description}</p>
-                    
-                    <div className="space-y-4">
-                        {!isBought && (
-                          <div className="flex items-center justify-between px-2 mb-2">
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Coste</span>
-                            <span className="text-xl font-black text-slate-900 flex items-center gap-1">
-                                <Coins className="w-4 h-4 text-yellow-500" /> {reward.cost_coins}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {isEquipped ? (
-                          <Button disabled className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-fuchsia-100 text-fuchsia-700 border-none">
-                            Equipada
-                          </Button>
-                        ) : isBought ? (
-                          <Button 
-                            onClick={() => handleEquip(reward)}
-                            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-900/20"
-                          >
-                            Equipar Skin
-                          </Button>
-                        ) : (
-                          <Button 
-                            onClick={() => handleBuy(reward)}
-                            disabled={!canAfford}
-                            className={`w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg transition-all ${
-                              canAfford 
-                              ? 'bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-yellow-950 shadow-yellow-400/20' 
-                              : 'bg-slate-100 text-slate-400 border-none'
-                            }`}
-                          >
-                            <span className="flex items-center gap-2"><ShoppingCart className="w-5 h-5" /> Comprar Skin</span>
-                          </Button>
-                        )}
-                    </div>
-                  </div>
-                );
-            })}
-          </div>
-        )}
       </div>
 
-      {/* Seccion: Premios de Clase */}
-      <div className="space-y-8 pt-8 border-t-4 border-slate-100">
-        <div className="flex items-center gap-4">
-          <div className="bg-blue-100 p-3 rounded-2xl">
-            <ShoppingBag className="w-6 h-6 text-blue-600" />
-          </div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Botín de Clase</h2>
-        </div>
-
-        {classRewards.length === 0 ? (
-          <div className="py-24 text-center bg-white rounded-[48px] border-4 border-dashed border-slate-50 flex flex-col items-center">
-             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-               <Shield className="w-10 h-10 text-slate-200" />
-             </div>
-             <h3 className="text-2xl font-black text-slate-300 uppercase tracking-tighter">Sin premios locales</h3>
-             <p className="text-slate-400 mt-2 font-medium max-w-xs mx-auto">Espera a que tus profesores activen el botín exclusivo para esta clase.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-             {classRewards.map(reward => {
-                const purchase = myPurchases.find(p => p.reward_id === reward.id);
-                const isBought = !!purchase;
-                const isPending = purchase?.status === 'pending';
-                const canAfford = notyxCoins >= reward.cost_coins;
-
-                return (
-                  <div key={reward.id} className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-xl hover:shadow-2xl transition-all group flex flex-col h-full border-b-8 border-b-blue-100 hover:border-b-blue-200">
-                     <div className="bg-blue-50/50 w-16 h-16 rounded-[28px] flex items-center justify-center text-4xl mb-6 shadow-inner group-hover:bg-blue-50 group-hover:scale-110 transition-all duration-500">
-                        {reward.icon || '🎁'}
-                     </div>
-                     <h3 className="font-black text-2xl text-slate-900 leading-tight mb-2 truncate">{reward.name}</h3>
-                     <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-1">
-                        <Shield className="w-3 h-3" /> {reward.classes?.name || "Clase"}
-                     </p>
-                     <p className="text-sm text-slate-500 font-medium leading-relaxed mb-8 flex-1">{reward.description}</p>
-                     
-                     <div className="space-y-4">
-                        <div className="flex items-center justify-between px-2 mb-2">
-                           <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Precio</span>
-                           <span className="text-xl font-black text-slate-900 flex items-center gap-1">
-                              <Coins className="w-4 h-4 text-yellow-500" /> {reward.cost_coins}
-                           </span>
-                        </div>
-                        
-                        <Button 
-                          onClick={() => handleBuy(reward)}
-                          disabled={isBought || !canAfford}
-                          className={`w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg transition-all ${
-                            isBought 
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none' 
-                            : canAfford 
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20' 
-                            : 'bg-slate-100 text-slate-400 border-none'
-                          }`}
-                        >
-                          {isPending ? (
-                            <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pendiente</span>
-                          ) : isBought ? (
-                            <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Comprado</span>
-                          ) : (
-                            <span className="flex items-center gap-2"><ShoppingCart className="w-5 h-5" /> Canjear</span>
-                          )}
-                        </Button>
-                     </div>
-                  </div>
-                );
-             })}
-          </div>
-        )}
-      </div>
+      <style>{`
+        @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+      `}</style>
     </div>
   );
 }

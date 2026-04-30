@@ -11,7 +11,7 @@ import {
   Brain, Puzzle, Sparkle, Binary, Hash, Zap, Timer, BarChart3, Lock, Eye, Camera, Upload, History
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { calculateGamification } from "../../lib/gamificationEngine";
+import { calculateGamification, BADGE_DEFS } from "../../lib/gamificationEngine";
 import StudentCard from "../../components/gamification/StudentCard";
 import SudokuGame from "../../components/games/SudokuGame";
 import PyramidGame from "../../components/games/PyramidGame";
@@ -278,6 +278,54 @@ export default function PublicStudentView() {
                     </div>
                     <div className="h-4 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-inner"><div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000" style={{ width: `${(gami.currentLevelXP / gami.nextLevelXP) * 100}%` }} /></div>
                   </div>
+               </div>
+            </div>
+
+            {/* Logros Section */}
+            <div className="space-y-6">
+               <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-3">
+                     <div className="bg-amber-100 p-2 rounded-xl"><Award className="w-5 h-5 text-amber-600" /></div>
+                     <h3 className="text-2xl font-black text-slate-800 tracking-tight">Mis Logros</h3>
+                  </div>
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                     {gami?.unlockedBadges?.filter(b => b.unlocked).length || 0} / {Object.keys(BADGE_DEFS).length} Desbloqueados
+                  </span>
+               </div>
+               
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.keys(BADGE_DEFS).map((key) => {
+                    const badge = BADGE_DEFS[key];
+                    const isUnlocked = gami?.unlockedBadges?.find(b => b.id === key)?.unlocked;
+                    const BadgeIcon = { Star, Flame, Crown, TrendingUp, Heart, Sparkles, Flag, ShieldCheck }[badge.icon] || Star;
+                    return (
+                      <div 
+                        key={key}
+                        className={`relative p-5 rounded-3xl border-2 transition-all duration-300 ${
+                          isUnlocked 
+                            ? 'bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-300 shadow-lg shadow-amber-500/20' 
+                            : 'bg-slate-50 border-slate-200 opacity-60'
+                        }`}
+                      >
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${
+                          isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
+                        }`}>
+                          {isUnlocked ? <BadgeIcon className="w-6 h-6" /> : <Lock className="w-5 h-5" />}
+                        </div>
+                        <h4 className={`font-black text-sm mb-1 ${isUnlocked ? 'text-amber-900' : 'text-slate-400'}`}>
+                          {badge.label}
+                        </h4>
+                        <p className={`text-[10px] font-medium leading-tight ${isUnlocked ? 'text-amber-700' : 'text-slate-400'}`}>
+                          {badge.req}
+                        </p>
+                        {isUnlocked && (
+                          <div className="absolute top-3 right-3">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                </div>
             </div>
 

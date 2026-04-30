@@ -1,47 +1,46 @@
 /* ===================================
-   NOTYX EDU - Main Stylesheet
+   NOTYX EDU - Glassmorphism Design System
    =================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
-/* === BASE === */
 @import "./base/_variables.css";
 @import "./base/_typography.css";
 
-/* === Tailwind v4 Theme Extension === */
 @theme inline {
   --color-bg-primary: hsl(var(--color-bg-primary));
   --color-bg-secondary: hsl(var(--color-bg-secondary));
-  --color-bg-tertiary: hsl(var(--color-bg-tertiary));
-  --color-bg-elevated: hsl(var(--color-bg-elevated));
-
   --color-text-primary: hsl(var(--color-text-primary));
   --color-text-secondary: hsl(var(--color-text-secondary));
-  --color-text-muted: hsl(var(--color-text-muted));
-  --color-text-inverted: hsl(var(--color-text-inverted));
-
-  --color-success: hsl(var(--primitive-color-status-success));
-  --color-success-bg: hsl(var(--primitive-color-status-success-bg));
-  --color-warning: hsl(var(--primitive-color-status-warning));
-  --color-warning-bg: hsl(var(--primitive-color-status-warning-bg));
-  --color-error: hsl(var(--primitive-color-status-error));
-  --color-error-bg: hsl(var(--primitive-color-status-error-bg));
-  --color-info: hsl(var(--primitive-color-status-info));
-  --color-info-bg: hsl(var(--primitive-color-status-info-bg));
-
-  --radius-sm: var(--primitive-radius-sm);
-  --radius-md: var(--primitive-radius-md);
-  --radius-lg: var(--primitive-radius-lg);
-  --radius-xl: var(--primitive-radius-xl);
-  --radius-2xl: var(--primitive-radius-2xl);
+  --color-primary: hsl(var(--color-primary));
+  --color-accent: hsl(var(--color-accent));
+  --color-success: hsl(var(--color-success));
+  --color-warning: hsl(var(--color-warning));
+  --color-error: hsl(var(--color-error));
+  --color-info: hsl(var(--color-info));
+  
+  --color-brand-500: hsl(262 83% 60%);
+  --color-brand-600: hsl(262 70% 50%);
+  
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-2xl: 3rem;
 }
 
-/* === COMPONENTS === */
 @import "./components/_buttons.css";
 @import "./components/_cards.css";
 @import "./components/_inputs.css";
 @import "./components/_navigation.css";
 @import "./components/_gamification.css";
-
-/* === UTILITIES === */
 @import "./utilities/_animations.css";
+
+html { font-family: 'DM Sans', sans-serif; }
+h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: hsl(var(--color-bg-secondary)); }
+::-webkit-scrollbar-thumb { background: hsl(var(--color-text-muted) / 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--color-text-muted) / 0.5); }

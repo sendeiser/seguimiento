@@ -1,7 +1,9 @@
 import { useState, useRef } from "react";
 import { Star, Flame, Award, TrendingUp, Sparkles, CheckCircle2, Shield, Zap, Crown, Heart } from "lucide-react";
+import { BADGE_DEFS } from "../../lib/gamificationEngine";
+import { getSkinByName, SkinPattern } from "../../lib/skinThemes";
+import { useTheme } from "../../providers/ThemeProvider";
 
-// XP-BASED RANK THEMES (Frame & Material)
 const RANK_THEMES = {
   "Hierro": {
     rankLabel: "Hierro",
@@ -68,27 +70,26 @@ const RANK_THEMES = {
   }
 };
 
-// PERFORMANCE-BASED INNER THEMES (Art & Backgrounds)
 const PERFORMANCE_THEMES = {
-  legend: { // 90-100%
+  legend: {
     bgClass: "bg-gradient-to-br from-white via-blue-50 to-indigo-50 bg-[url('https://www.transparenttextures.com/patterns/gold-tips.png')]",
     textClass: "text-blue-900",
     typeLabel: "Leyenda",
     glow: "shadow-[0_0_20px_rgba(59,130,246,0.3)]"
   },
-  elite: { // 80-89%
+  elite: {
     bgClass: "bg-gradient-to-br from-emerald-50 via-white to-teal-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]",
     textClass: "text-emerald-900",
     typeLabel: "Élite",
     glow: ""
   },
-  pro: { // 60-79%
+  pro: {
     bgClass: "bg-gradient-to-br from-white via-slate-50 to-blue-50 bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')]",
     textClass: "text-slate-800",
     typeLabel: "Profesional",
     glow: ""
   },
-  basic: { // < 60%
+  basic: {
     bgClass: "bg-white/80 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]",
     textClass: "text-slate-700",
     typeLabel: "Estándar",
@@ -96,36 +97,6 @@ const PERFORMANCE_THEMES = {
   }
 };
 
-const SKIN_THEMES = {
-  "Cyberpunk Neon": {
-    frameClass: "bg-gradient-to-br from-purple-600 via-fuchsia-500 to-cyan-500 border-fuchsia-500",
-    bgClass: "bg-black bg-[url('https://www.transparenttextures.com/patterns/microfab.png')]",
-    textClass: "text-fuchsia-400",
-    holo: true,
-    customIcon: <Zap className="w-4 h-4 text-cyan-400" />
-  },
-  "Oro Holográfico": {
-    frameClass: "bg-gradient-to-br from-yellow-300 via-amber-100 to-yellow-500 border-yellow-400",
-    bgClass: "bg-gradient-to-b from-[#1a1805] to-[#000000] bg-[url('https://www.transparenttextures.com/patterns/gold-tips.png')]",
-    textClass: "text-yellow-400",
-    holo: true,
-    customIcon: <Sparkles className="w-4 h-4 text-yellow-400" />
-  },
-  "Galaxia": {
-    frameClass: "bg-gradient-to-br from-blue-900 via-indigo-600 to-purple-900 border-indigo-500",
-    bgClass: "bg-gradient-to-br from-[#0b0e21] via-[#161b44] to-[#0b0e21] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]",
-    textClass: "text-indigo-200",
-    holo: true,
-    customIcon: <Star className="w-4 h-4 text-white" />
-  },
-  "Minimalista Oscuro": {
-    frameClass: "bg-gradient-to-br from-slate-800 via-slate-900 to-black border-slate-700",
-    bgClass: "bg-neutral-900 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]",
-    textClass: "text-slate-300",
-    holo: false,
-    customIcon: <Shield className="w-4 h-4 text-slate-500" />
-  }
-};
 
 const ICONS = { Star, Flame, TrendingUp, Sparkles, Award, Shield, Zap, Crown, CheckCircle2, Heart };
 
@@ -137,21 +108,26 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef(null);
 
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   const { gami, name, cs_id, pct, equipped_skin } = student;
   const rank = gami?.rank?.name || "Hierro";
   
-  // Base themes
   const rankTheme = RANK_THEMES[rank] || RANK_THEMES["Hierro"];
   const perfKey = pct >= 0.9 ? 'legend' : pct >= 0.8 ? 'elite' : pct >= 0.6 ? 'pro' : 'basic';
   const perfTheme = PERFORMANCE_THEMES[perfKey];
   
-  // Skin override
-  const skin = equipped_skin ? SKIN_THEMES[equipped_skin] : null;
+  const skin = getSkinByName(equipped_skin);
 
-  const finalFrameClass = skin?.frameClass || rankTheme.frameClass;
-  const finalBgClass = skin?.bgClass || perfTheme.bgClass;
+  const finalFrameClass = skin?.frameClass || (!skin?.colors ? rankTheme.frameClass : "");
+  const finalBgClass = skin?.bgClass || (!skin?.bg ? perfTheme.bgClass : "");
   const finalTextClass = skin?.textClass || perfTheme.textClass;
   const finalHolo = skin?.holo ?? rankTheme.holo;
+
+  const skinColors = skin?.colors;
+  const skinBg = skin ? (isDark ? skin.bg.dark : skin.bg.light) : null;
+  const skinIcon = skin?.icon;
 
   const RANK_ICONS = {
     "Hierro": <Shield className="w-4 h-4" />,
@@ -175,16 +151,20 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
     setGlareY(((e.clientY - rect.top) / rect.height) * 100);
   };
 
-  const renderLayout = () => (
-    <div className={`w-full h-full rounded-[12px] flex flex-col ${finalBgClass} overflow-hidden relative z-10 p-3 ${layoutType === 'full-art' ? 'bg-opacity-95' : ''}`}>
-      {/* Rank Texture Overlay */}
-      <div className={`absolute inset-0 pointer-events-none z-0 ${rankTheme.overlay}`} />
+  const renderLayout = () => {
+    const IconComponent = skinIcon;
+    return (
+      <div 
+        className={`w-full h-full rounded-[12px] flex flex-col ${finalBgClass} overflow-hidden relative z-10 p-3 ${layoutType === 'full-art' ? 'bg-opacity-95' : ''}`}
+        style={skinBg ? { background: skinBg } : {}}
+      >
+        <div className={`absolute inset-0 pointer-events-none z-0 ${rankTheme.overlay}`} />
+        <SkinPattern pattern={skin?.pattern} colors={skin?.colors} isHovered={isHovered} />
       
-      {/* Header */}
       <div className="flex justify-between items-start mb-2">
         <div className="min-w-0">
-          <h3 className={`font-black text-sm md:text-base truncate tracking-tighter ${finalTextClass} uppercase leading-none ${rankTheme.fontClass}`}>{name}</h3>
-          <span className={`text-[7px] font-black uppercase tracking-[0.2em] opacity-60 ${finalTextClass}`}>
+          <h3 className="font-black text-sm md:text-base truncate tracking-tighter uppercase leading-none" style={{ color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>{name}</h3>
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 text-white shadow-[0_1px_2px_rgba(0,0,0,1)]">
             {equipped_skin ? "SKIN EQUIPADA" : `${rankTheme.rankLabel} • ${perfTheme.typeLabel}`}
           </span>
         </div>
@@ -193,23 +173,17 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
         </div>
       </div>
 
-      {/* Main Art Area */}
-      <div className={`relative w-full ${layoutType === 'basic' ? 'aspect-video' : 'flex-1'} rounded-lg overflow-hidden border border-black/5 shadow-inner mb-2 bg-slate-900/5 flex items-center justify-center group-hover:scale-[1.03] transition-transform duration-500`}>
+      <div className={`relative w-full ${layoutType === 'basic' ? 'aspect-video' : 'flex-1'} rounded-lg overflow-hidden border border-black/5 shadow-inner mb-2 bg-slate-900/05 flex items-center justify-center group-hover:scale-[1.03] transition-transform duration-500`}>
         {student.avatar_url ? (
-          <img 
-            src={student.avatar_url} 
-            alt={name} 
-            className="absolute inset-0 w-full h-full object-cover z-0"
-          />
+          <img src={student.avatar_url} alt={name} className="absolute inset-0 w-full h-full object-cover z-0" />
         ) : (
-          <div className={`text-6xl font-black ${finalTextClass} opacity-10 select-none`}>{name.charAt(0).toUpperCase()}</div>
+          <div className="text-6xl font-black text-white opacity-20 select-none shadow-[0_2px_6px_rgba(0,0,0,1)]">{name.charAt(0).toUpperCase()}</div>
         )}
         
-        <div className={`absolute top-2 left-2 z-30 ${rankTheme.iconColor}`}>
-          {skin?.customIcon || RANK_ICONS[rank]}
+        <div className={`absolute top-2 left-2 z-30 ${skinColors ? '' : rankTheme.iconColor}`} style={skinColors ? { color: skinColors.frame } : {}}>
+          {IconComponent ? <IconComponent className="w-4 h-4" /> : RANK_ICONS[rank]}
         </div>
         
-        {/* XP Progress Badge */}
         <div className="absolute bottom-2 left-2 right-2 z-10">
           <div className="flex justify-between items-end text-[8px] font-black opacity-40 uppercase mb-1">
             <span>Nivel {gami?.currentLevel || 1}</span>
@@ -221,11 +195,10 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
         </div>
       </div>
 
-      {/* Stats Area */}
       <div className="space-y-2 mt-auto">
         <div className={`flex justify-between items-center bg-black/5 rounded-lg px-2 py-1.5`}>
-          <span className={`text-[9px] font-black uppercase tracking-widest ${finalTextClass} opacity-60`}>Rendimiento</span>
-          <span className={`text-sm font-black ${finalTextClass}`}>{pct !== null ? `${Math.round(pct * 100)}%` : '—'}</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Rendimiento</span>
+          <span className="text-sm font-black text-white">{pct !== null ? `${Math.round(pct * 100)}%` : '—'}</span>
         </div>
         <div className="flex gap-1.5">
           {(gami?.unlockedBadges || []).filter(b => b.unlocked).slice(0, 4).map((badge, i) => {
@@ -234,9 +207,17 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
           })}
           {gami?.streak >= 3 && <div className="ml-auto flex items-center gap-1 bg-orange-100 text-orange-600 px-1.5 rounded text-[10px] font-black">🔥 {gami.streak}</div>}
         </div>
+        <div className="flex items-center gap-2 text-[10px] text-white/60 font-black">
+          <span className="uppercase tracking-wider">Logros</span>
+          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400" style={{ width: `${((gami?.unlockedBadges || []).filter(b => b.unlocked).length / Object.keys(BADGE_DEFS).length) * 100}%` }}></div>
+          </div>
+          <span>{(gami?.unlockedBadges || []).filter(b => b.unlocked).length}/{Object.keys(BADGE_DEFS).length}</span>
+        </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div 
@@ -252,15 +233,18 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
         className={`w-full h-full rounded-[20px] p-[6px] overflow-hidden ${finalFrameClass} relative transition-transform duration-200 ease-out`}
         style={{
           transform: isHovered ? `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)` : "rotateX(0) rotateY(0) scale(1)",
-          transformStyle: "preserve-3d"
+          transformStyle: "preserve-3d",
+          ...(skinColors ? {
+            background: `linear-gradient(135deg, ${skinColors.primary}, ${skinColors.secondary}, ${skinColors.primary})`,
+            border: `2px solid ${skinColors.frame}`,
+            boxShadow: isHovered ? `0 0 30px ${skinColors.glow}` : 'none'
+          } : {})
         }}
       >
         {renderLayout()}
         
-        {/* Shine/Glare effect */}
         {isHovered && <div className="absolute inset-0 z-40 pointer-events-none rounded-[14px] mix-blend-overlay" style={{ background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 60%)` }} />}
         
-        {/* Holographic effect for high ranks or skins */}
         {finalHolo && isHovered && (
           <div 
             className="absolute inset-0 z-50 pointer-events-none rounded-[14px] mix-blend-color-dodge opacity-50"
