@@ -125,9 +125,30 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
                   {translations.habitats[pokemon.habitat] || pokemon.habitat}
                </span>
             </div>
-            <h2 className="text-5xl font-black text-slate-800 capitalize tracking-tight mb-4">
+            <h2 className="text-5xl font-black text-slate-800 capitalize tracking-tight mb-6">
               {pokemon.name} {isShiny && <span className="text-yellow-500 text-2xl">✨</span>}
             </h2>
+
+            {pokemon.level && (
+              <div className="flex flex-col items-center gap-3 mb-8 bg-indigo-50/30 p-6 rounded-[2.5rem] border border-indigo-100/50 max-w-sm mx-auto">
+                <div className="bg-indigo-600 text-white px-8 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20">
+                  Nivel {pokemon.level}
+                </div>
+                <div className="w-full space-y-2">
+                  <div className="flex justify-between text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] px-1">
+                    <span>Progreso XP</span>
+                    <span>{pokemon.experience} / {pokemon.level * 100}</span>
+                  </div>
+                  <div className="h-2.5 bg-white rounded-full overflow-hidden shadow-inner border border-indigo-100/50 p-0.5">
+                    <div 
+                      className="h-full bg-indigo-500 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(79,70,229,0.4)]"
+                      style={{ width: `${(pokemon.experience / (pokemon.level * 100)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <p className="text-slate-500 max-w-lg mx-auto font-medium leading-relaxed italic">
                "{pokemon.description}"
             </p>

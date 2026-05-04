@@ -49,7 +49,15 @@ export default function PokedexTab({ studentId }) {
     try {
       const owned = await getStudentPokemon(targetId);
       const detailed = await Promise.all(
-        owned.map(p => getPokemonDetails(p.pokemon_id))
+        owned.map(async p => {
+          const apiDetails = await getPokemonDetails(p.pokemon_id);
+          return {
+            ...apiDetails,
+            instanceId: p.id,
+            level: p.level || 1,
+            experience: p.experience || 0
+          };
+        })
       );
       setOwnedPokemon(detailed);
     } catch (e) {

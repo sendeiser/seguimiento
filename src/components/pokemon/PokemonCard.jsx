@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Coins, CheckCircle2, ShoppingBag, Eye } from "lucide-react";
+import { Coins, CheckCircle2, ShoppingBag, Eye, Zap } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import PokemonDetailsModal from "./PokemonDetailsModal";
 
@@ -68,11 +68,28 @@ export default function PokemonCard({ pokemon, owned, onBuy }) {
               {pokemon.name}
             </h3>
 
-            <div className="pt-4">
+            {owned && (
+              <div className="space-y-1.5 pt-2">
+                <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-tighter">
+                  <span>Experiencia</span>
+                  <span>{pokemon.experience || 0} / {(pokemon.level || 1) * 100}</span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                  <div 
+                    className="h-full bg-indigo-500 transition-all duration-700 shadow-[0_0_8px_rgba(79,70,229,0.4)]"
+                    style={{ width: `${((pokemon.experience || 0) / ((pokemon.level || 1) * 100)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2">
               {owned ? (
-                <div className="w-full h-14 bg-emerald-50 rounded-2xl flex items-center justify-center gap-2 border border-emerald-100">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">En Pokedex</span>
+                <div className="w-full h-14 bg-emerald-50 rounded-2xl flex flex-col items-center justify-center border border-emerald-100">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center">Capturado</span>
+                  </div>
                 </div>
               ) : (
                 <button 
@@ -87,6 +104,15 @@ export default function PokemonCard({ pokemon, owned, onBuy }) {
             </div>
           </div>
         </div>
+        
+        {owned && (
+          <div className="absolute top-6 left-6 z-20 scale-90 origin-top-left">
+            <div className="bg-indigo-600 text-white px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 flex items-center gap-2">
+              <Zap className="w-3 h-3 fill-white" />
+              Niv. {pokemon.level || 1}
+            </div>
+          </div>
+        )}
       </div>
 
       <PokemonDetailsModal 

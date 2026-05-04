@@ -7,6 +7,7 @@ import { es } from "date-fns/locale";
 import { CheckCircle2, X, Users, XCircle, ChevronLeft, ChevronRight, LayoutGrid, ArrowLeft, PlusCircle, Sparkles, Trash2, TrendingUp, Pencil } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { useTheme } from "../../providers/ThemeProvider";
+import { addXPToAllStudentPokemon } from "../../lib/pokemonStore";
 
 export default function LiveSession() {
   const { id } = useParams();
@@ -158,6 +159,13 @@ export default function LiveSession() {
     });
     setGrades(newGrades);
     await supabase.from("grades").upsert(upserts, { onConflict: "class_student_id,criteria_id" });
+
+    // Recompensa Pokémon para todos (XP según puntaje máximo)
+    studentsToUpdate.forEach(s => {
+      if (s.student_id) {
+        addXPToAllStudentPokemon(s.student_id, Math.floor(crit.max_score * 10));
+      }
+    });
   };
 
   const handleGradeChange = (csId, criteriaId, value) => setGrades(prev => ({ ...prev, [`${csId}_${criteriaId}`]: value }));
@@ -168,6 +176,13 @@ export default function LiveSession() {
     const key = `${csId}_${criteriaId}`;
     setSaving(prev => ({ ...prev, [key]: true }));
     await supabase.from("grades").upsert({ class_student_id: csId, criteria_id: criteriaId, score, updated_at: new Date().toISOString() }, { onConflict: "class_student_id,criteria_id" });
+    
+    // Recompensa Pokémon
+    const student = students.find(s => s.cs_id === csId);
+    if (student?.student_id) {
+      addXPToAllStudentPokemon(student.student_id, Math.floor(score * 10));
+    }
+
     setSaving(prev => ({ ...prev, [key]: false }));
     const flashType = maxScore > 0 && score / maxScore > 0.5 ? "success" : "danger";
     setGradeFlash(prev => ({ ...prev, [key]: flashType }));
@@ -201,6 +216,14 @@ export default function LiveSession() {
     const newState = !attendance[csId];
     setAttendance(prev => ({ ...prev, [csId]: newState }));
     await supabase.from("attendance").upsert({ session_id: id, class_student_id: csId, is_present: newState }, { onConflict: "session_id,class_student_id" });
+    
+    // Recompensa Pokémon por asistencia (+20 XP)
+    if (newState) {
+      const student = students.find(s => s.cs_id === csId);
+      if (student?.student_id) {
+        addXPToAllStudentPokemon(student.student_id, 20);
+      }
+    }
   };
 
   const generateAIFeedback = (csId) => {
