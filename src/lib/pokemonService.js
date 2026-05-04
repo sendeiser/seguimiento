@@ -34,8 +34,9 @@ export async function getPokemonDetails(urlOrName) {
   // Shiny Sprite
   const shinySprite = data.sprites?.other?.["official-artwork"]?.front_shiny || data.sprites?.front_shiny;
 
-  // Audio Cry
+  // Audio Cries (Modern and Retro)
   const cry = data.cries?.latest || data.cries?.legacy;
+  const legacyCry = data.cries?.legacy || data.cries?.latest;
 
   // Calculate dynamic cost based on base experience
   const baseCost = Math.floor((data.base_experience || 60) * 1.8);
@@ -48,6 +49,7 @@ export async function getPokemonDetails(urlOrName) {
     description,
     habitat,
     cry,
+    legacyCry,
     sprite: data.sprites?.other?.["official-artwork"]?.front_default || data.sprites?.front_default,
     shinySprite,
     types: data.types?.map(t => t.type.name) || [],
