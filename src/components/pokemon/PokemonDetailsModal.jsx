@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Shield, Zap, Heart, Sword, FastForward, Activity, Volume2, Sparkles, MapPin, ChevronRight, Gamepad2 } from "lucide-react";
+import { X, Shield, Zap, Heart, Sword, FastForward, Activity, Volume2, Sparkles, MapPin, ChevronRight } from "lucide-react";
 import { getEvolutionChain } from "../../lib/pokemonService";
 
 const statIcons = {
@@ -45,12 +45,10 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
   const [isShiny, setIsShiny] = useState(false);
   const [evolutionChain, setEvolutionChain] = useState([]);
   const [isPlayingCry, setIsPlayingCry] = useState(false);
-  const [audioMode, setAudioMode] = useState('latest'); // 'latest' or 'legacy'
 
   useEffect(() => {
     if (isOpen) {
       setIsShiny(false);
-      setAudioMode('latest');
       if (pokemon.evolutionChainUrl) {
         getEvolutionChain(pokemon.evolutionChainUrl).then(setEvolutionChain);
       }
@@ -65,12 +63,9 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
 
   if (!pokemon || !isOpen) return null;
 
-  const playCry = (overrideMode = null) => {
-    const mode = overrideMode || audioMode;
-    const cryUrl = mode === 'latest' ? pokemon.cry : pokemon.legacyCry;
-    
-    if (cryUrl) {
-      const audio = new Audio(cryUrl);
+  const playCry = () => {
+    if (pokemon.cry) {
+      const audio = new Audio(pokemon.cry);
       audio.volume = 0.5;
       audio.onplay = () => setIsPlayingCry(true);
       audio.onended = () => setIsPlayingCry(false);
@@ -101,20 +96,9 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
                 <button 
                   onClick={() => playCry()}
                   className={`p-3 rounded-2xl backdrop-blur-md transition-all ${isPlayingCry ? 'bg-white text-indigo-600 scale-110 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`}
-                  title={audioMode === 'latest' ? "Reproducir Grito Moderno" : "Reproducir Grito Retro"}
+                  title="Reproducir Grito"
                 >
                   <Volume2 className={`w-5 h-5 ${isPlayingCry ? 'animate-pulse' : ''}`} />
-                </button>
-                <button 
-                  onClick={() => {
-                    const newMode = audioMode === 'latest' ? 'legacy' : 'latest';
-                    setAudioMode(newMode);
-                    playCry(newMode);
-                  }}
-                  className={`p-3 rounded-2xl backdrop-blur-md transition-all ${audioMode === 'legacy' ? 'bg-amber-400 text-amber-900 scale-110 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`}
-                  title="Cambiar a Sonido Retro (8-bit)"
-                >
-                  <Gamepad2 className="w-5 h-5" />
                 </button>
                 <button 
                   onClick={() => setIsShiny(!isShiny)}
