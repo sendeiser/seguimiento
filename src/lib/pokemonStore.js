@@ -20,6 +20,9 @@ export async function addPokemonToStore(studentId, pokemonDetails) {
       cost_coins: pokemonDetails.cost_coins
     });
     
+  if (error) throw error;
+  return data;
+}
 export async function addPokemonXP(instanceId, xpAmount) {
   const { data: current, error: fetchError } = await supabase
     .from("student_pokemon_store")
