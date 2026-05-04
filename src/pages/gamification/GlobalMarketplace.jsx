@@ -5,6 +5,7 @@ import { ShoppingBag, Coins, ShoppingCart, CheckCircle2, Star, Clock, Shield, Sp
 import { calculateGamification } from "../../lib/gamificationEngine";
 import StudentCard from "../../components/gamification/StudentCard";
 import { ShopCard } from "../../components/shop/ShopCards";
+import PokemonStoreTab from "../../components/pokemon/PokemonStoreTab";
 import { useAuth } from "../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../providers/ThemeProvider";
@@ -46,13 +47,15 @@ export default function GlobalMarketplace() {
         { data: pData },
         { data: sData },
         { data: gData },
-        { data: aData }
+        { data: aData },
+        { data: pokemonData }
       ] = await Promise.all([
         supabase.from("rewards").select("*, classes(name)"),
         supabase.from("student_purchases").select("*, rewards(cost_coins, category)").eq("student_id", user.id).neq("status", "cancelled"),
         classIds.length > 0 ? supabase.from("sessions").select("id, date, session_criteria(id, name, max_score)").in("class_id", classIds) : Promise.resolve({ data: [] }),
         supabase.from("grades").select("criteria_id, score").eq("student_id", user.id),
-        supabase.from("attendance").select("session_id, is_present").eq("student_id", user.id)
+        supabase.from("attendance").select("session_id, is_present").eq("student_id", user.id),
+        supabase.from("student_pokemon_store").select("cost_coins").eq("student_id", user.id)
       ]);
 
       if (rwError) console.error("Error fetching rewards:", rwError);
@@ -66,7 +69,9 @@ export default function GlobalMarketplace() {
 
       const gradesMap = gData?.reduce((acc, curr) => { acc[curr.criteria_id] = curr.score; return acc; }, {}) || {};
       const attMap = aData?.reduce((acc, curr) => { acc[curr.session_id] = curr.is_present; return acc; }, {}) || {};
-      const spentCoins = pData?.reduce((acc, curr) => acc + (curr.rewards?.cost_coins || 0), 0) || 0;
+      
+      const spentOnPokemon = (pokemonData || []).reduce((acc, curr) => acc + (curr.cost_coins || 0), 0);
+      const spentCoins = (pData?.reduce((acc, curr) => acc + (curr.rewards?.cost_coins || 0), 0) || 0) + spentOnPokemon;
 
       const gami = calculateGamification(sData?.map(s => ({...s, criteria: s.session_criteria || []})) || [], gradesMap, attMap, spentCoins);
       setNotyxCoins(gami.notyxCoins);
@@ -411,6 +416,9 @@ export default function GlobalMarketplace() {
             </div>
           )}
         </div>
+
+        {/* Pokemon Store Section */}
+        <PokemonStoreTab notyxCoins={notyxCoins} onBuySuccess={() => fetchData()} />
       </div>
 
       <style>{`

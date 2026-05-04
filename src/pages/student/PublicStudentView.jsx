@@ -17,6 +17,7 @@ import SudokuGame from "../../components/games/SudokuGame";
 import PyramidGame from "../../components/games/PyramidGame";
 import MemoryGame from "../../components/games/MemoryGame";
 import MathBlitzGame from "../../components/games/MathBlitzGame";
+import PokemonStoreTab from "../../components/pokemon/PokemonStoreTab";
 
 export default function PublicStudentView() {
   const { token } = useParams();
@@ -49,7 +50,9 @@ export default function PublicStudentView() {
     return () => clearInterval(interval);
   }, [token]);
 
-  const spentCoins = data?.purchases?.filter(p => p.status !== 'cancelled').reduce((sum, p) => sum + (p.cost_coins || 0), 0) || 0;
+  const spentOnRewards = data?.purchases?.filter(p => p.status !== 'cancelled').reduce((sum, p) => sum + (p.cost_coins || 0), 0) || 0;
+  const spentOnPokemon = data?.pokemon?.reduce((sum, p) => sum + (p.cost_coins || 0), 0) || 0;
+  const spentCoins = spentOnRewards + spentOnPokemon;
   const gami = data?.sessions ? calculateGamification(data.sessions, null, null, spentCoins, data.class_max_xp) : null;
 
   const fetchData = async () => {
@@ -78,6 +81,14 @@ export default function PublicStudentView() {
     setShowDniModal(true);
   };
 
+  const handlePokemonPurchase = (pokemon) => {
+    if (gami.notyxCoins < pokemon.cost_coins) return;
+    setSelectedReward({ ...pokemon, isPokemon: true });
+    setDniInput("");
+    setDniError("");
+    setShowDniModal(true);
+  };
+
   const confirmPurchase = async () => {
     if (!dniInput.trim()) { setDniError("Debes ingresar tu DNI."); return; }
     setPurchasing(selectedReward.id);
@@ -86,14 +97,28 @@ export default function PublicStudentView() {
       const { data: isValid } = await supabase.rpc("validate_student_dni", { p_cs_id: data.cs_id, p_dni: dniInput });
       if (!isValid) { setDniError("DNI incorrecto."); setPurchasing(null); return; }
 
-      const initialStatus = selectedReward.category === 'cosmetic' ? 'equipped' : 'pending';
+      if (selectedReward.isPokemon) {
+        // Find the actual student_id (profile UUID) since class_student_id doesn't directly map to pokemon store if they don't have a profile yet.
+        // But if they don't have a profile, they can't save pokemon globally. 
+        // For now, we'll try to insert using an RPC to bypass RLS, or directly if allowed.
+        const { error: rpcErr } = await supabase.rpc('buy_pokemon_public', { 
+           p_cs_id: data.cs_id, 
+           p_pokemon_id: selectedReward.id,
+           p_pokemon_name: selectedReward.name,
+           p_sprite_url: selectedReward.sprite,
+           p_cost_coins: selectedReward.cost_coins
+        });
+        if (rpcErr) throw rpcErr;
+      } else {
+        const initialStatus = selectedReward.category === 'cosmetic' ? 'equipped' : 'pending';
 
-      if (selectedReward.category === 'cosmetic') {
-        const cosmeticIds = data.rewards.filter(r => r.category === 'cosmetic').map(r => r.id);
-        await supabase.from("student_purchases").update({ status: 'purchased' }).eq('class_student_id', data.cs_id).in('reward_id', cosmeticIds);
+        if (selectedReward.category === 'cosmetic') {
+          const cosmeticIds = data.rewards.filter(r => r.category === 'cosmetic').map(r => r.id);
+          await supabase.from("student_purchases").update({ status: 'purchased' }).eq('class_student_id', data.cs_id).in('reward_id', cosmeticIds);
+        }
+
+        await supabase.from("student_purchases").insert([{ class_student_id: data.cs_id, reward_id: selectedReward.id, status: initialStatus }]);
       }
-
-      await supabase.from("student_purchases").insert([{ class_student_id: data.cs_id, reward_id: selectedReward.id, status: initialStatus }]);
 
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } });
       setShowDniModal(false);
@@ -511,6 +536,16 @@ export default function PublicStudentView() {
                   </div>
                </div>
              )}
+
+             {/* Pokemon Store Section */}
+             <div className="pt-8">
+               <PokemonStoreTab 
+                 notyxCoins={gami?.notyxCoins || 0} 
+                 onBuySuccess={fetchData} 
+                 onBuyRequest={handlePokemonPurchase} 
+                 ownedPokemonIds={data?.pokemon?.map(p => p.pokemon_id) || []}
+               />
+             </div>
           </div>
         )}
 

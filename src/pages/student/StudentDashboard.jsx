@@ -42,17 +42,20 @@ export default function StudentDashboard() {
           { data: sData },
           { data: gData },
           { data: aData },
-          { data: pData }
+          { data: pData },
+          { data: pokemonData }
         ] = await Promise.all([
           supabase.from("sessions").select("id, date, session_criteria(id, name, max_score)").in("class_id", classIds),
           supabase.from("grades").select("criteria_id, score").eq("student_id", user.id),
           supabase.from("attendance").select("session_id, is_present").eq("student_id", user.id),
-          supabase.from("student_purchases").select("*, rewards(cost_coins)").eq("student_id", user.id).neq("status", "cancelled")
+          supabase.from("student_purchases").select("*, rewards(cost_coins)").eq("student_id", user.id).neq("status", "cancelled"),
+          supabase.from("student_pokemon_store").select("cost_coins").eq("student_id", user.id)
         ]);
 
         const gradesMap = gData?.reduce((acc, curr) => { acc[curr.criteria_id] = curr.score; return acc; }, {}) || {};
         const attMap = aData?.reduce((acc, curr) => { acc[curr.session_id] = curr.is_present; return acc; }, {}) || {};
-        const spentCoins = pData?.reduce((acc, curr) => acc + (curr.rewards?.cost_coins || 0), 0) || 0;
+        const spentOnPokemon = (pokemonData || []).reduce((acc, curr) => acc + (curr.cost_coins || 0), 0);
+        const spentCoins = (pData?.reduce((acc, curr) => acc + (curr.rewards?.cost_coins || 0), 0) || 0) + spentOnPokemon;
 
         const enhancedSessions = sData?.map(sess => ({
           ...sess,
