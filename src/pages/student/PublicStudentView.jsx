@@ -8,7 +8,7 @@ import {
   ShieldCheck, Trophy, Target, Sparkles, Flame, Crown, Flag, 
   Medal, Heart, ChevronLeft, XCircle, ShoppingBag, Coins as CoinsIcon, 
   Check, AlertCircle, ShoppingCart, Gamepad2, Play, RotateCcw, 
-  Brain, Puzzle, Sparkle, Binary, Hash, Zap, Timer, BarChart3, Lock, Eye, Camera, Upload, History
+  Brain, Puzzle, Sparkle, Binary, Hash, Zap, Timer, BarChart3, Lock, Eye, Camera, Upload, History, BookOpen
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { calculateGamification, BADGE_DEFS } from "../../lib/gamificationEngine";
@@ -18,6 +18,7 @@ import PyramidGame from "../../components/games/PyramidGame";
 import MemoryGame from "../../components/games/MemoryGame";
 import MathBlitzGame from "../../components/games/MathBlitzGame";
 import PokemonStoreTab from "../../components/pokemon/PokemonStoreTab";
+import PokedexTab from "../../components/pokemon/PokedexTab";
 
 export default function PublicStudentView() {
   const { token } = useParams();
@@ -35,6 +36,8 @@ export default function PublicStudentView() {
   const [dniError, setDniError] = useState("");
   const [previewSkin, setPreviewSkin] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [activeShopTab, setActiveShopTab] = useState("rewards"); // rewards, pokemon, pokedex
+  const [rewardCategory, setRewardCategory] = useState("all"); // all, skins, powerups, class
 
   // Arena Games State
   const [activeGame, setActiveGame] = useState(null); 
@@ -228,7 +231,7 @@ export default function PublicStudentView() {
             {/* Bottom row: Navigation Tabs */}
             <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200 w-full">
                <button onClick={() => setActiveTab("progress")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'progress' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Progreso</button>
-               <button onClick={() => setActiveTab("shop")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Tienda</button>
+               <button onClick={() => setActiveTab("shop")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Bazar</button>
                <button onClick={() => setActiveTab("games")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'games' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Arena</button>
             </div>
           </div>
@@ -435,117 +438,179 @@ export default function PublicStudentView() {
                 </div>
              </div>
 
-             {/* Powerups Section */}
-             <div className="space-y-6">
-                <div className="flex items-center gap-3 px-2">
-                   <div className="bg-amber-100 p-2 rounded-xl"><Zap className="w-5 h-5 text-amber-600" /></div>
-                   <h3 className="text-2xl font-black text-slate-800 tracking-tight">Superpoderes</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                   {powerups.map(reward => {
-                      const isBought = data.purchases?.some(p => p.reward_id === reward.id);
-                      const canAfford = gami.notyxCoins >= reward.cost_coins;
-                      return (
-                        <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isBought ? 'border-amber-400 bg-amber-50/30' : 'border-slate-100 hover:border-amber-200'}`}>
-                           <div>
-                              <div className="text-5xl w-20 h-20 rounded-3xl bg-amber-50 flex items-center justify-center border border-amber-100 mb-6 shadow-inner">{reward.icon}</div>
-                              <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
-                              <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">{reward.description}</p>
-                           </div>
-                           <Button 
-                             disabled={isBought || !canAfford} 
-                             onClick={() => handlePurchase(reward)}
-                             className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-amber-100 text-amber-600' : canAfford ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-slate-100 text-slate-400'}`}
-                           >
-                              {isBought ? 'Desbloqueado' : <><CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}</>}
-                           </Button>
-                        </div>
-                      )
-                   })}
+             {/* Shop Sub-Tabs */}
+             <div className="flex justify-center -mt-6 relative z-20">
+                <div className="inline-flex p-1.5 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-slate-200 shadow-xl shadow-slate-200/50">
+                   {[
+                      { id: 'rewards', label: 'Premios', icon: <Trophy className="w-4 h-4" /> },
+                      { id: 'pokemon', label: 'Tienda Pokémon', icon: <Sparkles className="w-4 h-4" /> },
+                      { id: 'pokedex', label: 'Mi Pokedex', icon: <BookOpen className="w-4 h-4" /> }
+                   ].map((tab) => (
+                      <button
+                         key={tab.id}
+                         onClick={() => setActiveShopTab(tab.id)}
+                         className={`flex items-center gap-2 px-6 py-3.5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all duration-300 ${
+                            activeShopTab === tab.id 
+                               ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 scale-105' 
+                               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                         }`}
+                      >
+                         {tab.icon}
+                         {tab.label}
+                      </button>
+                   ))}
                 </div>
              </div>
 
-             {/* Skins Section */}
-             <div className="space-y-6">
-                <div className="flex items-center gap-3 px-2">
-                   <div className="bg-fuchsia-100 p-2 rounded-xl"><Sparkles className="w-5 h-5 text-fuchsia-600" /></div>
-                   <h3 className="text-2xl font-black text-slate-800 tracking-tight">Temas Legendarios</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                   {cosmetics.map(reward => {
-                      const purchase = data.purchases?.find(p => p.reward_id === reward.id);
-                      const isBought = !!purchase;
-                      const isEquipped = purchase?.status === 'equipped';
-                      const canAfford = gami.notyxCoins >= reward.cost_coins;
+             {activeShopTab === "rewards" && (
+                <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                   {/* Reward Categories */}
+                   <div className="flex flex-wrap gap-2 justify-center">
+                      {[
+                         { id: 'all', label: 'Todo', icon: <ShoppingBag className="w-3.5 h-3.5" /> },
+                         { id: 'skins', label: 'Skins', icon: <Sparkles className="w-3.5 h-3.5" /> },
+                         { id: 'powerups', label: 'Poderes', icon: <Zap className="w-3.5 h-3.5" /> },
+                         { id: 'class', label: 'Clase', icon: <Trophy className="w-3.5 h-3.5" /> }
+                      ].map(cat => (
+                         <button
+                            key={cat.id}
+                            onClick={() => setRewardCategory(cat.id)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                               rewardCategory === cat.id 
+                                  ? 'bg-slate-900 text-white shadow-lg' 
+                                  : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                            }`}
+                         >
+                            {cat.icon}
+                            {cat.label}
+                         </button>
+                      ))}
+                   </div>
 
-                      return (
-                        <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isEquipped ? 'border-fuchsia-400 ring-8 ring-fuchsia-100' : 'border-slate-100'}`}>
-                           <div>
-                              <div className="flex justify-between items-start mb-6">
-                                 <div className="text-5xl w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center border border-slate-100">{reward.icon}</div>
-                                 <button onClick={() => setPreviewSkin(reward)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-blue-500 transition-all"><Eye className="w-6 h-6" /></button>
-                              </div>
-                              <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
-                              <p className="text-slate-500 text-sm font-medium mb-8 line-clamp-2">{reward.description}</p>
-                           </div>
-                           <div className="space-y-3">
-                              {isEquipped ? (
-                                <div className="bg-fuchsia-50 text-fuchsia-600 h-16 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest border-2 border-fuchsia-200">Equipado</div>
-                              ) : isBought ? (
-                                <Button onClick={() => handleEquip(reward)} className="w-full h-16 rounded-2xl bg-slate-900 text-white font-black uppercase text-xs tracking-widest">Equipar</Button>
-                              ) : (
-                                <Button onClick={() => handlePurchase(reward)} disabled={!canAfford} className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-widest ${canAfford ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                                   <CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}
-                                </Button>
-                              )}
-                           </div>
-                        </div>
-                      )
-                   })}
-                </div>
-             </div>
+                   {/* Powerups Section */}
+                   {(rewardCategory === 'all' || rewardCategory === 'powerups') && powerups.length > 0 && (
+                      <div className="space-y-6">
+                         <div className="flex items-center gap-3 px-2">
+                            <div className="bg-amber-100 p-2 rounded-xl"><Zap className="w-5 h-5 text-amber-600" /></div>
+                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">Superpoderes</h3>
+                         </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {powerups.map(reward => {
+                               const isBought = data.purchases?.some(p => p.reward_id === reward.id);
+                               const canAfford = gami.notyxCoins >= reward.cost_coins;
+                               return (
+                                 <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isBought ? 'border-amber-400 bg-amber-50/30' : 'border-slate-100 hover:border-amber-200'}`}>
+                                    <div>
+                                       <div className="text-5xl w-20 h-20 rounded-3xl bg-amber-50 flex items-center justify-center border border-amber-100 mb-6 shadow-inner">{reward.icon}</div>
+                                       <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
+                                       <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">{reward.description}</p>
+                                    </div>
+                                    <Button 
+                                      disabled={isBought || !canAfford} 
+                                      onClick={() => handlePurchase(reward)}
+                                      className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-amber-100 text-amber-600' : canAfford ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-slate-100 text-slate-400'}`}
+                                    >
+                                       {isBought ? 'Desbloqueado' : <><CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}</>}
+                                    </Button>
+                                 </div>
+                               )
+                            })}
+                         </div>
+                      </div>
+                   )}
 
-             {/* Class Rewards Section */}
-             {classRewards.length > 0 && (
-               <div className="space-y-6">
-                  <div className="flex items-center gap-3 px-2">
-                     <div className="bg-blue-100 p-2 rounded-xl"><Trophy className="w-5 h-5 text-blue-600" /></div>
-                     <h3 className="text-2xl font-black text-slate-800 tracking-tight">Premios de Clase</h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                     {classRewards.map(reward => {
-                        const isBought = data.purchases?.some(p => p.reward_id === reward.id);
-                        const canAfford = gami.notyxCoins >= reward.cost_coins;
-                        return (
-                          <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isBought ? 'border-blue-400 bg-blue-50/30' : 'border-slate-100 hover:border-blue-200'}`}>
-                             <div>
-                                <div className="text-5xl w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center border border-blue-100 mb-6 shadow-inner">{reward.icon}</div>
-                                <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
-                                <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">{reward.description}</p>
-                             </div>
-                             <Button 
-                               disabled={isBought || !canAfford} 
-                               onClick={() => handlePurchase(reward)}
-                               className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-blue-100 text-blue-600' : canAfford ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'bg-slate-100 text-slate-400'}`}
-                             >
-                                {isBought ? 'Adquirido' : <><CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}</>}
-                             </Button>
-                          </div>
-                        )
-                     })}
-                  </div>
-               </div>
+                   {/* Skins Section */}
+                   {(rewardCategory === 'all' || rewardCategory === 'skins') && cosmetics.length > 0 && (
+                      <div className="space-y-6">
+                         <div className="flex items-center gap-3 px-2">
+                            <div className="bg-fuchsia-100 p-2 rounded-xl"><Sparkles className="w-5 h-5 text-fuchsia-600" /></div>
+                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">Temas Legendarios</h3>
+                         </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {cosmetics.map(reward => {
+                               const purchase = data.purchases?.find(p => p.reward_id === reward.id);
+                               const isBought = !!purchase;
+                               const isEquipped = purchase?.status === 'equipped';
+                               const canAfford = gami.notyxCoins >= reward.cost_coins;
+
+                               return (
+                                 <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isEquipped ? 'border-fuchsia-400 ring-8 ring-fuchsia-100' : 'border-slate-100'}`}>
+                                    <div>
+                                       <div className="flex justify-between items-start mb-6">
+                                          <div className="text-5xl w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center border border-slate-100">{reward.icon}</div>
+                                          <button onClick={() => setPreviewSkin(reward)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-blue-500 transition-all"><Eye className="w-6 h-6" /></button>
+                                       </div>
+                                       <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
+                                       <p className="text-slate-500 text-sm font-medium mb-8 line-clamp-2">{reward.description}</p>
+                                    </div>
+                                    <div className="space-y-3">
+                                       {isEquipped ? (
+                                         <div className="bg-fuchsia-50 text-fuchsia-600 h-16 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest border-2 border-fuchsia-200">Equipado</div>
+                                       ) : isBought ? (
+                                         <Button onClick={() => handleEquip(reward)} className="w-full h-16 rounded-2xl bg-slate-900 text-white font-black uppercase text-xs tracking-widest">Equipar</Button>
+                                       ) : (
+                                         <Button onClick={() => handlePurchase(reward)} disabled={!canAfford} className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-widest ${canAfford ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                            <CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}
+                                         </Button>
+                                       )}
+                                    </div>
+                                 </div>
+                               )
+                            })}
+                         </div>
+                      </div>
+                   )}
+
+                   {/* Class Rewards Section */}
+                   {(rewardCategory === 'all' || rewardCategory === 'class') && classRewards.length > 0 && (
+                      <div className="space-y-6">
+                         <div className="flex items-center gap-3 px-2">
+                            <div className="bg-blue-100 p-2 rounded-xl"><Trophy className="w-5 h-5 text-blue-600" /></div>
+                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">Premios de Clase</h3>
+                         </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {classRewards.map(reward => {
+                               const isBought = data.purchases?.some(p => p.reward_id === reward.id);
+                               const canAfford = gami.notyxCoins >= reward.cost_coins;
+                               return (
+                                 <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isBought ? 'border-blue-400 bg-blue-50/30' : 'border-slate-100 hover:border-blue-200'}`}>
+                                    <div>
+                                       <div className="text-5xl w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center border border-blue-100 mb-6 shadow-inner">{reward.icon}</div>
+                                       <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
+                                       <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">{reward.description}</p>
+                                    </div>
+                                    <Button 
+                                      disabled={isBought || !canAfford} 
+                                      onClick={() => handlePurchase(reward)}
+                                      className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-blue-100 text-blue-600' : canAfford ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'bg-slate-100 text-slate-400'}`}
+                                    >
+                                       {isBought ? 'Adquirido' : <><CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}</>}
+                                    </Button>
+                                 </div>
+                               )
+                            })}
+                         </div>
+                      </div>
+                   )}
+                </div>
              )}
 
-             {/* Pokemon Store Section */}
-             <div className="pt-8">
-               <PokemonStoreTab 
-                 notyxCoins={gami?.notyxCoins || 0} 
-                 onBuySuccess={fetchData} 
-                 onBuyRequest={handlePokemonPurchase} 
-                 ownedPokemonIds={data?.pokemon?.map(p => p.pokemon_id) || []}
-               />
-             </div>
+             {activeShopTab === "pokemon" && (
+                <div className="animate-in slide-in-from-bottom-4 duration-500">
+                   <PokemonStoreTab 
+                     notyxCoins={gami?.notyxCoins || 0} 
+                     onBuySuccess={fetchData} 
+                     onBuyRequest={handlePokemonPurchase} 
+                     ownedPokemonIds={data?.pokemon?.map(p => p.pokemon_id) || []}
+                   />
+                </div>
+             )}
+
+             {activeShopTab === "pokedex" && (
+                <div className="animate-in slide-in-from-bottom-4 duration-700">
+                   <PokedexTab studentId={data.profile_id} />
+                </div>
+             )}
           </div>
         )}
 
