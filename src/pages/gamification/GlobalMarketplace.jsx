@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { Button } from "../../components/ui/button";
-import { ShoppingBag, Coins, ShoppingCart, CheckCircle2, Star, Clock, Shield, Sparkles, Eye, Gem } from "lucide-react";
+import { ShoppingBag, Coins, ShoppingCart, CheckCircle2, Star, Clock, Shield, Sparkles, Eye, Gem, Search, Trophy, ArrowRightLeft, BookOpen } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import StudentCard from "../../components/gamification/StudentCard";
 import { ShopCard } from "../../components/shop/ShopCards";
 import PokemonStoreTab from "../../components/pokemon/PokemonStoreTab";
 import PokedexTab from "../../components/pokemon/PokedexTab";
+import TradesTab from "../../components/pokemon/TradesTab";
 import { useAuth } from "../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../providers/ThemeProvider";
@@ -25,6 +26,7 @@ export default function GlobalMarketplace() {
   const [activeSubTab, setActiveSubTab] = useState("rewards");
   const [rewardCategory, setRewardCategory] = useState("all"); // all, skins, class
   const [rewardSearchTerm, setRewardSearchTerm] = useState("");
+  const [classStudentId, setClassStudentId] = useState(null);
 
   useEffect(() => {
     if (profile && profile.role !== 'student') {
@@ -43,8 +45,11 @@ export default function GlobalMarketplace() {
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       setUserProfile(profile);
 
-      const { data: classStudents } = await supabase.from("class_students").select("class_id").eq("student_id", user.id);
+      const { data: classStudents } = await supabase.from("class_students").select("id, class_id").eq("student_id", user.id);
       const classIds = classStudents?.map(cs => cs.class_id) || [];
+      if (classStudents && classStudents.length > 0) {
+        setClassStudentId(classStudents[0].id);
+      }
 
       const [
         { data: allRwData, error: rwError },
@@ -244,7 +249,8 @@ export default function GlobalMarketplace() {
             {[
               { id: 'rewards', label: 'Bazar Estudiantil', icon: <ShoppingBag className="w-4 h-4" /> },
               { id: 'pokemon', label: 'Tienda Pokémon', icon: <Sparkles className="w-4 h-4" /> },
-              { id: 'pokedex', label: 'Mi Pokedex', icon: <BookOpen className="w-4 h-4" /> }
+              { id: 'pokedex', label: 'Mi Pokedex', icon: <BookOpen className="w-4 h-4" /> },
+              { id: 'trades', label: 'Intercambios', icon: <ArrowRightLeft className="w-4 h-4" /> }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -360,9 +366,9 @@ export default function GlobalMarketplace() {
                            onClick={() => handleBuy(previewSkin)}
                            className="h-14 px-8 rounded-2xl font-['DM_Sans'] font-bold uppercase tracking-wider flex items-center gap-3 transition-all hover:scale-105"
                            style={{
-                              background: 'linear-gradient(135deg, hsl(45 90% 50%), hsl(45 95% 65%))',
-                              color: 'white',
-                              boxShadow: '0 8px 30px hsl(45 90% 50% / 0.4)'
+                               background: 'linear-gradient(135deg, hsl(45 90% 50%), hsl(45 95% 65%))',
+                               color: 'white',
+                               boxShadow: '0 8px 30px hsl(45 90% 50% / 0.4)'
                            }}
                            >
                            <ShoppingCart className="w-5 h-5" /> Comprar por {previewSkin.cost_coins}
@@ -412,8 +418,8 @@ export default function GlobalMarketplace() {
                         <div className="relative inline-block mb-6">
                            <div className="absolute inset-0 rounded-[3rem] blur-xl animate-pulse" style={{ background: 'hsl(270 70% 60% / 0.2)' }} />
                            <div className="relative w-20 h-20 rounded-[3rem] flex items-center justify-center" style={{
-                              background: 'linear-gradient(135deg, hsl(270 70% 60% / 0.2), hsl(270 70% 50% / 0.1))',
-                              border: '1px solid hsl(270 70% 60% / 0.15)'
+                               background: 'linear-gradient(135deg, hsl(270 70% 60% / 0.2), hsl(270 70% 50% / 0.1))',
+                               border: '1px solid hsl(270 70% 60% / 0.15)'
                            }}>
                               <Sparkles className="w-10 h-10 text-fuchsia-500/50" />
                            </div>
@@ -444,7 +450,7 @@ export default function GlobalMarketplace() {
                    )}
                  </div>
                )}
- 
+  
                {/* Botín de Clase Section */}
                {(rewardCategory === 'all' || rewardCategory === 'class') && (
                  <div className="space-y-8 pt-8" style={{ borderTop: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 0% / 0.05)' }}>
@@ -462,14 +468,14 @@ export default function GlobalMarketplace() {
                         Botín de Clase
                      </h2>
                    </div>
- 
+  
                    {classRewards.length === 0 ? (
                      <div className="py-24 text-center rounded-[2.5rem]" style={glassCard}>
                         <div className="relative inline-block mb-6">
                            <div className="absolute inset-0 rounded-[3rem] blur-xl animate-pulse" style={{ background: 'hsl(195 90% 55% / 0.2)' }} />
                            <div className="relative w-20 h-20 rounded-[3rem] flex items-center justify-center" style={{
-                              background: 'linear-gradient(135deg, hsl(195 90% 55% / 0.2), hsl(195 90% 45% / 0.1))',
-                              border: '1px solid hsl(195 90% 55% / 0.15)'
+                               background: 'linear-gradient(135deg, hsl(195 90% 55% / 0.2), hsl(195 90% 45% / 0.1))',
+                               border: '1px solid hsl(195 90% 55% / 0.15)'
                            }}>
                               <Shield className="w-10 h-10" style={{ color: 'hsl(195 90% 55%)', opacity: 0.5 }} />
                            </div>
@@ -505,13 +511,19 @@ export default function GlobalMarketplace() {
 
          {activeSubTab === "pokemon" && (
             <div className="animate-in slide-in-from-bottom-4 duration-700">
-               <PokemonStoreTab notyxCoins={notyxCoins} onBuySuccess={() => fetchData()} />
+               <PokemonStoreTab notyxCoins={notyxCoins} onBuySuccess={() => fetchData()} classStudentId={classStudentId} />
             </div>
          )}
 
          {activeSubTab === "pokedex" && (
             <div className="animate-in slide-in-from-bottom-4 duration-700">
                <PokedexTab />
+            </div>
+         )}
+
+         {activeSubTab === "trades" && (
+            <div className="animate-in slide-in-from-bottom-4 duration-700">
+               <TradesTab />
             </div>
          )}
       </div>

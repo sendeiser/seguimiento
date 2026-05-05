@@ -5,7 +5,7 @@ import { getStudentPokemon, addPokemonToStore } from "../../lib/pokemonStore";
 import PokemonCard from "./PokemonCard";
 import { useAuth } from "../../providers/AuthProvider";
 
- export default function PokemonStoreTab({ notyxCoins, onBuySuccess, onBuyRequest, ownedPokemonIds }) {
+ export default function PokemonStoreTab({ notyxCoins, onBuySuccess, onBuyRequest, ownedPokemonIds, classStudentId }) {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [pokemonList, setPokemonList] = useState([]);
@@ -29,19 +29,19 @@ import { useAuth } from "../../providers/AuthProvider";
   useEffect(() => {
     if (ownedPokemonIds) {
       setOwnedIds(new Set(ownedPokemonIds));
-    } else if (user) {
+    } else if (user || classStudentId) {
       fetchOwned();
     }
-  }, [user, ownedPokemonIds]);
+  }, [user, ownedPokemonIds, classStudentId]);
 
   useEffect(() => {
     fetchPokemon();
   }, [page, selectedType]);
 
   const fetchOwned = async () => {
-    if (!user) return;
+    if (!user && !classStudentId) return;
     try {
-      const owned = await getStudentPokemon(user.id);
+      const owned = await getStudentPokemon(user?.id, classStudentId);
       setOwnedIds(new Set(owned.map(o => o.pokemon_id)));
     } catch (e) {
       console.error("Error fetching owned pokemon", e);
@@ -79,13 +79,15 @@ import { useAuth } from "../../providers/AuthProvider";
       return;
     }
     
+    // In PublicStudentView, we handle buy through a modal/DNI verification
     if (!user && onBuyRequest) {
       onBuyRequest(pokemon);
       return;
     }
     
     try {
-      await addPokemonToStore(user.id, pokemon);
+      // For logged-in students in GlobalMarketplace
+      await addPokemonToStore(user?.id, pokemon, classStudentId);
       setOwnedIds(prev => new Set(prev).add(pokemon.id));
       alert(`¡Has capturado a ${pokemon.name}!`);
       if (onBuySuccess) onBuySuccess(pokemon.cost_coins);

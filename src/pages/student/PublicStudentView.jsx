@@ -602,14 +602,15 @@ export default function PublicStudentView() {
                      onBuySuccess={fetchData} 
                      onBuyRequest={handlePokemonPurchase} 
                      ownedPokemonIds={data?.pokemon?.map(p => p.pokemon_id) || []}
+                     classStudentId={data.cs_id}
                    />
                 </div>
              )}
 
              {activeShopTab === "pokedex" && (
-                <div className="animate-in slide-in-from-bottom-4 duration-700">
-                   <PokedexTab studentId={data.profile_id} />
-                </div>
+                 <div className="animate-in slide-in-from-bottom-4 duration-700">
+                   <PokedexTab studentId={data.profile_id} classStudentId={data.cs_id} />
+                 </div>
              )}
           </div>
         )}

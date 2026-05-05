@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Coins, CheckCircle2, ShoppingBag, Eye, Zap } from "lucide-react";
+import { Coins, CheckCircle2, ShoppingBag, Eye, Zap, ArrowRightLeft } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import PokemonDetailsModal from "./PokemonDetailsModal";
 
-export default function PokemonCard({ pokemon, owned, onBuy }) {
+export default function PokemonCard({ pokemon, owned, onBuy, onTrade }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [showDetails, setShowDetails] = useState(false);
@@ -85,11 +85,22 @@ export default function PokemonCard({ pokemon, owned, onBuy }) {
 
             <div className="pt-2">
               {owned ? (
-                <div className="w-full h-14 bg-emerald-50 rounded-2xl flex flex-col items-center justify-center border border-emerald-100">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center">Capturado</span>
+                <div className="flex gap-2">
+                  <div className="flex-1 h-14 bg-emerald-50 rounded-2xl flex flex-col items-center justify-center border border-emerald-100">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center">Capturado</span>
+                    </div>
                   </div>
+                  {onTrade && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onTrade(pokemon); }}
+                      className="w-14 h-14 bg-white hover:bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center border-2 border-indigo-100 transition-all shadow-sm active:scale-95 group/trade"
+                      title="Intercambiar"
+                    >
+                      <ArrowRightLeft className="w-5 h-5 group-hover/trade:rotate-180 transition-transform duration-500" />
+                    </button>
+                  )}
                 </div>
               ) : (
                 <button 

@@ -4,15 +4,18 @@ import { getStudentPokemon } from "../../lib/pokemonStore";
 import { getPokemonDetails } from "../../lib/pokemonService";
 import { useAuth } from "../../providers/AuthProvider";
 import PokemonCard from "./PokemonCard";
+import TradePokemonModal from "./TradePokemonModal";
 
-export default function PokedexTab({ studentId }) {
+export default function PokedexTab({ studentId, classStudentId }) {
   const { user } = useAuth();
   const [ownedPokemon, setOwnedPokemon] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-   const [totalPokemonCount, setTotalPokemonCount] = useState(0);
+  const [totalPokemonCount, setTotalPokemonCount] = useState(0);
   const [selectedType, setSelectedType] = useState("all");
+  const [tradingPokemon, setTradingPokemon] = useState(null);
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
 
   const pokemonTypes = [
     { id: 'all', label: 'Todos', icon: '✨' },
@@ -29,7 +32,7 @@ export default function PokedexTab({ studentId }) {
   useEffect(() => {
     fetchOwned();
     fetchTotalCount();
-  }, [user, studentId]);
+  }, [user, studentId, classStudentId]);
 
   const fetchTotalCount = async () => {
     try {
@@ -43,11 +46,11 @@ export default function PokedexTab({ studentId }) {
 
   const fetchOwned = async () => {
     const targetId = studentId || user?.id;
-    if (!targetId) return;
+    if (!targetId && !classStudentId) return;
 
     setLoading(true);
     try {
-      const owned = await getStudentPokemon(targetId);
+      const owned = await getStudentPokemon(targetId, classStudentId);
       const detailed = await Promise.all(
         owned.map(async p => {
           const apiDetails = await getPokemonDetails(p.pokemon_id);
@@ -167,10 +170,22 @@ export default function PokedexTab({ studentId }) {
               pokemon={p} 
               owned={true} 
               onBuy={() => {}} 
+              onTrade={(poke) => {
+                setTradingPokemon(poke);
+                setIsTradeModalOpen(true);
+              }}
             />
           ))}
         </div>
       )}
+
+      <TradePokemonModal 
+        isOpen={isTradeModalOpen} 
+        onClose={() => setIsTradeModalOpen(false)}
+        offeredPokemon={tradingPokemon}
+        currentStudentId={studentId || user?.id}
+        currentClassStudentId={classStudentId}
+      />
     </div>
   );
 }
