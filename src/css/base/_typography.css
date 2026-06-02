@@ -8,27 +8,17 @@
 @media (min-width: 1024px) { :root { font-size: 16px; } }
 
 body {
-  background: 
-    radial-gradient(ellipse at 20% 20%, hsl(262 83% 60% / 0.15) 0%, transparent 40%),
-    radial-gradient(ellipse at 80% 80%, hsl(185 85% 60% / 0.1) 0%, transparent 40%),
-    hsl(var(--color-bg-primary));
+  background: var(--bg-app-gradient), hsl(var(--color-bg-primary));
   color: hsl(var(--color-text-primary));
   font-family: 'DM Sans', sans-serif;
   line-height: 1.6;
 }
 
-.dark body {
-  background: 
-    radial-gradient(ellipse at 0% 0%, hsl(270 70% 20% / 0.3) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, hsl(185 85% 15% / 0.2) 0%, transparent 50%),
-    hsl(var(--color-bg-primary));
-}
-
-h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; font-weight: 700; line-height: 1.2; color: hsl(var(--color-text-primary)); }
-h1 { font-size: 2.5rem; font-weight: 800; }
-h2 { font-size: 2rem; font-weight: 700; }
-h3 { font-size: 1.5rem; }
-h4 { font-size: 1.25rem; }
+h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; line-height: 1.2; color: hsl(var(--color-text-primary)); }
+h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+h3 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+h4 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
 
 a { color: hsl(var(--color-primary)); text-decoration: none; transition: color 150ms; }
 a:hover { color: hsl(var(--color-accent)); }
