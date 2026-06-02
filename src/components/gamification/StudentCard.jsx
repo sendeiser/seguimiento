@@ -189,14 +189,15 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
             <span>Nivel {gami?.currentLevel || 1}</span>
             <span>{Math.round(xpPct)}% XP</span>
           </div>
-          <div className="h-1 w-full bg-black/10 rounded-full overflow-hidden">
+          <div className="h-1 w-full rounded-full overflow-hidden relative" style={{backgroundColor: 'hsla(220, 25%, 6%, 0.1)'}}>
             <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${xpPct}%` }}></div>
+            <div className="absolute inset-0 shimmer-bg rounded-full" />
           </div>
         </div>
       </div>
 
       <div className="space-y-2 mt-auto">
-        <div className={`flex justify-between items-center bg-black/5 rounded-lg px-2 py-1.5`}>
+        <div className={`flex justify-between items-center rounded-lg px-2 py-1.5`} style={{backgroundColor: 'hsla(220, 25%, 6%, 0.05)'}}>
           <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Rendimiento</span>
           <span className="text-sm font-black text-white">{pct !== null ? `${Math.round(pct * 100)}%` : '—'}</span>
         </div>
