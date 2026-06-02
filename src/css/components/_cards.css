@@ -1,28 +1,67 @@
 /* === Cards Glassmorphism === */
 @layer components {
   .card {
-    background: var(--card-glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
+    background: var(--glass-deep-bg);
+    backdrop-filter: var(--glass-deep-blur);
+    -webkit-backdrop-filter: var(--glass-deep-blur);
     border-radius: var(--primitive-radius-xl);
-    border: var(--card-glass-border);
-    box-shadow: var(--primitive-shadow-glass-md);
+    border: var(--glass-deep-border);
+    box-shadow: var(--shadow-tinted-md), var(--glass-deep-inner-shadow);
     overflow: hidden;
-    transition: all var(--primitive-transition-normal);
+    transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   
   /* Interactive */
   .card-interactive { cursor: pointer; }
   .card-interactive:hover {
-    box-shadow: var(--primitive-shadow-glass-lg);
-    transform: translateY(-4px);
-    border-color: hsl(var(--color-primary) / 0.2);
+    box-shadow: var(--shadow-tinted-lg), var(--glow-primary), var(--glass-deep-inner-shadow);
+    transform: scale(1.02);
+    border-color: hsla(270 80% 60% / 0.2);
   }
   
   /* Glass Elevated */
   .card-elevated {
     background: linear-gradient(145deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0.08));
     box-shadow: var(--primitive-shadow-glass-lg);
+  }
+
+  /* Glass Soft — lighter frosted layer for cards inside glass layouts */
+  .card-glass-soft {
+    background: hsla(0 0% 100% / 0.12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsla(0 0% 100% / 0.1);
+    box-shadow: var(--shadow-tinted-sm);
+  }
+  .dark .card-glass-soft {
+    background: hsla(220 20% 12% / 0.6);
+    border: 1px solid hsla(0 0% 100% / 0.06);
+    box-shadow: var(--shadow-tinted-sm);
+  }
+
+  /* Glass Button — frosted button style */
+  .glass-btn {
+    background: hsl(0 0% 100% / 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+  }
+  .dark .glass-btn {
+    background: hsl(0 0% 100% / 0.08);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+  }
+
+  /* Glass Input — inline glass input style */
+  .glass-input-inline {
+    background: rgb(255 255 255 / 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+    color: hsl(var(--color-text-primary));
+  }
+  .dark .glass-input-inline {
+    background: rgb(0 0 0 / 0.2);
+    border: 1px solid hsl(0 0% 100% / 0.08);
   }
   
   /* Inset */

@@ -1,132 +1,85 @@
-/* ===================================
-   NOTYX EDU - Modal Components
-   =================================== */
-
+/* === Modal System === */
 @layer components {
-  /* === Modal Backdrop === */
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    z-index: var(--z-modal-backdrop);
-    background: hsl(var(--bg-overlay));
-    backdrop-filter: blur(8px);
+    z-index: 150;
+    background: hsla(0 0% 0% / 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--space-4);
-    animation: fade-in var(--transition-fast);
+    padding: var(--primitive-spacing-4);
+    animation: fade-in 150ms ease;
   }
 
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  /* === Modal Container === */
   .modal {
     position: relative;
     width: 100%;
-    max-width: 28rem;
-    background: hsl(var(--bg-primary));
-    border-radius: var(--radius-2xl);
-    padding: var(--space-8);
-    box-shadow: var(--shadow-xl);
-    animation: scale-in var(--transition-normal);
+    background: hsla(220 15% 12% / 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid hsla(220 15% 80% / 0.08);
+    border-radius: var(--primitive-radius-2xl);
+    padding: var(--primitive-spacing-8);
+    box-shadow: var(--shadow-tinted-lg), inset 0 1px 0 hsla(220 15% 100% / 0.05);
+    animation: spring-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 90vh;
+    overflow-y: auto;
   }
 
-  @keyframes scale-in {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
+  .modal-sm { max-width: 24rem; }
+  .modal-md { max-width: 32rem; }
+  .modal-lg { max-width: 48rem; }
 
-  /* === Modal Sizes === */
-  .modal-sm {
-    max-width: 20rem;
-  }
-
-  .modal-lg {
-    max-width: 36rem;
-  }
-
-  .modal-xl {
-    max-width: 48rem;
-  }
-
-  /* === Modal Header === */
   .modal-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: var(--space-4);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--primitive-spacing-6);
+    padding-bottom: var(--primitive-spacing-4);
+    border-bottom: 1px solid hsla(220 15% 80% / 0.08);
+  }
+
+  .modal-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: var(--primitive-font-size-xl);
+    font-weight: 700;
+    color: hsl(var(--color-text-primary));
   }
 
   .modal-close {
     position: absolute;
-    top: var(--space-6);
-    right: var(--space-6);
-    padding: var(--space-2);
-    border-radius: var(--radius-md);
-    color: hsl(var(--text-muted));
-    transition: all var(--transition-fast);
+    top: var(--primitive-spacing-6);
+    right: var(--primitive-spacing-6);
+    padding: var(--primitive-spacing-2);
+    border-radius: var(--primitive-radius-md);
+    color: hsl(var(--color-text-muted));
+    transition: all 150ms;
     background: transparent;
     border: none;
     cursor: pointer;
+    line-height: 0;
   }
 
   .modal-close:hover {
-    background: hsl(var(--interactive-secondary));
-    color: hsl(var(--text-primary));
+    background: hsla(0 0% 100% / 0.08);
+    color: hsl(var(--color-text-primary));
   }
 
-  /* === Modal Icon === */
-  .modal-icon {
-    width: 3.5rem;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-xl);
-    margin-bottom: var(--space-4);
+  .modal-body {
+    color: hsl(var(--color-text-secondary));
+    line-height: 1.6;
   }
 
-  .modal-icon-primary {
-    background: hsl(var(--interactive-primary));
-    color: hsl(var(--text-inverted));
-    box-shadow: var(--shadow-lg), 0 0 20px hsl(var(--interactive-primary) / 0.2);
-  }
-
-  .modal-icon-success {
-    background: hsl(var(--status-success));
-    color: hsl(var(--text-inverted));
-  }
-
-  .modal-icon-warning {
-    background: hsl(var(--status-warning));
-    color: hsl(var(--text-primary));
-  }
-
-  .modal-icon-error {
-    background: hsl(var(--status-error));
-    color: hsl(var(--text-inverted));
-  }
-
-  /* === Modal Footer === */
   .modal-footer {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    margin-top: var(--space-6);
-  }
-
-  .modal-footer-row {
-    display: flex;
-    gap: var(--space-3);
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--primitive-spacing-3);
+    margin-top: var(--primitive-spacing-6);
+    padding-top: var(--primitive-spacing-4);
+    border-top: 1px solid hsla(220 15% 80% / 0.08);
   }
 }
