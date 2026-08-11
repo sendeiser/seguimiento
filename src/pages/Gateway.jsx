@@ -71,24 +71,43 @@ export default function Gateway() {
             </Button>
           </form>
 
-          <div className="mt-12 pt-8 border-t border-white/5 grid grid-cols-2 gap-4">
-            <div className="text-center space-y-2 group cursor-help">
-              <div className="w-10 h-10 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-white group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-all">
-                <UserCircle className="w-5 h-5" />
-              </div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Docentes</p>
-            </div>
-            <div className="text-center space-y-2 group cursor-help">
-              <div className="w-10 h-10 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-white group-hover:bg-indigo-600/20 group-hover:text-indigo-400 transition-all">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Estudiantes</p>
+          <div className="mt-10 pt-8 border-t border-white/10 space-y-4">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Acceso Directo por Rol</p>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-800/80 hover:bg-blue-600/20 hover:border-blue-500/50 border border-white/5 text-left transition-all group"
+              >
+                <div className="w-10 h-10 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <UserCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-white leading-tight">Docentes / Alumnos</p>
+                  <p className="text-[9px] font-bold text-slate-400">Iniciar sesión</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/tutor")}
+                className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-800/80 hover:bg-emerald-600/20 hover:border-emerald-500/50 border border-white/5 text-left transition-all group"
+              >
+                <div className="w-10 h-10 bg-emerald-600/20 text-emerald-400 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-white leading-tight">Portal Tutores</p>
+                  <p className="text-[9px] font-bold text-slate-400">Consulta con DNI</p>
+                </div>
+              </button>
             </div>
           </div>
         </div>
 
         <p className="mt-8 text-center text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] flex items-center justify-center gap-2">
-          <Sparkles className="w-3 h-3" /> Potenciado con IA Experimental
+          <Sparkles className="w-3 h-3 text-blue-500" /> Notyx Edu Plataforma Académica
         </p>
       </div>
 

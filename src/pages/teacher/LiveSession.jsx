@@ -4,11 +4,14 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle2, X, Users, XCircle, ChevronLeft, ChevronRight, LayoutGrid, ArrowLeft, PlusCircle, Sparkles, Trash2, TrendingUp, Pencil } from "lucide-react";
+import { CheckCircle2, X, Users, XCircle, ChevronLeft, ChevronRight, LayoutGrid, ArrowLeft, PlusCircle, Sparkles, Trash2, TrendingUp, Pencil, Download, Printer, Wifi, WifiOff } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useToast } from "../../providers/ToastProvider";
 import { addXPToAllStudentPokemon } from "../../lib/pokemonStore";
+import { exportClassToCSV } from "../../lib/reportExporter";
+import StudentReportModal from "../../components/reports/StudentReportModal";
+import { queueOfflineUpdate, setupOfflineSyncListeners, getOfflineQueue } from "../../lib/offlineSync";
 
 export default function LiveSession() {
   const { id } = useParams();
@@ -29,11 +32,32 @@ export default function LiveSession() {
   const [showOverallAverage, setShowOverallAverage] = useState(false);
   const [gradeFlash, setGradeFlash] = useState({});
   const [sparklineData, setSparklineData] = useState({});
+  const [selectedStudentForReport, setSelectedStudentForReport] = useState(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [pendingQueueCount, setPendingQueueCount] = useState(getOfflineQueue().length);
 
   const inputRefs = useRef({});
   const { theme } = useTheme();
   const { toast, confirm } = useToast();
   const isDark = theme === 'dark';
+
+  useEffect(() => {
+    const cleanupSync = setupOfflineSyncListeners((result) => {
+      toast.success(`Sincronizados ${result.count} cambios guardados sin conexión`);
+      setPendingQueueCount(getOfflineQueue().length);
+      fetchGrades();
+    });
+
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+
+    return () => {
+      cleanupSync();
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -177,7 +201,13 @@ export default function LiveSession() {
     if (value === "" || isNaN(score)) return;
     const key = `${csId}_${criteriaId}`;
     setSaving(prev => ({ ...prev, [key]: true }));
-    await supabase.from("grades").upsert({ class_student_id: csId, criteria_id: criteriaId, score, updated_at: new Date().toISOString() }, { onConflict: "class_student_id,criteria_id" });
+
+    if (!navigator.onLine) {
+      queueOfflineUpdate("grade", { session_id: id, student_id: csId, criteria_id: criteriaId, score });
+      setPendingQueueCount(getOfflineQueue().length);
+    } else {
+      await supabase.from("grades").upsert({ class_student_id: csId, criteria_id: criteriaId, score, updated_at: new Date().toISOString() }, { onConflict: "class_student_id,criteria_id" });
+    }
     
     // Recompensa Pokémon
     const student = students.find(s => s.cs_id === csId);
@@ -336,14 +366,34 @@ export default function LiveSession() {
         {/* Executive Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 sm:p-8 gap-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <div>
-            <h2 className="font-['Outfit'] font-black text-2xl text-slate-900 dark:text-white tracking-tight">Planilla de Evaluaciones</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="font-['Outfit'] font-black text-2xl text-slate-900 dark:text-white tracking-tight">Planilla de Evaluaciones</h2>
+              {/* Online / Offline Status Badge */}
+              <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 border ${
+                isOnline 
+                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800" 
+                  : "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800 animate-pulse"
+              }`}>
+                {isOnline ? <Wifi className="w-3 h-3 text-emerald-500" /> : <WifiOff className="w-3 h-3 text-amber-500" />}
+                {isOnline ? "En línea" : `Sin conexión (${pendingQueueCount} pend.)`}
+              </span>
+            </div>
             <p className="font-['DM_Sans'] font-bold text-xs mt-1 uppercase tracking-widest text-slate-400 dark:text-slate-500">
               Atajo: Presioná [Enter] o [Tab] para navegar entre alumnos
             </p>
           </div>
-          <Button onClick={handleAddCriteria} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 px-6 font-black shadow-lg shadow-blue-500/20 flex items-center gap-2 text-xs uppercase tracking-wider transition-all">
-            <PlusCircle className="w-5 h-5" /> Agregar Criterio
-          </Button>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => exportClassToCSV(className || "Clase", students, criteria, grades, attendance)}
+              className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-2xl h-12 px-5 font-black flex items-center gap-2 text-xs uppercase tracking-wider transition-all border border-slate-200 dark:border-slate-700"
+            >
+              <Download className="w-4 h-4 text-emerald-600" /> Excel / CSV
+            </Button>
+            <Button onClick={handleAddCriteria} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 px-6 font-black shadow-lg shadow-blue-500/20 flex items-center gap-2 text-xs uppercase tracking-wider transition-all">
+              <PlusCircle className="w-5 h-5" /> Agregar Criterio
+            </Button>
+          </div>
         </div>
         
         <div className="p-0">
@@ -400,7 +450,7 @@ export default function LiveSession() {
                       return (
                         <tr key={student.cs_id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-3.5">
+                            <div className="flex items-center gap-3">
                               <button
                                 onClick={() => toggleAttendance(student.cs_id)}
                                 title={attendance[student.cs_id] !== false ? "Asistencia: Presente" : "Asistencia: Ausente"}
@@ -413,10 +463,19 @@ export default function LiveSession() {
                               <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-['Outfit'] font-black text-sm flex items-center justify-center shadow-md shadow-indigo-500/10 shrink-0">
                                 {student.name[0].toUpperCase()}
                               </div>
-                              <span className="font-['Outfit'] font-extrabold text-base text-slate-900 dark:text-white tracking-tight">
-                                <span className="sm:hidden">{mobileName}</span>
-                                <span className="hidden sm:inline">{student.name}</span>
-                              </span>
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <span className="font-['Outfit'] font-extrabold text-base text-slate-900 dark:text-white tracking-tight truncate">
+                                  <span className="sm:hidden">{mobileName}</span>
+                                  <span className="hidden sm:inline">{student.name}</span>
+                                </span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setSelectedStudentForReport(student); }}
+                                  className="p-1.5 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-all shrink-0"
+                                  title="Imprimir Boletín / Informe PDF"
+                                >
+                                  <Printer className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
                           </td>
                           {criteria.map((c, cIdx) => {
@@ -534,6 +593,17 @@ export default function LiveSession() {
             )}
           </div>
         </div>
+
+      {selectedStudentForReport && (
+        <StudentReportModal
+          student={selectedStudentForReport}
+          className={className}
+          criteria={criteria}
+          grades={grades}
+          attendance={attendance}
+          onClose={() => setSelectedStudentForReport(null)}
+        />
+      )}
 
       <style>{`
         @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }

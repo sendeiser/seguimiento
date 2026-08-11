@@ -8,6 +8,7 @@ const Register = lazy(() => import("./pages/Register"));
 const SetupProfile = lazy(() => import("./pages/SetupProfile"));
 const PublicStudentView = lazy(() => import("./pages/student/PublicStudentView"));
 const PublicClassView = lazy(() => import("./pages/student/PublicClassView"));
+const TutorPortal = lazy(() => import("./pages/tutor/TutorPortal"));
 const TeacherDashboard = lazy(() => import("./pages/teacher/TeacherDashboard"));
 const ClassView = lazy(() => import("./pages/teacher/ClassView"));
 const LiveSession = lazy(() => import("./pages/teacher/LiveSession"));
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/live/:token" element={<PublicStudentView />} />
           <Route path="/class-live/:token" element={<PublicClassView />} />
+          <Route path="/tutor" element={<TutorPortal />} />
           <Route path="/j/:code" element={<JoinClass />} />
 
           <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

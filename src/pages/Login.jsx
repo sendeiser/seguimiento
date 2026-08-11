@@ -136,19 +136,26 @@ export default function Login() {
               </Button>
             </form>
 
-            <div className="mt-8 pt-6 flex flex-col items-center gap-4" style={{ borderTop: '1px solid hsl(0 0% 0% / 0.05)' }}>
-              <p className="text-sm font-['DM_Sans']" style={{ color: 'hsl(var(--color-text-secondary))' }}>Don't have an account?</p>
-              <Link to="/register" className="w-full">
-                <Button variant="secondary" className="w-full h-11 rounded-xl font-['DM_Sans'] font-bold gap-2">
-                  <UserPlus className="w-4 h-4" /> Create Teacher Account
-                </Button>
-              </Link>
+            <div className="mt-8 pt-6 flex flex-col items-center gap-3" style={{ borderTop: '1px solid hsl(0 0% 0% / 0.05)' }}>
+              <p className="text-sm font-['DM_Sans']" style={{ color: 'hsl(var(--color-text-secondary))' }}>¿No tenés cuenta de docente?</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                <Link to="/register" className="w-full">
+                  <Button variant="secondary" className="w-full h-11 rounded-xl font-['DM_Sans'] font-bold text-xs gap-2">
+                    <UserPlus className="w-4 h-4" /> Crear Cuenta
+                  </Button>
+                </Link>
+                <Link to="/tutor" className="w-full">
+                  <Button variant="secondary" className="w-full h-11 rounded-xl font-['DM_Sans'] font-bold text-xs gap-2 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
+                    <GraduationCap className="w-4 h-4" /> Portal Tutores
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <p className="mt-8 text-center text-xs font-['DM_Sans'] leading-relaxed px-4" style={{ color: 'hsl(var(--color-text-muted))' }}>
-          For educational institutions only.<br />Students can join via links shared by their teachers.
+          Plataforma Notyx Edu.<br />Los estudiantes y familias pueden consultar sus boletines por DNI.
         </p>
       </div>
 
