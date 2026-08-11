@@ -43,67 +43,68 @@ export default function Gateway() {
           </p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-2xl border border-slate-200/80 p-6 md:p-10 rounded-[3rem] shadow-2xl shadow-slate-900/5">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-2 block">
-                Código de Acceso
-              </label>
-              <div className="relative group">
-                <input
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="Escribe tu código aquí..."
-                  className={`w-full h-14 text-center font-['Outfit'] font-extrabold uppercase tracking-widest text-lg rounded-2xl ${
-                    error ? 'border-2 border-rose-500 shake' : 'border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20'
-                  } bg-slate-50 text-slate-900 placeholder:text-slate-400 outline-none transition-all`}
-                  style={{ animation: error ? 'shake 0.4s ease-in-out' : 'none' }}
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-14 rounded-2xl font-black text-base shadow-xl shadow-blue-600/20 bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-95 flex items-center justify-center gap-3"
-            >
-              INGRESAR <ArrowRight className="w-5 h-5" />
-            </Button>
-          </form>
-
-          <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Acceso Directo por Rol</p>
+        <div className="bg-white/90 backdrop-blur-2xl border border-slate-200/80 p-6 md:p-8 rounded-[3rem] shadow-2xl shadow-slate-900/5 space-y-6">
+          
+          <div className="space-y-3">
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400 text-center">Seleccioná tu Rol de Ingreso</p>
             
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200/80 text-left transition-all group"
-              >
-                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <UserCircle className="w-5 h-5" />
+            {/* Docente / Alumno Access Card */}
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="w-full flex items-center justify-between p-4 rounded-2xl bg-blue-50/80 hover:bg-blue-100/80 border-2 border-blue-200 text-left transition-all group shadow-sm active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                  <UserCircle className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-slate-900 leading-tight">Docentes / Alumnos</p>
-                  <p className="text-[9px] font-bold text-slate-500">Iniciar sesión</p>
+                  <h3 className="font-['Outfit'] font-black text-slate-900 text-base leading-tight">Docentes y Alumnos</h3>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">Iniciar sesión o Registrarse</p>
                 </div>
-              </button>
+              </div>
+              <ArrowRight className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform mr-1" />
+            </button>
 
-              <button
-                type="button"
-                onClick={() => navigate("/tutor")}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-emerald-50 border border-slate-200/80 text-left transition-all group"
-              >
-                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <BookOpen className="w-5 h-5" />
+            {/* Tutor / Familia Access Card */}
+            <button
+              type="button"
+              onClick={() => navigate("/tutor")}
+              className="w-full flex items-center justify-between p-4 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100/80 border-2 border-emerald-200 text-left transition-all group shadow-sm active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                  <BookOpen className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-slate-900 leading-tight">Portal Tutores</p>
-                  <p className="text-[9px] font-bold text-slate-500">Consulta con DNI</p>
+                  <h3 className="font-['Outfit'] font-black text-slate-900 text-base leading-tight">Portal Familias y Tutores</h3>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">Consultar boletín con DNI</p>
                 </div>
-              </button>
-            </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-emerald-600 group-hover:translate-x-1 transition-transform mr-1" />
+            </button>
           </div>
+
+          {/* Student Class Code Input */}
+          <div className="pt-4 border-t border-slate-100 space-y-3">
+            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">¿Tenés un código de clase?</p>
+            <form onSubmit={handleSubmit} className="flex gap-2">
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Código de clase (Ej: X7K2P)"
+                className={`flex-1 h-12 text-center font-['Outfit'] font-bold uppercase tracking-widest text-sm rounded-xl ${
+                  error ? 'border-2 border-rose-500 shake' : 'border border-slate-200 focus:border-blue-600'
+                } bg-slate-50 text-slate-900 placeholder:text-slate-400 outline-none transition-all`}
+                style={{ animation: error ? 'shake 0.4s ease-in-out' : 'none' }}
+              />
+              <Button type="submit" className="h-12 px-5 rounded-xl font-black text-xs uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-white">
+                Unirme
+              </Button>
+            </form>
+          </div>
+
         </div>
 
         <p className="mt-8 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] flex items-center justify-center gap-2">
