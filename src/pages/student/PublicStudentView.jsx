@@ -336,7 +336,7 @@ export default function PublicStudentView() {
                         }`}
                       >
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${
-                          isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
+                          isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-white'
                         }`}>
                           {isUnlocked ? <BadgeIcon className="w-6 h-6" /> : <Lock className="w-5 h-5" />}
                         </div>
@@ -508,7 +508,7 @@ export default function PublicStudentView() {
                                     <Button 
                                       disabled={isBought || !canAfford} 
                                       onClick={() => handlePurchase(reward)}
-                                      className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-amber-100 text-amber-600' : canAfford ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-slate-100 text-slate-400'}`}
+                                      className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-amber-100 text-amber-800' : canAfford ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-slate-100 text-slate-400'}`}
                                     >
                                        {isBought ? 'Desbloqueado' : <><CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}</>}
                                     </Button>
@@ -549,7 +549,7 @@ export default function PublicStudentView() {
                                        ) : isBought ? (
                                          <Button onClick={() => handleEquip(reward)} className="w-full h-16 rounded-2xl bg-slate-900 text-white font-black uppercase text-xs tracking-widest">Equipar</Button>
                                        ) : (
-                                         <Button onClick={() => handlePurchase(reward)} disabled={!canAfford} className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-widest ${canAfford ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                          <Button onClick={() => handlePurchase(reward)} disabled={!canAfford} className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-widest ${canAfford ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-white'}`}>
                                             <CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}
                                          </Button>
                                        )}
@@ -582,7 +582,7 @@ export default function PublicStudentView() {
                                     <Button 
                                       disabled={isBought || !canAfford} 
                                       onClick={() => handlePurchase(reward)}
-                                      className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-blue-100 text-blue-600' : canAfford ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'bg-slate-100 text-slate-400'}`}
+                                       className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-blue-100 text-blue-800' : canAfford ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'bg-slate-100 text-slate-400'}`}
                                     >
                                        {isBought ? 'Adquirido' : <><CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}</>}
                                     </Button>
@@ -716,7 +716,7 @@ export default function PublicStudentView() {
                  <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-3">Seguridad Notyx</h3>
                  <p className="text-slate-500 text-sm font-medium mb-10">Ingresa tu DNI para autorizar el canje de <span className="font-black text-orange-600">{selectedReward?.name}</span>.</p>
                  <input type="password" placeholder="Tu DNI aquí..." className={`w-full bg-slate-50 border-4 rounded-3xl px-8 py-5 font-black text-center text-2xl outline-none mb-6 transition-all ${dniError ? 'border-red-500 bg-red-50' : 'border-transparent focus:border-orange-500'}`} value={dniInput} onChange={e => setDniInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && confirmPurchase()} />
-                 {dniError && <p className="text-red-500 text-xs font-black uppercase tracking-widest mb-6 animate-bounce">{dniError}</p>}
+                 {dniError && <p className="text-red-500 text-xs font-black uppercase tracking-widest mb-6">{dniError}</p>}
                  <div className="flex gap-4">
                     <Button onClick={confirmPurchase} disabled={purchasing === selectedReward?.id} className="flex-1 bg-orange-500 text-white h-16 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20">Confirmar</Button>
                     <Button onClick={() => setShowDniModal(false)} variant="ghost" className="flex-1 text-slate-400 font-bold">Cerrar</Button>

@@ -2,7 +2,7 @@
    NOTYX EDU - Glassmorphism Design System
    =================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
 
 @import "tailwindcss";
 
@@ -21,7 +21,7 @@
   --color-error: hsl(var(--color-error));
   --color-info: hsl(var(--color-info));
   --color-dark-panel: hsl(220 25% 6%);
-  
+
   --radius-md: 1rem;
   --radius-lg: 1.5rem;
   --radius-xl: 2rem;
@@ -37,8 +37,50 @@
 
 html { font-family: 'DM Sans', sans-serif; }
 h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
+.font-nunito { font-family: 'Nunito', sans-serif; }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: hsl(var(--color-bg-secondary)); }
-::-webkit-scrollbar-thumb { background: hsl(var(--color-text-muted) / 0.3); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--color-text-muted) / 0.5); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--color-text-muted) / 0.25); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--color-text-muted) / 0.4); }
+
+/* Text balance for headings */
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }
+
+/* Safe area for mobile */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Smooth scrolling */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Layout & Positioning Defense Utilities */
+.min-w-0-flex { min-width: 0; }
+.min-h-0-flex { min-height: 0; }
+
+/* Dynamic viewport height fallback */
+.h-dvh { height: 100dvh; }
+.min-h-dvh { min-height: 100dvh; }
+
+/* Container Queries Support */
+.container-inline { container-type: inline-size; }
+
+/* Stacking context isolation */
+.isolate-layer { isolation: isolate; }
+
+/* Touch target sizing */
+@media (pointer: coarse) {
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+

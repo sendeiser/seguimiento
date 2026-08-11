@@ -99,7 +99,7 @@ export default function StudentDashboard() {
 
       {/* Global Gamification Card */}
       {gamificationData && (
-         <div className="bg-slate-900 rounded-[48px] p-10 text-white shadow-2xl shadow-slate-900/40 relative overflow-hidden group">
+         <div className="bg-slate-900 rounded-[32px] md:rounded-[48px] p-5 sm:p-8 md:p-10 text-white shadow-2xl shadow-slate-900/40 relative overflow-hidden group min-w-0">
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none group-hover:bg-blue-600/30 transition-colors duration-1000" />
             
             <div className="relative z-10 flex flex-col lg:flex-row items-center gap-12">
@@ -238,7 +238,7 @@ export default function StudentDashboard() {
                   }`}
                 >
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${
-                    isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
+                    isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-white'
                   }`}>
                     {isUnlocked ? <BadgeIcon className="w-6 h-6" /> : <Lock className="w-5 h-5" />}
                   </div>

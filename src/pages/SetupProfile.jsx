@@ -3,11 +3,13 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { useToast } from "../providers/ToastProvider";
 import { User, ShieldCheck, ArrowRight, Loader2, Sparkles } from "lucide-react";
 
 export default function SetupProfile() {
   const { user, setProfile } = useAuth();
   const [fullName, setFullName] = useState("");
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
   const handleUpdate = async (e) => {
@@ -25,7 +27,7 @@ export default function SetupProfile() {
       .select()
       .single();
 
-    if (error) alert("Error: " + error.message);
+    if (error) toast("Error: " + error.message, "error");
     else setProfile(profile);
     setLoading(false);
   };

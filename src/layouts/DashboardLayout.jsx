@@ -1,151 +1,217 @@
+import { useState, memo, useCallback } from "react";
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
 import { supabase } from "../lib/supabase";
-import { LogOut, GraduationCap, LayoutDashboard, Trophy, ShoppingBag, Sun, Moon } from "lucide-react";
+import {
+  LogOut, GraduationCap, LayoutDashboard, Sun, Moon, Trophy, ShoppingBag,
+  ChevronLeft
+} from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
+
+const NavItem = memo(({ to, icon: Icon, children, collapsed, isActive }) => (
+  <Link
+    to={to}
+    aria-current={isActive ? "page" : undefined}
+    className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-200
+      ${isActive
+        ? "bg-[var(--primary)]/15 text-[var(--primary)] shadow-sm"
+        : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+      }`}
+  >
+    <Icon className="w-4 h-4 shrink-0" />
+    {!collapsed && <span>{children}</span>}
+    {isActive && (
+      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[var(--primary)]" />
+    )}
+  </Link>
+));
+
+const MobileNavItem = memo(({ to, icon: Icon, label, isActive }) => (
+  <Link
+    to={to}
+    aria-current={isActive ? "page" : undefined}
+    className={`flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all min-w-0
+      ${isActive ? "text-[var(--primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}
+  >
+    <Icon className="w-5 h-5" />
+    <span className="text-[10px] font-bold leading-none">{label}</span>
+  </Link>
+));
 
 export default function DashboardLayout() {
   const { user, profile, loading } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     navigate("/login");
-  };
+  }, [navigate]);
 
   const isTeacher = profile?.role === "teacher";
 
-  const homePath = isTeacher ? "/teacher/dashboard" : "/student/dashboard";
-  const isActive = (paths) => paths.some(p => location.pathname.startsWith(p));
+  const isActive = useCallback((path) => {
+    if (path === "/home") return location.pathname === "/home";
+    return location.pathname.startsWith(path);
+  }, [location.pathname]);
 
-  const dockItems = [
-    { path: homePath, icon: LayoutDashboard, label: isTeacher ? "Mis Clases" : "Mis Materias", paths: [homePath, "/teacher/class", "/teacher/session"] },
+  const teacherNav = [
+    { label: "Principal", items: [
+      { to: "/home", icon: LayoutDashboard, text: "Mis Clases" }
+    ]},
   ];
 
-  if (!isTeacher) {
-    dockItems.push(
-      { path: "/student/ranking", icon: Trophy, label: "Ranking", paths: ["/student/ranking"] },
-      { path: "/student/shop", icon: ShoppingBag, label: "Tienda", paths: ["/student/shop"] },
-    );
-  }
-
-  const bottomNavItems = [
-    { path: homePath, icon: LayoutDashboard, label: "Home", paths: [homePath, "/student/class"] },
+  const studentNav = [
+    { label: "Navegación", items: [
+      { to: "/home", icon: LayoutDashboard, text: "Dashboard" },
+      { to: "/ranking", icon: Trophy, text: "Ranking" },
+      { to: "/shop", icon: ShoppingBag, text: "Tienda" },
+    ]},
   ];
 
-  if (!isTeacher) {
-    bottomNavItems.push(
-      { path: "/student/ranking", icon: Trophy, label: "Rank", paths: ["/student/ranking"] },
-      { path: "/student/shop", icon: ShoppingBag, label: "Shop", paths: ["/student/shop"] },
-    );
-  }
+  const mobileNav = isTeacher
+    ? [
+        { to: "/home", icon: LayoutDashboard, label: "Clases" },
+      ]
+    : [
+        { to: "/home", icon: LayoutDashboard, label: "Inicio" },
+        { to: "/ranking", icon: Trophy, label: "Ranking" },
+        { to: "/shop", icon: ShoppingBag, label: "Tienda" },
+      ];
+
+  const groups = isTeacher ? teacherNav : studentNav;
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-app-gradient), hsl(var(--color-bg-primary))" }}>
-      {/* Desktop Dock */}
-      <aside className="fixed inset-y-0 left-0 dock z-40 hidden md:flex flex-col">
-        <div className="dock-section flex flex-col gap-0.5 px-1">
-          <div className="flex items-center gap-2.5 p-5 border-b border-[hsla(220,15%,80%,0.06)]">
-            <div className="bg-gradient-to-br from-[hsl(262,83%,60%)] to-[hsl(262,70%,50%)] p-2 rounded-xl shadow-lg">
-              <GraduationCap className="w-4 h-4 text-white" />
-            </div>
-            <div className="dock-label">
-              <p className="font-black text-[var(--text-primary)] text-sm leading-none tracking-tight">Notyx</p>
-              <p className="text-[9px] uppercase font-bold text-[var(--text-muted)] mt-1 tracking-widest">Gestión Académica</p>
-            </div>
+    <div className="min-h-screen bg-[var(--bg-secondary)]">
+      {/* Skip link */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--primary)] focus:text-white focus:rounded-xl focus:text-sm focus:font-bold">
+        Saltar al contenido principal
+      </a>
+
+      {/* Desktop Sidebar */}
+      <aside aria-label="Navegación principal" className={`fixed inset-y-0 left-0 z-40 bg-[var(--bg-primary)] border-r border-[var(--border)]/50
+        flex-col hidden md:flex transition-all duration-300
+        ${sidebarCollapsed ? "w-16" : "w-48"}`}
+      >
+        {/* Logo */}
+        <div className={`flex items-center gap-2.5 border-b border-[var(--border)]/50 px-4 h-16 shrink-0
+          ${sidebarCollapsed ? "justify-center" : ""}`}
+        >
+          <div className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] p-2 rounded-xl shadow-md shrink-0">
+            <GraduationCap className="w-4 h-4 text-white" />
           </div>
+          {!sidebarCollapsed && (
+            <div>
+              <p className="font-black text-[var(--text-primary)] text-sm leading-none tracking-tight">Notyx</p>
+              <p className="text-[9px] uppercase font-bold text-[var(--text-muted)] mt-0.5 tracking-widest">Gestión Académica</p>
+            </div>
+          )}
         </div>
 
-        <div className="dock-section flex-1 flex flex-col gap-0.5 px-1 py-3">
-          {dockItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`dock-item ${isActive(item.paths) ? "active" : ""}`}
-            >
-              <item.icon className="w-5 h-5 shrink-0" />
-              <span className="dock-label">{item.label}</span>
-            </Link>
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-5">
+          {groups.map((group) => (
+            <div key={group.label}>
+              {!sidebarCollapsed && (
+                <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                  {group.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavItem key={item.to} to={item.to} icon={item.icon} collapsed={sidebarCollapsed} isActive={isActive(item.to)}>
+                    {item.text}
+                  </NavItem>
+                ))}
+              </div>
+            </div>
           ))}
-        </div>
+        </nav>
 
-        <div className="dock-section px-1 py-3">
-          <div className="flex items-center gap-3 px-4 py-2">
-            <div className="user-avatar w-9 h-9 text-xs">
+        {/* Collapse toggle */}
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="mx-2 mb-2 p-1.5 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-all hidden lg:flex items-center justify-center"
+        >
+          <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`} />
+        </button>
+
+        {/* User */}
+        <div className="border-t border-[var(--border)]/50 p-3 bg-[var(--bg-secondary)]/50">
+          <div className={`flex items-center gap-2 ${sidebarCollapsed ? "justify-center" : ""}`}>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-white font-black text-xs shrink-0 shadow-md">
               {(profile?.full_name || "?")[0].toUpperCase()}
             </div>
-            <div className="dock-label min-w-0 flex-1">
-              <p className="text-sm font-black text-[var(--text-primary)] truncate leading-none mb-1">{profile?.full_name || "Usuario"}</p>
-              <span className="inline-block px-2 py-0.5 rounded-full bg-[hsla(0,0%,100%,0.06)] text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
-                {isTeacher ? "Docente" : "Alumno"}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center justify-center gap-1 px-4 mt-2">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[hsla(0,0%,100%,0.06)] transition-all border border-transparent hover:border-[hsla(0,0%,100%,0.08)]"
-              title="Cambiar tema"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[hsl(0,85%,60%)] hover:bg-[hsla(0,80%,50%,0.1)] transition-all border border-transparent hover:border-[hsla(0,80%,50%,0.2)]"
-              title="Cerrar sesión"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            {!sidebarCollapsed && (
+              <>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-black text-[var(--text-primary)] truncate leading-none mb-0.5">
+                    {profile?.full_name || "Usuario"}
+                  </p>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                    {isTeacher ? "Docente" : "Alumno"}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={toggleTheme}
+                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all"
+                    aria-label={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+                  >
+                    {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                  </button>
+                  <button onClick={handleLogout}
+                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                    aria-label="Cerrar sesión"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </aside>
 
-      {/* Mobile Header */}
-      <header className="md:hidden sticky top-0 z-50 flex h-14 items-center justify-between px-4" style={{ background: "hsla(220,15%,8%,0.85)", backdropFilter: "blur(24px)", borderBottom: "1px solid hsla(220,15%,80%,0.08)" }}>
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-t border-[var(--border)]/50
+        flex items-center justify-around h-16 px-2 safe-area-bottom">
+        {mobileNav.map((item) => (
+          <MobileNavItem key={item.to} to={item.to} icon={item.icon} label={item.label} isActive={isActive(item.to)} />
+        ))}
+      </nav>
+
+      {/* Top Bar (Mobile) */}
+      <header className="md:hidden sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-md border-b border-[var(--border)]/50 px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="bg-gradient-to-br from-[hsl(262,83%,60%)] to-[hsl(262,70%,50%)] p-1.5 rounded-lg shadow-lg">
+          <div className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] p-1.5 rounded-lg shadow-md shrink-0">
             <GraduationCap className="w-4 h-4 text-white" />
           </div>
           <span className="font-black text-[var(--text-primary)] tracking-tight text-sm">Notyx</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-xl text-[var(--text-secondary)] hover:bg-[hsla(0,0%,100%,0.06)] transition-colors"
+          <button onClick={toggleTheme}
+            className="p-2 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] transition-all"
+            aria-label={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[hsl(262,83%,60%)] to-[hsl(262,70%,50%)] text-white flex items-center justify-center font-black text-xs shadow-lg border border-white/20">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-white font-black text-xs shadow-md">
             {(profile?.full_name || "?")[0].toUpperCase()}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="md:pl-16 transition-all min-h-screen pb-16 md:pb-0">
+      <main id="main-content" tabIndex="-1" className={`md:pl-48 transition-all duration-300 pb-16 md:pb-0 ${sidebarCollapsed ? "md:pl-16" : ""}`}>
         <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 lg:p-10">
           <Outlet />
         </div>
       </main>
-
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden bottom-nav">
-        {bottomNavItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`bottom-nav-item ${isActive(item.paths) ? "active" : ""}`}
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="bottom-nav-label">{item.label}</span>
-          </Link>
-        ))}
-      </nav>
     </div>
   );
 }

@@ -7,12 +7,14 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowLeft, CheckCircle2, Trophy, Medal, ShoppingBag, ShoppingCart, Swords, Heart, Sparkles, Flame, Crown, Flag, ShieldCheck, Star } from "lucide-react";
 import { useAuth } from "../../providers/AuthProvider";
+import { useToast } from "../../providers/ToastProvider";
 import { SkillsRadar } from "../../components/ui/SkillsRadar";
 import { calculateGamification } from "../../lib/gamificationEngine";
 
 export default function StudentClassView() {
   const { id } = useParams(); // class id
   const { user } = useAuth();
+  const { toast } = useToast();
   const [classData, setClassData] = useState(null);
   const [sessionsData, setSessionsData] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -62,7 +64,7 @@ export default function StudentClassView() {
       { data: allPurchases },
       { data: rwData }
     ] = await Promise.all([
-      supabase.from("sessions").select("id, date, session_criteria(id, name, max_score)").eq("class_id", id).order("date", { ascending: false }),
+      supabase.from("sessions").select("id, date, cuatrimestre, session_criteria(id, name, max_score)").eq("class_id", id).order("date", { ascending: false }),
       supabase.from("class_students").select("house_id, student_id, profiles(id, full_name)").eq("class_id", id),
       supabase.from("class_houses").select("*").eq("class_id", id),
       supabase.from("student_purchases").select("*, rewards(cost_coins)").eq("student_id", user.id).neq("status", "cancelled"),
@@ -132,11 +134,11 @@ export default function StudentClassView() {
 
   const handleBuy = async (reward) => {
     if (notyxCoins < reward.cost_coins) {
-       alert("No tienes suficientes Notyx Coins.");
+       toast("No tienes suficientes Notyx Coins.", "warning");
        return;
     }
     if (myPurchases.some(p => p.reward_id === reward.id && p.status === 'pending')) {
-       alert("Ya has comprado este item y está pendiente de entrega por el profesor.");
+       toast("Ya compraste este item y está pendiente de entrega.", "info");
        return;
     }
 
@@ -147,7 +149,7 @@ export default function StudentClassView() {
     });
 
     if (!error) {
-       alert("¡Compra exitosa! Esperando entrega del profesor.");
+       toast("¡Compra exitosa! Esperando entrega del profesor.", "success");
        fetchData();
     }
   };
@@ -160,13 +162,21 @@ export default function StudentClassView() {
        status: 'pending'
     });
     if (!error) {
-       alert("¡Desafío enviado! Prepárate para la próxima clase.");
+       toast("¡Desafío enviado! Prepárate para la próxima clase.", "success");
     }
   };
 
+  const [selectedCuatrimestre, setSelectedCuatrimestre] = useState("all");
+
   if (loading) return <div className="p-8">Cargando progreso en vivo...</div>;
 
-  const allCriteria = sessionsData.flatMap(s => s.criteriaWithGrades);
+  const filteredSessionsData = sessionsData.filter(s => {
+    if (selectedCuatrimestre === "all") return true;
+    const sCuatrimestre = s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1);
+    return sCuatrimestre === Number(selectedCuatrimestre);
+  });
+
+  const allCriteria = filteredSessionsData.flatMap(s => s.criteriaWithGrades);
   const totalScore = allCriteria.reduce((a, c) => a + (c.score || 0), 0);
   const maxTotal = allCriteria.reduce((a, c) => a + (c.max_score || 0), 0);
 
@@ -180,15 +190,38 @@ export default function StudentClassView() {
             </Button>
           </Link>
           <div>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 leading-none">{classData?.name}</h2>
-            <p className="text-slate-500 text-sm mt-2 flex items-center gap-2 font-medium">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              Estadísticas y Gamificación
-            </p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">{classData?.name}</h1>
+            <p className="text-slate-500 mt-2 font-medium text-sm">Progreso en vivo y rendimiento académico.</p>
           </div>
+        </div>
+
+        {/* Cuatrimestre Selector */}
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 self-start md:self-auto">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Ver:</span>
+          <button
+            onClick={() => setSelectedCuatrimestre("all")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+              selectedCuatrimestre === "all" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-105" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            Año Completo
+          </button>
+          <button
+            onClick={() => setSelectedCuatrimestre("1")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+              selectedCuatrimestre === "1" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-105" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            1º Cuatrimestre
+          </button>
+          <button
+            onClick={() => setSelectedCuatrimestre("2")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+              selectedCuatrimestre === "2" ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30 scale-105" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            2º Cuatrimestre
+          </button>
         </div>
       </div>
 
@@ -291,7 +324,7 @@ export default function StudentClassView() {
                 return (
                   <div key={student.id} className={`flex items-center justify-between p-4 rounded-2xl border ${isMe ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100'}`}>
                     <div className="flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-400 text-yellow-900' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-white text-slate-400'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-400 text-white' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-white text-slate-400'}`}>
                         {idx + 1}
                       </div>
                       <div>
@@ -339,7 +372,7 @@ export default function StudentClassView() {
                        <Button 
                          onClick={() => handleBuy(reward)}
                          disabled={isBought || !canAfford}
-                         className={`w-full rounded-xl font-black uppercase tracking-widest text-[10px] py-6 ${isBought ? 'bg-emerald-100 text-emerald-700' : canAfford ? 'bg-yellow-400 hover:bg-yellow-500 text-yellow-900' : 'bg-slate-100 text-slate-400'}`}
+                          className={`w-full rounded-xl font-black uppercase tracking-widest text-[10px] py-6 ${isBought ? 'bg-emerald-100 text-emerald-800' : canAfford ? 'bg-yellow-400 hover:bg-yellow-500 text-yellow-900' : 'bg-slate-100 text-slate-400'}`}
                        >
                          {isBought ? "Comprado" : `${reward.cost_coins} Coins`}
                        </Button>
@@ -352,14 +385,23 @@ export default function StudentClassView() {
       </div>
 
       <div className="space-y-8">
-        {sessionsData.length > 0 && <SkillsRadar sessions={sessionsData.map(s => ({...s, criteria: s.criteriaWithGrades}))} />}
-        {sessionsData.map(session => {
+        {filteredSessionsData.length > 0 && <SkillsRadar sessions={filteredSessionsData.map(s => ({...s, criteria: s.criteriaWithGrades}))} />}
+        {filteredSessionsData.map(session => {
           const sessionGami = myGami?.sessionScores?.find(s => s.id === session.id);
           return (
             <div key={session.id} className={`bg-white rounded-[40px] border shadow-xl shadow-slate-900/5 overflow-hidden ${sessionGami?.died ? 'border-red-200' : 'border-slate-100'}`}>
               <div className={`border-b px-10 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 ${sessionGami?.died ? 'bg-red-50' : 'bg-slate-50/50'}`}>
                 <div>
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-2">Registro de Sesión</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Registro de Sesión</p>
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
+                      (session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1)) === 2 
+                        ? "bg-purple-50 text-purple-700 border-purple-200" 
+                        : "bg-blue-50 text-blue-700 border-blue-200"
+                    }`}>
+                      {(session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1))}º Cuatrimestre
+                    </span>
+                  </div>
                   <h3 className="capitalize text-2xl font-black text-slate-900 tracking-tight">
                     {format(new Date(session.date + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es })}
                   </h3>
@@ -386,7 +428,7 @@ export default function StudentClassView() {
                         <td className="px-10 py-6 font-black text-slate-800">{crit.name}</td>
                         <td className="px-6 py-6 text-center font-black text-2xl">{crit.score !== null ? crit.score : '--'} <span className="text-xs text-slate-300">/ {crit.max_score}</span></td>
                         <td className="px-10 py-6 text-right">
-                          <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-xl ${crit.score !== null ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
+                           <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-xl ${crit.score !== null ? 'bg-blue-50 text-blue-800' : 'bg-slate-100 text-slate-400'}`}>
                             {crit.score !== null ? 'Victoria' : 'Pendiente'}
                           </span>
                         </td>

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { X, ArrowRightLeft, Gift, Coins, Search, User, ChevronRight, AlertCircle, Sparkles, BookOpen } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { proposeTrade } from "../../lib/pokemonStore";
+import { useToast } from "../../providers/ToastProvider";
 
 export default function TradePokemonModal({ isOpen, onClose, offeredPokemon, currentStudentId, currentClassStudentId }) {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -83,11 +85,11 @@ export default function TradePokemonModal({ isOpen, onClose, offeredPokemon, cur
   const handleSubmit = async () => {
     if (!selectedStudent) return;
     if (tradeType === 'trade' && !requestedPokemon) {
-        alert("Debes seleccionar un Pokémon para pedir a cambio.");
+        toast("Debes seleccionar un Pokémon para pedir a cambio.", "warning");
         return;
     }
     if (tradeType === 'sale' && coinPrice <= 0) {
-        alert("Debes ingresar un precio en monedas.");
+        toast("Debes ingresar un precio en monedas.", "warning");
         return;
     }
 
@@ -102,11 +104,11 @@ export default function TradePokemonModal({ isOpen, onClose, offeredPokemon, cur
         trade_type: tradeType,
         status: 'pending'
       });
-      alert("¡Propuesta de intercambio enviada con éxito!");
+      toast("¡Propuesta de intercambio enviada con éxito!", "success");
       onClose();
     } catch (err) {
       console.error("Error proposing trade:", err);
-      alert("Hubo un error al enviar la propuesta.");
+      toast("Hubo un error al enviar la propuesta.", "error");
     } finally {
       setLoading(false);
     }

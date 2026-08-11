@@ -1,22 +1,24 @@
 /* === Cards Glassmorphism === */
 @layer components {
   .card {
-    background: var(--glass-deep-bg);
-    backdrop-filter: var(--glass-deep-blur);
-    -webkit-backdrop-filter: var(--glass-deep-blur);
+    background: var(--card-glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     border-radius: var(--primitive-radius-xl);
-    border: var(--glass-deep-border);
-    box-shadow: var(--shadow-tinted-md), var(--glass-deep-inner-shadow);
+    border: var(--card-glass-border);
+    box-shadow: var(--primitive-shadow-glass-md);
     overflow: hidden;
-    transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-width: 0;
+    container-type: inline-size;
+    transition: all var(--primitive-transition-normal);
   }
   
   /* Interactive */
   .card-interactive { cursor: pointer; }
   .card-interactive:hover {
-    box-shadow: var(--shadow-tinted-lg), var(--glow-primary), var(--glass-deep-inner-shadow);
-    transform: scale(1.02);
-    border-color: hsla(270 80% 60% / 0.2);
+    box-shadow: var(--primitive-shadow-glass-lg);
+    transform: translateY(-4px);
+    border-color: hsl(var(--color-primary) / 0.2);
   }
   
   /* Glass Elevated */
@@ -27,16 +29,16 @@
 
   /* Glass Soft — lighter frosted layer for cards inside glass layouts */
   .card-glass-soft {
-    background: hsla(0 0% 100% / 0.12);
+    background: linear-gradient(145deg, hsl(0 0% 100% / 0.6), hsl(0 0% 100% / 0.3));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsla(0 0% 100% / 0.1);
-    box-shadow: var(--shadow-tinted-sm);
+    border: 1px solid hsl(0 0% 100% / 0.15);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.1);
   }
   .dark .card-glass-soft {
-    background: hsla(220 20% 12% / 0.6);
-    border: 1px solid hsla(0 0% 100% / 0.06);
-    box-shadow: var(--shadow-tinted-sm);
+    background: linear-gradient(145deg, hsl(220 20% 12% / 0.6), hsl(220 20% 8% / 0.3));
+    border: 1px solid hsl(0 0% 100% / 0.08);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.3);
   }
 
   /* Glass Button — frosted button style */

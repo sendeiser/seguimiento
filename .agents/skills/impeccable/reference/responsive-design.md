@@ -111,4 +111,32 @@ DevTools device emulation is useful for layout but misses:
 
 ---
 
-**Avoid**: Desktop-first design. Device detection instead of feature detection. Separate mobile/desktop codebases. Ignoring tablet and landscape. Assuming all mobile devices are powerful.
+## Layout, Positioning & Responsiveness Error Defense Matrix
+
+Prevent and fix structural design & responsiveness bugs across all viewports and input modes:
+
+### 1. Flex & Grid Positioning Traps
+- **Flex Child Overflow (`min-width: 0`)**: Flex items default to `min-width: auto`, which causes text/images to overflow parents instead of shrinking. Always apply `min-width: 0` (or `min-height: 0` for column flex) on flex children containing truncated text or responsive elements.
+- **Alignment Traps**: Avoid `align-items: stretch` on elements with fixed heights or variable badge overlays. Use `align-items: center` or `baseline` for headers/controls to prevent distortion.
+- **Grid Auto-fit vs Auto-fill**: Use `minmax(min(100%, 280px), 1fr)` for responsive card grids. Never hardcode absolute pixel minimums without wrapping in `min()` — hardcoded values like `minmax(320px, 1fr)` break on 320px screens with padding.
+
+### 2. Viewport & Scrolling Boundaries
+- **Viewport Height Bugs**: Never use `100vh` for full-height layouts on mobile (mobile address bar overlays break it). Use `100dvh` (dynamic viewport height) with `100vh` fallback.
+- **Horizontal Scroll Leaks**: Set `overflow-x: hidden` or `max-width: 100%` on outer layout wrappers. Ensure full-width elements use `max-width: 100vw; box-sizing: border-box`.
+- **Fixed & Sticky Stacking Contexts**: Avoid arbitrary `z-index: 9999`. Establish explicit CSS stacking layers (`isolation: isolate`) on parent containers so dropdowns, sticky headers, and toasts render above content without overlay conflicts.
+
+### 3. Container Queries & Component-Level Responsiveness
+- **Container Queries for Components**: Don't rely solely on global `@media` viewport queries for self-contained components (e.g. user cards, metrics panels, chat widgets). Use `@container` with `container-type: inline-size` so components adapt based on their available slot width, whether in a sidebar or main content area.
+- **Fluid Sizing without Breakpoint Spikes**: Use `clamp()` for dynamic type and spacing:
+  ```css
+  font-size: clamp(1rem, 0.8rem + 1vw, 1.75rem);
+  padding: clamp(1rem, 3vw, 2.5rem);
+  ```
+
+### 4. Touch Targets & Interaction Boundaries
+- **Touch Target Padding**: Interactive controls must measure at least `44px x 44px` on coarse pointers (`@media (pointer: coarse)`).
+- **Sticky Footers & Modals**: Bottom bars and action sheets must respect safe areas (`env(safe-area-inset-bottom)`).
+
+---
+
+**Avoid**: Desktop-first design. Device detection instead of feature detection. Separate mobile/desktop codebases. Ignoring tablet and landscape. Assuming all mobile devices are powerful. Flex item overflow (`min-width` missing). Hardcoded px width grids. Fixed `100vh` on mobile. Arbitrary `z-index: 99999`.

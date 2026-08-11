@@ -9,10 +9,12 @@ import PokemonStoreTab from "../../components/pokemon/PokemonStoreTab";
 import PokedexTab from "../../components/pokemon/PokedexTab";
 import TradesTab from "../../components/pokemon/TradesTab";
 import { useAuth } from "../../providers/AuthProvider";
+import { useToast } from "../../providers/ToastProvider";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../providers/ThemeProvider";
 
 export default function GlobalMarketplace() {
+  const { toast } = useToast();
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -95,12 +97,12 @@ export default function GlobalMarketplace() {
   const handleBuy = async (reward) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (notyxCoins < reward.cost_coins) {
-       alert("No tienes suficientes Notyx Coins.");
+       toast("No tienes suficientes Notyx Coins.", "warning");
        return;
     }
     
     if (myPurchases.some(p => p.reward_id === reward.id)) {
-       alert("Ya compraste este artículo.");
+       toast("Ya compraste este artículo.", "info");
        return;
     }
 
@@ -124,9 +126,9 @@ export default function GlobalMarketplace() {
 
     if (!error) {
        if (reward.category === 'cosmetic') {
-         alert("¡Skin desbloqueada y equipada con éxito!");
+         toast("¡Skin desbloqueada y equipada con éxito!", "success");
        } else {
-         alert("¡Compra exitosa! El profesor te lo entregará pronto.");
+         toast("¡Compra exitosa! El profesor te lo entregará pronto.", "success");
        }
        fetchData();
     }
@@ -162,20 +164,8 @@ export default function GlobalMarketplace() {
   const classRewards = rewards.filter(r => r.category !== 'cosmetic');
   const cosmetics = rewards.filter(r => r.category === 'cosmetic');
 
-  const glassCard = {
-    background: isDark 
-      ? 'linear-gradient(145deg, hsl(220 20% 15% / 0.8), hsl(220 25% 8% / 0.5))'
-      : 'linear-gradient(145deg, hsl(0 0% 100% / 0.8), hsl(0 0% 100% / 0.5))',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: isDark ? '1px solid hsl(0 0% 100% / 0.1)' : '1px solid hsl(0 0% 100% / 0.15)',
-  };
-
-  const glassButton = {
-    background: isDark ? 'hsl(0 0% 100% / 0.08)' : 'hsl(0 0% 100% / 0.5)',
-    backdropFilter: 'blur(10px)',
-    border: isDark ? '1px solid hsl(0 0% 100% / 0.1)' : '1px solid hsl(0 0% 100% / 0.1)',
-  };
+  const glassCard = "card-glass-soft";
+  const glassButton = "glass-btn";
 
   return (
     <div className="min-h-screen p-4 md:p-8 relative" style={{ background: isDark ? 'hsl(220 25% 6%)' : 'hsl(220 40% 98%)' }}>
@@ -219,7 +209,7 @@ export default function GlobalMarketplace() {
               border: isDark ? '1px solid hsl(0 0% 100% / 0.1)' : '1px solid hsl(0 0% 100% / 0.15)',
               boxShadow: '0 8px 30px rgb(0 0 0 / 0.15)'
             }}>
-              <div className="flex items-center gap-4 px-6 py-4 rounded-[1.25rem]" style={glassButton}>
+              <div className="flex items-center gap-4 px-6 py-4 rounded-[1.25rem]" className={glassButton}>
                 <div className="relative">
                   <div className="absolute inset-0 rounded-xl blur-md animate-pulse" style={{ background: 'hsl(45 90% 50% / 0.4)' }} />
                   <div className="relative p-2 rounded-xl" style={{ 
@@ -244,8 +234,8 @@ export default function GlobalMarketplace() {
         </div>
 
         {/* Sub-Tabs Navigation */}
-        <div className="flex justify-center">
-          <div className="inline-flex p-2 rounded-[2rem] bg-white border border-slate-100 shadow-xl shadow-slate-200/20">
+        <div className="flex justify-center max-w-full overflow-x-auto pb-2">
+          <div className="inline-flex p-1.5 sm:p-2 rounded-[2rem] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 shrink-0">
             {[
               { id: 'rewards', label: 'Bazar Estudiantil', icon: <ShoppingBag className="w-4 h-4" /> },
               { id: 'pokemon', label: 'Tienda Pokémon', icon: <Sparkles className="w-4 h-4" /> },
@@ -377,7 +367,7 @@ export default function GlobalMarketplace() {
                            variant="secondary"
                            onClick={() => setPreviewSkin(null)}
                            className="h-14 px-8 rounded-2xl font-['DM_Sans'] font-bold uppercase tracking-wider transition-all hover:scale-105"
-                           style={glassButton}
+                           className={glassButton}
                            >
                            Cerrar
                            </Button>
@@ -414,7 +404,7 @@ export default function GlobalMarketplace() {
                    </div>
                    
                    {cosmetics.length === 0 ? (
-                     <div className="py-20 text-center rounded-[2.5rem]" style={glassCard}>
+                     <div className="py-20 text-center rounded-[2.5rem]" className={glassCard}>
                         <div className="relative inline-block mb-6">
                            <div className="absolute inset-0 rounded-[3rem] blur-xl animate-pulse" style={{ background: 'hsl(270 70% 60% / 0.2)' }} />
                            <div className="relative w-20 h-20 rounded-[3rem] flex items-center justify-center" style={{
@@ -470,7 +460,7 @@ export default function GlobalMarketplace() {
                    </div>
   
                    {classRewards.length === 0 ? (
-                     <div className="py-24 text-center rounded-[2.5rem]" style={glassCard}>
+                     <div className="py-24 text-center rounded-[2.5rem]" className={glassCard}>
                         <div className="relative inline-block mb-6">
                            <div className="absolute inset-0 rounded-[3rem] blur-xl animate-pulse" style={{ background: 'hsl(195 90% 55% / 0.2)' }} />
                            <div className="relative w-20 h-20 rounded-[3rem] flex items-center justify-center" style={{

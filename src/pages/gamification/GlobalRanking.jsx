@@ -139,8 +139,8 @@ export default function GlobalRanking() {
               <div className="mt-4 bg-slate-50 px-4 py-2 rounded-xl text-lg font-black text-slate-700">{filteredRanking[1].xp} XP</div>
            </div>
            {/* 1st Place */}
-           <div className="order-1 md:order-2 bg-slate-900 rounded-[48px] p-10 shadow-2xl shadow-blue-900/20 flex flex-col items-center text-center relative transform md:scale-110 z-10 border-4 border-blue-500/20">
-              <div className="absolute -top-8 bg-yellow-400 text-yellow-900 w-16 h-16 rounded-[24px] flex items-center justify-center font-black text-2xl shadow-2xl border-4 border-white animate-bounce">1</div>
+           <div className="order-1 md:order-2 bg-slate-900 rounded-[32px] md:rounded-[48px] p-6 md:p-10 shadow-2xl shadow-blue-900/20 flex flex-col items-center text-center relative transform md:scale-110 z-10 border-4 border-blue-500/20 min-w-0">
+               <div className="absolute -top-8 bg-yellow-400 text-yellow-900 w-16 h-16 rounded-[24px] flex items-center justify-center font-black text-2xl shadow-2xl border-4 border-white">1</div>
               <div className="w-24 h-24 rounded-[32px] bg-blue-600 flex items-center justify-center text-5xl mb-6 shadow-2xl shadow-blue-500/40">👑</div>
               <h3 className="font-black text-2xl text-white leading-none">{filteredRanking[0].name}</h3>
               <p className="text-[10px] font-black text-blue-300 uppercase tracking-[0.3em] mt-3">{filteredRanking[0].rank.name}</p>
@@ -173,7 +173,7 @@ export default function GlobalRanking() {
                   {filteredRanking.map((st, idx) => (
                      <tr key={st.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-8 py-6">
-                           <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-400 text-yellow-900' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                           <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-yellow-400 text-white' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                               {idx + 1}
                            </span>
                         </td>

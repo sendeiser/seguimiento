@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useToast } from "../../providers/ToastProvider";
 import { 
   CalendarPlus, Users, Copy, Check, Plus, Link as LinkIcon, 
   Pencil, Trash2, X, ArrowLeft, Download, Trophy, 
@@ -18,6 +19,7 @@ const BASE_URL = window.location.origin;
 export default function ClassView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast, confirm } = useToast();
   const [classData, setClassData] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [students, setStudents] = useState([]);
@@ -29,6 +31,11 @@ export default function ClassView() {
   const [activeTab, setActiveTab] = useState("sessions"); // sessions | students | ranking | rewards | arena
   const [arenaProgress, setArenaProgress] = useState([]);
 
+  // Cuatrimestre state
+  const [activeCuatrimestre, setActiveCuatrimestre] = useState(1);
+  const [cuatrimestreFilter, setCuatrimestreFilter] = useState("all"); // "all" | "1" | "2"
+  const [showCuatrimestreModal, setShowCuatrimestreModal] = useState(false);
+
   // Modals state
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [showHouseModal, setShowHouseModal] = useState(false);
@@ -36,7 +43,7 @@ export default function ClassView() {
   const [editingItem, setEditingItem] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
   const [modalForm, setModalForm] = useState({ name: "", description: "", cost_coins: 100, icon: "🎁", color: "#3b82f6" });
-  const [sessionForm, setSessionForm] = useState({ date: new Date().toISOString().split("T")[0] });
+  const [sessionForm, setSessionForm] = useState({ date: new Date().toISOString().split("T")[0], cuatrimestre: 1 });
 
   // Student management state
   const [newStudentName, setNewStudentName] = useState("");
@@ -47,7 +54,7 @@ export default function ClassView() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      console.log("Fetching all data for class:", id);
+      // Fetching all data for class
       const [
         { data: cls }, 
         { data: sData }, 
@@ -71,7 +78,7 @@ export default function ClassView() {
       const filteredProg = (pData2 || []).filter(p => classStudentIds.includes(p.class_student_id));
       setArenaProgress(filteredProg);
 
-      console.log("Students found:", stData?.length || 0);
+      // Students found
 
       setClassData(cls);
       setSessions(sData || []);
@@ -106,7 +113,7 @@ export default function ClassView() {
   };
 
   const handleDeleteStudent = async (sid) => {
-    if (!confirm("¿Eliminar alumno de esta clase?")) return;
+    if (!(await confirm("¿Eliminar alumno de esta clase?"))) return;
     await supabase.from("class_students").delete().eq("id", sid);
     fetchAll();
   };
@@ -148,7 +155,7 @@ export default function ClassView() {
   };
 
   const handleDeleteReward = async (rid) => {
-    if (!confirm("¿Eliminar este premio?")) return;
+    if (!(await confirm("¿Eliminar este premio?"))) return;
     await supabase.from("rewards").delete().eq("id", rid);
     fetchAll();
   };
@@ -173,7 +180,7 @@ export default function ClassView() {
   };
 
   const handleDeleteHouse = async (hid) => {
-    if (!confirm("¿Eliminar esta casa?")) return;
+    if (!(await confirm("¿Eliminar esta casa?"))) return;
     await supabase.from("class_houses").delete().eq("id", hid);
     fetchAll();
   };
@@ -186,23 +193,47 @@ export default function ClassView() {
 
   // --- SESSION ACTIONS ---
   const handleSaveSession = async () => {
-    const { date } = sessionForm;
+    const { date, cuatrimestre } = sessionForm;
     if (!date) return;
 
+    const cuatrimestreVal = cuatrimestre || activeCuatrimestre || (new Date(date).getMonth() >= 6 ? 2 : 1);
+
     if (editingSession) {
-      const { error } = await supabase.from("sessions").update({ date }).eq("id", editingSession.id);
-      if (error) { alert(error.message); return; }
+      let { error } = await supabase.from("sessions").update({ date, cuatrimestre: cuatrimestreVal }).eq("id", editingSession.id);
+      if (error && (error.message?.includes("cuatrimestre") || error.code === "PGRST204")) {
+        const { error: fallbackErr } = await supabase.from("sessions").update({ date }).eq("id", editingSession.id);
+        if (fallbackErr) { toast(fallbackErr.message, "error"); return; }
+      } else if (error) {
+        toast(error.message, "error");
+        return;
+      }
     } else {
       const existing = sessions.find(s => s.date === date);
       if (existing) { navigate(`/session/${existing.id}`); return; }
 
-      const { data: sessionData, error: sError } = await supabase
+      let sessionData = null;
+      let sError = null;
+
+      const res1 = await supabase
         .from("sessions")
-        .insert([{ class_id: id, date }])
+        .insert([{ class_id: id, date, cuatrimestre: cuatrimestreVal }])
         .select()
         .single();
       
-      if (sError) { alert(sError.message); return; }
+      sessionData = res1.data;
+      sError = res1.error;
+
+      if (sError && (sError.message?.includes("cuatrimestre") || sError.code === "PGRST204")) {
+        const res2 = await supabase
+          .from("sessions")
+          .insert([{ class_id: id, date }])
+          .select()
+          .single();
+        sessionData = res2.data;
+        sError = res2.error;
+      }
+      
+      if (sError) { toast(sError.message, "error"); return; }
 
       // Cloning logic: Copy criteria and grades from last session
       const lastSession = sessions[0]; // sessions is sorted by date desc
@@ -271,20 +302,55 @@ export default function ClassView() {
 
   const createSession = () => {
     setEditingSession(null);
-    setSessionForm({ date: new Date().toISOString().split("T")[0] });
+    setSessionForm({ 
+      date: new Date().toISOString().split("T")[0], 
+      cuatrimestre: activeCuatrimestre 
+    });
     setShowSessionModal(true);
   };
 
   const handleEditSession = (s) => {
     setEditingSession(s);
-    setSessionForm({ date: s.date });
+    setSessionForm({ 
+      date: s.date, 
+      cuatrimestre: s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1) 
+    });
     setShowSessionModal(true);
   };
 
+  const handleResetCuatrimestreGrades = async (cuatrimestreNumber) => {
+    const label = cuatrimestreNumber === 2 ? "2º Cuatrimestre" : "1º Cuatrimestre";
+    const confirmMessage = `¿Estás seguro de que deseas RESETEAR únicamente las notas del ${label}? Las notas de los otros periodos no serán afectadas.`;
+    
+    if (!(await confirm(confirmMessage))) return;
+
+    try {
+      const targetSessions = sessions.filter(s => (s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1)) === cuatrimestreNumber);
+      if (targetSessions.length === 0) {
+        toast(`No hay sesiones registradas en el ${label}`, "info");
+        return;
+      }
+
+      const sessionIds = targetSessions.map(s => s.id);
+      const { data: criteriaData } = await supabase.from("session_criteria").select("id").in("session_id", sessionIds);
+      if (criteriaData && criteriaData.length > 0) {
+        const criteriaIds = criteriaData.map(c => c.id);
+        await supabase.from("grades").delete().in("criteria_id", criteriaIds);
+      }
+
+      toast(`Notas del ${label} reseteadas con éxito`, "success");
+      setShowCuatrimestreModal(false);
+      fetchAll();
+    } catch (err) {
+      console.error("Error al resetear cuatrimestre:", err);
+      toast("Error al resetear las notas del cuatrimestre", "error");
+    }
+  };
+
   const handleDeleteSession = async (sid) => {
-    if (!confirm("¿Eliminar esta sesión y todas sus notas?")) return;
+    if (!(await confirm("¿Eliminar esta sesión y todas sus notas?"))) return;
     const { error } = await supabase.from("sessions").delete().eq("id", sid);
-    if (error) alert(error.message);
+    if (error) toast(error.message, "error");
     else fetchAll();
   };
 
@@ -357,22 +423,79 @@ export default function ClassView() {
             </div>
           </div>
 
+          {/* Cuatrimestre Filter & Management Bar */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-[28px] border border-slate-100 shadow-sm">
+            <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1 sm:pb-0">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2 shrink-0">Filtrar:</span>
+              <button
+                onClick={() => setCuatrimestreFilter("all")}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+                  cuatrimestreFilter === "all" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }`}
+              >
+                Año Completo
+              </button>
+              <button
+                onClick={() => setCuatrimestreFilter("1")}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+                  cuatrimestreFilter === "1" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }`}
+              >
+                1º Cuatrimestre
+              </button>
+              <button
+                onClick={() => setCuatrimestreFilter("2")}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+                  cuatrimestreFilter === "2" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }`}
+              >
+                2º Cuatrimestre
+              </button>
+            </div>
+
+            <Button
+              onClick={() => setShowCuatrimestreModal(true)}
+              variant="outline"
+              className="rounded-2xl h-11 px-5 font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 text-xs w-full sm:w-auto shrink-0 gap-2"
+            >
+              <CalendarPlus className="w-4 h-4 text-blue-600" />
+              Gestión / Resetear 2ºC
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div onClick={createSession} className="border-2 border-dashed border-slate-200 rounded-[40px] p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all bg-white group">
                <div className="w-16 h-16 rounded-[24px] bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Plus className="w-8 h-8" /></div>
                <h4 className="font-black text-slate-800 text-lg">Nueva Sesión</h4>
+               <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 mt-1">
+                 ({(sessionForm.cuatrimestre || activeCuatrimestre) === 2 ? "2º Cuatrimestre" : "1º Cuatrimestre"})
+               </span>
             </div>
-            {sessions.map(s => (
-              <div key={s.id} className="bg-white rounded-[40px] border border-slate-100 p-8 flex flex-col hover:shadow-2xl transition-all group/card relative overflow-hidden">
-                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-all">
-                  <Button onClick={() => handleEditSession(s)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 shadow-sm"><Pencil className="w-3.5 h-3.5 text-slate-500" /></Button>
-                  <Button onClick={() => handleDeleteSession(s.id)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-red-50 hover:bg-white border border-red-100 shadow-sm"><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
+            {sessions.filter(s => {
+              if (cuatrimestreFilter === "all") return true;
+              const sCuatrimestre = s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1);
+              return sCuatrimestre === Number(cuatrimestreFilter);
+            }).map(s => {
+              const sCuatrimestre = s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1);
+              return (
+                <div key={s.id} className="bg-white rounded-[40px] border border-slate-100 p-8 flex flex-col hover:shadow-2xl transition-all group/card relative overflow-hidden">
+                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-all">
+                    <Button onClick={() => handleEditSession(s)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 shadow-sm"><Pencil className="w-3.5 h-3.5 text-slate-500" /></Button>
+                    <Button onClick={() => handleDeleteSession(s.id)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-red-50 hover:bg-white border border-red-100 shadow-sm"><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${
+                      sCuatrimestre === 2 ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {sCuatrimestre}º Cuatrimestre
+                    </span>
+                  </div>
+                  <h4 className="font-black text-slate-900 text-xl capitalize">{format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}</h4>
+                  <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-1">{format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}</p>
+                  <Link to={`/session/${s.id}`} className="mt-8"><Button className="w-full rounded-2xl h-12 font-black uppercase text-[10px]">Ingresar Notas</Button></Link>
                 </div>
-                <h4 className="font-black text-slate-900 text-xl capitalize">{format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}</h4>
-                <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-2">{format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}</p>
-                <Link to={`/session/${s.id}`} className="mt-8"><Button className="w-full rounded-2xl h-12 font-black uppercase text-[10px]">Ingresar Notas</Button></Link>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -380,137 +503,139 @@ export default function ClassView() {
       {/* 2. STUDENTS TAB */}
       {activeTab === "students" && (
         <div className="space-y-8 animate-in slide-up">
-           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <form onSubmit={handleAddStudent} className="flex gap-3 w-full md:w-auto">
-                 <input 
-                   placeholder="Nombre del alumno..." 
-                   className="bg-white border border-slate-200 rounded-2xl h-14 px-6 font-bold w-full md:w-80 outline-none focus:border-blue-400 transition-all"
-                   value={newStudentName}
-                   onChange={e => setNewStudentName(e.target.value)}
-                 />
-                 <Button type="submit" className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px]"><UserPlus className="w-5 h-5 mr-2" /> Agregar</Button>
-              </form>
-              <div className="relative w-full md:w-80">
-                 <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                 <input 
-                   placeholder="Buscar en lista..." 
-                   className="bg-white border border-slate-200 rounded-2xl h-14 pl-12 pr-6 font-bold w-full outline-none focus:border-blue-400 transition-all"
-                   value={searchTerm}
-                   onChange={e => setSearchTerm(e.target.value)}
-                 />
-              </div>
-            {/* Students List - Responsive Table/Cards */}
-           <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
-              {/* Desktop Table */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                   <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                         <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Estudiante</th>
-                         <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">DNI / Validación</th>
-                         <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Casa / Escudo</th>
-                         <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Acciones</th>
-                      </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-50">
-                      {filteredStudents.map(st => (
-                        <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-black">
-                                    {getStudentName(st)[0]}
-                                 </div>
-                                 <div>
-                                    <span className="font-black text-slate-800 text-base">{getStudentName(st)}</span>
-                                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-0.5">ID: {st.public_token?.slice(0, 8)}</p>
-                                 </div>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6">
-                              <input 
-                                 placeholder="DNI del alumno"
-                                 className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none focus:border-blue-400 w-32"
-                                 value={st.dni || ""}
-                                 onChange={e => updateStudentDni(st.id, e.target.value)}
-                              />
-                           </td>
-                           <td className="px-8 py-6">
-                              <select 
-                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none"
-                                value={st.house_id || ""}
-                                onChange={e => updateStudentHouse(st.id, e.target.value)}
-                              >
-                                 <option value="">Sin Casa</option>
-                                 {houses.map(h => (
-                                   <option key={h.id} value={h.id}>{h.icon} {h.name}</option>
-                                 ))}
-                              </select>
-                           </td>
-                           <td className="px-8 py-6 text-right space-x-2">
-                              <Link to={`/class-live/${st.public_token}`} target="_blank">
-                                 <Button variant="ghost" size="icon" className="rounded-xl" title="Ver Perfil Público"><ExternalLink className="w-4 h-4" /></Button>
-                              </Link>
-                              <Button onClick={() => handleDeleteStudent(st.id)} variant="ghost" size="icon" className="rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
-                           </td>
-                        </tr>
-                      ))}
-                   </tbody>
-                </table>
-              </div>
+          {/* Top Control Bar */}
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+             <form onSubmit={handleAddStudent} className="flex gap-3 w-full md:w-auto">
+                <input 
+                  placeholder="Nombre del alumno..." 
+                  className="bg-white border border-slate-200 rounded-2xl h-14 px-6 font-bold w-full md:w-80 outline-none focus:border-blue-400 transition-all"
+                  value={newStudentName}
+                  onChange={e => setNewStudentName(e.target.value)}
+                />
+                <Button type="submit" className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px]"><UserPlus className="w-5 h-5 mr-2" /> Agregar</Button>
+             </form>
+             <div className="relative w-full md:w-80">
+                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                <input 
+                  placeholder="Buscar en lista..." 
+                  className="bg-white border border-slate-200 rounded-2xl h-14 pl-12 pr-6 font-bold w-full outline-none focus:border-blue-400 transition-all"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+             </div>
+          </div>
 
-              {/* Mobile Cards */}
-              <div className="md:hidden grid grid-cols-1 gap-1 p-1 bg-slate-50">
-                 {filteredStudents.map(st => (
-                   <div key={st.id} className="bg-white p-6 rounded-[32px] space-y-5 shadow-sm border border-slate-100">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg">
-                            {getStudentName(st)[0]}
-                         </div>
-                         <div className="flex-1 min-w-0">
-                            <h4 className="font-black text-slate-800 text-lg truncate leading-tight">{getStudentName(st)}</h4>
-                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">Token: {st.public_token?.slice(0, 8)}</p>
-                         </div>
-                         <div className="flex gap-2">
-                            <Link to={`/class-live/${st.public_token}`} target="_blank">
-                               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-100"><ExternalLink className="w-4 h-4 text-slate-600" /></Button>
-                            </Link>
-                            <Button onClick={() => handleDeleteStudent(st.id)} variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-red-50 border border-red-100"><Trash2 className="w-4 h-4 text-red-500" /></Button>
-                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">DNI / Validación</label>
-                            <input 
-                               placeholder="DNI"
-                               className="bg-slate-50 border border-slate-100 rounded-xl px-4 h-12 w-full font-bold text-sm outline-none"
-                               value={st.dni || ""}
-                               onChange={e => updateStudentDni(st.id, e.target.value)}
-                            />
-                         </div>
-                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Casa / Escudo</label>
-                            <select 
-                               className="bg-slate-50 border border-slate-100 rounded-xl px-4 h-12 w-full font-bold text-sm outline-none"
+          {/* Students List Container */}
+          <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden min-w-0">
+             {/* Desktop Table */}
+             <div className="hidden md:block overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                  <thead>
+                     <tr className="bg-slate-50 border-b border-slate-100">
+                        <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Estudiante</th>
+                        <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">DNI / Validación</th>
+                        <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400">Casa / Escudo</th>
+                        <th className="px-8 py-5 font-black text-[10px] uppercase tracking-widest text-slate-400 text-right">Acciones</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                     {filteredStudents.map(st => (
+                       <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-8 py-6">
+                             <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                                   {getStudentName(st)[0]}
+                                </div>
+                                <div>
+                                   <span className="font-black text-slate-800 text-base">{getStudentName(st)}</span>
+                                   <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-0.5">ID: {st.public_token?.slice(0, 8)}</p>
+                                </div>
+                             </div>
+                          </td>
+                          <td className="px-8 py-6">
+                             <input 
+                                placeholder="DNI del alumno"
+                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none focus:border-blue-400 w-36"
+                                value={st.dni || ""}
+                                onChange={e => updateStudentDni(st.id, e.target.value)}
+                             />
+                          </td>
+                          <td className="px-8 py-6">
+                             <select 
+                               className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs outline-none focus:border-blue-400"
                                value={st.house_id || ""}
                                onChange={e => updateStudentHouse(st.id, e.target.value)}
-                            >
-                               <option value="">Sin Casa</option>
-                               {houses.map(h => (
-                                 <option key={h.id} value={h.id}>{h.icon} {h.name}</option>
-                               ))}
-                            </select>
-                         </div>
-                      </div>
-                   </div>
-                 ))}
-              </div>
+                             >
+                                <option value="">Sin Casa</option>
+                                {houses.map(h => (
+                                  <option key={h.id} value={h.id}>{h.icon} {h.name}</option>
+                                ))}
+                             </select>
+                          </td>
+                          <td className="px-8 py-6 text-right space-x-2">
+                             <Link to={`/class-live/${st.public_token}`} target="_blank">
+                                <Button variant="ghost" size="icon" className="rounded-xl" title="Ver Perfil Público"><ExternalLink className="w-4 h-4" /></Button>
+                             </Link>
+                             <Button onClick={() => handleDeleteStudent(st.id)} variant="ghost" size="icon" className="rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
+                          </td>
+                       </tr>
+                     ))}
+                  </tbody>
+               </table>
+             </div>
 
-              {filteredStudents.length === 0 && (
-                <div className="p-20 text-center text-slate-400 font-bold italic">No hay alumnos registrados aún o que coincidan con la búsqueda.</div>
-              )}
-           </div>
-           </div>
+             {/* Mobile Cards */}
+             <div className="md:hidden grid grid-cols-1 gap-3 p-4 bg-slate-50">
+                {filteredStudents.map(st => (
+                  <div key={st.id} className="bg-white p-6 rounded-[28px] space-y-4 shadow-sm border border-slate-100">
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg">
+                           {getStudentName(st)[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <h4 className="font-black text-slate-800 text-lg truncate leading-tight">{getStudentName(st)}</h4>
+                           <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">Token: {st.public_token?.slice(0, 8)}</p>
+                        </div>
+                        <div className="flex gap-2">
+                           <Link to={`/class-live/${st.public_token}`} target="_blank">
+                              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-100"><ExternalLink className="w-4 h-4 text-slate-600" /></Button>
+                           </Link>
+                           <Button onClick={() => handleDeleteStudent(st.id)} variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-red-50 border border-red-100"><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">DNI / Validación</label>
+                           <input 
+                              placeholder="DNI"
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 h-12 w-full font-bold text-sm outline-none focus:border-blue-400"
+                              value={st.dni || ""}
+                              onChange={e => updateStudentDni(st.id, e.target.value)}
+                           />
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Casa / Escudo</label>
+                           <select 
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 h-12 w-full font-bold text-sm outline-none focus:border-blue-400"
+                              value={st.house_id || ""}
+                              onChange={e => updateStudentHouse(st.id, e.target.value)}
+                           >
+                              <option value="">Sin Casa</option>
+                              {houses.map(h => (
+                                <option key={h.id} value={h.id}>{h.icon} {h.name}</option>
+                              ))}
+                           </select>
+                        </div>
+                     </div>
+                  </div>
+                ))}
+             </div>
+
+             {filteredStudents.length === 0 && (
+               <div className="p-16 text-center text-slate-400 font-bold italic">No hay alumnos registrados aún o que coincidan con la búsqueda.</div>
+             )}
+          </div>
         </div>
       )}
 
@@ -709,13 +834,25 @@ export default function ClassView() {
                       type="date" 
                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none transition-all" 
                       value={sessionForm.date} 
-                      onChange={e => setSessionForm({date: e.target.value})} 
+                      onChange={e => setSessionForm({...sessionForm, date: e.target.value})} 
                     />
+                 </div>
+
+                 <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Cuatrimestre</label>
+                    <select
+                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none transition-all"
+                      value={sessionForm.cuatrimestre || 1}
+                      onChange={e => setSessionForm({...sessionForm, cuatrimestre: Number(e.target.value)})}
+                    >
+                      <option value={1}>1º Cuatrimestre</option>
+                      <option value={2}>2º Cuatrimestre</option>
+                    </select>
                  </div>
 
                  <div className="flex flex-col gap-3 pt-4">
                     <Button onClick={handleSaveSession} className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]">
-                      {editingSession ? 'Actualizar Fecha' : 'Comenzar Clase'}
+                      {editingSession ? 'Actualizar Sesión' : 'Comenzar Clase'}
                     </Button>
                     <Button variant="ghost" onClick={() => { setShowSessionModal(false); setEditingSession(null); }} className="h-12 rounded-2xl font-black text-slate-400">
                       Cancelar
@@ -789,6 +926,97 @@ export default function ClassView() {
                  </div>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Cuatrimestre Management Modal */}
+      {showCuatrimestreModal && (
+        <div className="modal-backdrop" onClick={() => setShowCuatrimestreModal(false)}>
+          <div className="modal max-w-xl" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowCuatrimestreModal(false)} className="modal-close">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-6">
+              <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4">
+                <CalendarPlus className="w-7 h-7" />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Gestión de Cuatrimestres y Notas</h3>
+              <p className="text-slate-500 font-medium text-sm mt-1">
+                Configurá el cuatrimestre activo o reiniciá las notas cargadas para el nuevo periodo.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Cuatrimestre Activo para Nuevas Sesiones</span>
+                  <span className="text-xs font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-xl">
+                    {activeCuatrimestre}º Cuatrimestre
+                  </span>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={() => {
+                      setActiveCuatrimestre(1);
+                      toast("1º Cuatrimestre configurado como activo", "info");
+                    }}
+                    variant={activeCuatrimestre === 1 ? "default" : "outline"}
+                    className="flex-1 rounded-xl font-bold text-xs"
+                  >
+                    1º Cuatrimestre
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setActiveCuatrimestre(2);
+                      toast("¡2º Cuatrimestre activado para nuevas sesiones!", "success");
+                    }}
+                    variant={activeCuatrimestre === 2 ? "default" : "outline"}
+                    className="flex-1 rounded-xl font-bold text-xs"
+                  >
+                    2º Cuatrimestre
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-4 space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Acciones de Reinicio de Notas</h4>
+                
+                <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-black text-slate-900 text-sm">Resetear Notas del 2º Cuatrimestre</p>
+                    <p className="text-slate-500 text-xs font-medium">Borra las notas registradas en el 2ºC para empezar de cero. Mantiene el 1ºC intacto.</p>
+                  </div>
+                  <Button
+                    onClick={() => handleResetCuatrimestreGrades(2)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-11 px-5 font-black text-xs shrink-0"
+                  >
+                    Resetear 2ºC
+                  </Button>
+                </div>
+
+                <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-black text-red-900 text-sm">Resetear Notas del 1º Cuatrimestre</p>
+                    <p className="text-red-600/70 text-xs font-medium">Borra únicamente las notas cargadas durante el 1er Cuatrimestre.</p>
+                  </div>
+                  <Button
+                    onClick={() => handleResetCuatrimestreGrades(1)}
+                    variant="outline"
+                    className="border-red-200 text-red-600 hover:bg-red-100 rounded-xl h-11 px-5 font-black text-xs shrink-0"
+                  >
+                    Resetear 1ºC
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <Button variant="ghost" onClick={() => setShowCuatrimestreModal(false)} className="w-full h-12 rounded-2xl font-bold text-slate-400">
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

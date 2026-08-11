@@ -175,7 +175,7 @@ export default function SudokuGame({ studentId, onExit, onWin }) {
              <div className="bg-emerald-100 p-6 rounded-full mb-4 text-emerald-600 shadow-xl"><Trophy className="w-12 h-12" /></div>
              <h3 className="text-3xl font-black text-slate-800 tracking-tight">¡Victoria Magistral!</h3>
              <p className="text-slate-500 font-bold mb-6">Completado en {formatTime(time)}</p>
-             <div className="flex items-center gap-3 bg-amber-100 px-6 py-3 rounded-2xl border border-amber-200 animate-bounce">
+             <div className="flex items-center gap-3 bg-amber-100 px-6 py-3 rounded-2xl border border-amber-200">
                 <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
                 <span className="font-black text-amber-700">+{LEVELS[difficulty].xp} XP</span>
              </div>

@@ -89,11 +89,15 @@ Before choosing, write one sentence of physical scene: who uses this, where, und
 - Cap body line length at 65–75ch.
 - Hierarchy through scale + weight contrast (≥1.25 ratio between steps). Avoid flat scales.
 
-### Layout
+### Layout & Positioning Defense
 
 - Vary spacing for rhythm. Same padding everywhere is monotony.
 - Cards are the lazy answer. Use them only when they're truly the best affordance. Nested cards are always wrong.
 - Don't wrap everything in a container. Most things don't need one.
+- **Flex Child Shrinking**: Apply `min-width: 0` (or `min-height: 0`) to all flex children containing truncated text or responsive sub-components to prevent overflow blowout.
+- **Grid Auto-fit Thresholds**: Use `minmax(min(100%, 280px), 1fr)` for responsive card grids so items wrap smoothly on <360px viewports without horizontal scrollbars.
+- **Viewport Height**: Use `100dvh` (dynamic viewport height) on mobile overlays and full-page layouts instead of fixed `100vh`.
+- **Stacking Layering**: Use semantic `z-index` layers (`isolation: isolate`) to prevent dropdown, modal, and sticky bar positioning conflicts.
 
 ### Motion
 

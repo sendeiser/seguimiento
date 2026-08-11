@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRightLeft, Clock, CheckCircle2, XCircle, Trash2, ArrowRight, Gift, Coins, Loader2, Sparkles, User } from "lucide-react";
 import { getStudentTrades, handleTradeResponse } from "../../lib/pokemonStore";
 import { useAuth } from "../../providers/AuthProvider";
+import { useToast } from "../../providers/ToastProvider";
 
 export default function TradesTab() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('incoming'); // 'incoming', 'outgoing', 'history'
@@ -30,11 +32,11 @@ export default function TradesTab() {
   const handleResponse = async (trade, status) => {
     try {
       await handleTradeResponse(trade, status);
-      alert(`Intercambio ${status === 'accepted' ? 'aceptado' : 'rechazado'} con éxito.`);
+      toast(`Intercambio ${status === 'accepted' ? 'aceptado' : 'rechazado'} con éxito.`, "success");
       fetchTrades();
     } catch (err) {
       console.error("Error handling trade response:", err);
-      alert("Error al procesar la respuesta.");
+      toast("Error al procesar la respuesta.", "error");
     }
   };
 

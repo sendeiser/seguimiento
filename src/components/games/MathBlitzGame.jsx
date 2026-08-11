@@ -158,7 +158,7 @@ export default function MathBlitzGame({ studentId, onExit, onWin }) {
              <p className="text-slate-500 font-bold text-xl mt-2 mb-8">{score} respuestas correctas</p>
              
              {score >= 5 ? (
-                <div className="flex items-center gap-3 bg-amber-100 px-8 py-4 rounded-2xl border-2 border-amber-200 animate-bounce">
+                 <div className="flex items-center gap-3 bg-amber-100 px-8 py-4 rounded-2xl border-2 border-amber-200">
                    <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
                    <span className="font-black text-xl text-amber-700">+{Math.min(score * 10, LEVELS[difficulty].xp)} XP</span>
                 </div>

@@ -304,7 +304,7 @@ export const SKIN_THEMES = {
   "Cyberpunk Neon": {
     name: "Cyberpunk Neon",
     frameClass: "bg-gradient-to-br from-purple-600 via-fuchsia-500 to-cyan-500 border-fuchsia-500",
-    bgClass: "bg-black bg-[url('https://www.transparenttextures.com/patterns/microfab.png')]",
+    bgClass: "bg-[#0c0f14] bg-[url('https://www.transparenttextures.com/patterns/microfab.png')]",
     textClass: "text-fuchsia-400",
     colors: { primary: "300 100% 50%", secondary: "320 100% 50%", accent: "180 100% 50%", frame: "#d946ef", glow: "rgba(217,70,239,0.6)" },
     bg: { light: "#000", dark: "#000" },

@@ -165,7 +165,7 @@ export default function MemoryGame({ studentId, onExit, onWin }) {
            <div className="bg-emerald-100 p-8 rounded-full mb-6 text-emerald-600 shadow-2xl"><Trophy className="w-16 h-16" /></div>
            <h3 className="text-4xl font-black text-slate-800 tracking-tight">¡Memoria de Elefante!</h3>
            <p className="text-slate-500 font-bold text-lg mb-8">Tiempo: {formatTime(time)}</p>
-           <div className="flex items-center gap-4 bg-amber-100 px-8 py-4 rounded-[2rem] border-4 border-amber-200 animate-bounce mb-10">
+           <div className="flex items-center gap-4 bg-amber-100 px-8 py-4 rounded-[2rem] border-4 border-amber-200 mb-10">
               <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
               <span className="font-black text-2xl text-amber-700">+{LEVELS[difficulty].xp} XP</span>
            </div>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Button } from "../components/ui/button";
 import { GraduationCap, Mail, Lock, ArrowRight, Loader2, UserPlus, Sun, Moon, Sparkles } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
+import { useToast } from "../providers/ToastProvider";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -12,12 +13,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { toast } = useToast();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert("Error: " + error.message);
+    if (error) toast("Error: " + error.message, "error");
     else navigate("/home");
     setLoading(false);
   };
@@ -115,12 +117,7 @@ export default function Login() {
                   <div className="input-wrapper">
                     <Mail className="input-icon" />
                     <input type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)}
-                      className="input" style={{
-                        background: isDark ? 'rgb(0 0 0 / 0.2)' : 'rgb(255 255 255 / 0.5)',
-                        backdropFilter: 'blur(10px)',
-                        border: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 100% / 0.1)',
-                        color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)'
-                      }} />
+                      className="input" />
                   </div>
                 </div>
 
@@ -129,12 +126,7 @@ export default function Login() {
                   <div className="input-wrapper">
                     <Lock className="input-icon" />
                     <input type="password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)}
-                      className="input" style={{
-                        background: isDark ? 'rgb(0 0 0 / 0.2)' : 'rgb(255 255 255 / 0.5)',
-                        backdropFilter: 'blur(10px)',
-                        border: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 100% / 0.1)',
-                        color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)'
-                      }} />
+                      className="input" />
                   </div>
                 </div>
               </div>

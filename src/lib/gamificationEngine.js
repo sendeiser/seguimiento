@@ -25,7 +25,7 @@ export const BADGE_DEFS = {
  * @param {Object|null} studentGradesDict - Dictionary mapping criteria_id to score. If null, expects `criteria.score` directly inside session.
  * @param {Object|null} studentAttendanceDict - Dictionary mapping session_id to boolean. If null, expects `session.attendance` directly.
  */
-export function calculateGamification(sessions = [], studentGradesDict = null, studentAttendanceDict = null, spentCoins = 0) {
+export function calculateGamification(sessions = [], studentGradesDict = null, studentAttendanceDict = null, spentCoins = 0, targetXPOverride = null, selectedCuatrimestre = null) {
   let currentXP = 0;
   let streak = 0;
   let maxStreak = 0;
@@ -38,8 +38,13 @@ export function calculateGamification(sessions = [], studentGradesDict = null, s
   let sessionScores = [];
   let totalEarnedCoins = 0;
 
+  // Filter sessions by cuatrimestre if specified (1 or 2). Sessions without cuatrimestre default to 1.
+  const filteredSessions = selectedCuatrimestre 
+    ? sessions.filter(s => (s.cuatrimestre || 1) === Number(selectedCuatrimestre))
+    : sessions;
+
   // Ensure sessions are sorted chronologically
-  const sortedSessions = [...sessions].sort((a,b) => new Date(a.date) - new Date(b.date));
+  const sortedSessions = [...filteredSessions].sort((a,b) => new Date(a.date) - new Date(b.date));
 
   sortedSessions.forEach(session => {
     let attended = false;

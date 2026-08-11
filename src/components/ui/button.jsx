@@ -22,6 +22,7 @@ const Button = React.forwardRef(({ className, variant = "default", size = "defau
       className={cn(
         variants[variant],
         sizes[size],
+        "touch-target shrink-0 active:scale-95 transition-transform duration-150",
         className
       )}
       ref={ref}

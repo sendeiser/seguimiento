@@ -33,15 +33,15 @@ export default function JoinClass() {
       <div className="max-w-md w-full bg-white rounded-[40px] p-10 shadow-2xl shadow-slate-900/5 border border-gray-100 animate-in zoom-in-95 duration-500">
         {!error ? (
           <div className="space-y-6">
-            <div className="w-20 h-20 bg-blue-600 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-600/20 animate-bounce transition-all duration-1000">
+            <div className="w-20 h-20 bg-blue-600 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-600/20 transition-all duration-1000">
               <GraduationCap className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Uniendo a la clase...</h1>
             <p className="text-gray-500 font-medium tracking-tight">Estamos validando el código de acceso.</p>
             <div className="flex justify-center gap-2 pt-4">
-              <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]" />
-              <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]" />
-              <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce" />
+              <div className="w-3 h-3 bg-blue-600 rounded-full [animation-delay:-0.3s]" />
+              <div className="w-3 h-3 bg-blue-600 rounded-full [animation-delay:-0.15s]" />
+              <div className="w-3 h-3 bg-blue-600 rounded-full" />
             </div>
           </div>
         ) : (

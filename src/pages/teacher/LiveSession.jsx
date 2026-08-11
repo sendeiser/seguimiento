@@ -7,6 +7,7 @@ import { es } from "date-fns/locale";
 import { CheckCircle2, X, Users, XCircle, ChevronLeft, ChevronRight, LayoutGrid, ArrowLeft, PlusCircle, Sparkles, Trash2, TrendingUp, Pencil } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { useTheme } from "../../providers/ThemeProvider";
+import { useToast } from "../../providers/ToastProvider";
 import { addXPToAllStudentPokemon } from "../../lib/pokemonStore";
 
 export default function LiveSession() {
@@ -31,6 +32,7 @@ export default function LiveSession() {
 
   const inputRefs = useRef({});
   const { theme } = useTheme();
+  const { toast, confirm } = useToast();
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -136,20 +138,20 @@ export default function LiveSession() {
   };
 
   const handleDeleteCriteria = async (criteriaId) => {
-    if (!confirm("¿Eliminar este criterio y todas sus notas?")) return;
+    if (!(await confirm("¿Eliminar este criterio y todas sus notas?"))) return;
     await supabase.from("session_criteria").delete().eq("id", criteriaId);
     setCriteria(prev => prev.filter(c => c.id !== criteriaId));
   };
 
   const handleFillMaxGrades = async (crit) => {
-    if (!confirm(`¿Llenar con nota MÁXIMA (${crit.max_score}) a todos los alumnos presentes?`)) return;
+    if (!(await confirm(`¿Llenar con nota MÁXIMA (${crit.max_score}) a todos los alumnos presentes?`))) return;
     const studentsToUpdate = students.filter(s => {
       const isPresent = attendance[s.cs_id] !== false;
       const key = `${s.cs_id}_${crit.id}`;
       const val = grades[key];
       return isPresent && (val === undefined || val === "");
     });
-    if (studentsToUpdate.length === 0) { alert("Todos los alumnos presentes ya tienen nota."); return; }
+    if (studentsToUpdate.length === 0) { toast("Todos los alumnos presentes ya tienen nota.", "info"); return; }
     const newGrades = { ...grades };
     const upserts = [];
     studentsToUpdate.forEach(s => {
@@ -256,23 +258,8 @@ export default function LiveSession() {
 
   const currentStudent = filteredStudents[focusIndex] || null;
 
-  const glassCard = {
-    background: isDark 
-      ? 'linear-gradient(145deg, hsl(220 20% 12% / 0.6), hsl(220 20% 8% / 0.3))'
-      : 'linear-gradient(145deg, hsl(0 0% 100% / 0.6), hsl(0 0% 100% / 0.3))',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 100% / 0.15)',
-    boxShadow: isDark ? '0 8px 32px rgb(0 0 0 / 0.3)' : '0 8px 32px rgb(0 0 0 / 0.1)',
-  };
-
-  const glassInput = {
-    background: isDark ? 'rgb(0 0 0 / 0.2)' : 'rgb(255 255 255 / 0.5)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    border: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 100% / 0.1)',
-    color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)',
-  };
+  const glassCard = "card-glass-soft";
+  const glassInput = "glass-input-inline";
 
   return (
     <div className="min-h-screen p-4 md:p-6 relative" style={{ background: isDark ? 'hsl(220 25% 6%)' : 'hsl(220 40% 98%)' }}>
@@ -296,8 +283,15 @@ export default function LiveSession() {
           </Link>
           <div>
             <h1 className="text-2xl md:text-3xl font-['Outfit'] font-extrabold" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>Evaluación en Vivo</h1>
-            <p className="font-['DM_Sans'] font-medium text-sm mt-1 flex items-center gap-2" style={{ color: isDark ? 'hsl(220 10% 60%)' : 'hsl(220 8% 35%)' }}>
-              {className} · {format(new Date(session.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}
+            <p className="font-['DM_Sans'] font-medium text-sm mt-1 flex items-center gap-2 flex-wrap" style={{ color: isDark ? 'hsl(220 10% 60%)' : 'hsl(220 8% 35%)' }}>
+              <span>{className} · {format(new Date(session.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}</span>
+              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-lg border ${
+                (session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1)) === 2 
+                  ? "bg-purple-50 text-purple-600 border-purple-200" 
+                  : "bg-blue-50 text-blue-600 border-blue-200"
+              }`}>
+                {(session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1))}º Cuatrimestre
+              </span>
               <button onClick={() => { const newDate = prompt("Nueva fecha (YYYY-MM-DD):", session.date); if (newDate && newDate !== session.date) supabase.from("sessions").update({ date: newDate }).eq("id", id).then(() => setSession(prev => ({...prev, date: newDate}))); }} className="p-1 rounded-lg transition-all hover:scale-110" style={{ background: isDark ? 'hsl(0 0% 100% / 0.05)' : 'hsl(0 0% 0% / 0.03)' }}>
                 <Pencil className="w-3 h-3" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }} />
               </button>
@@ -307,24 +301,30 @@ export default function LiveSession() {
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="relative w-full sm:w-64">
-            <input type="text" placeholder="Buscar alumno..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setFocusIndex(0); }}
-              className="input w-full" style={glassInput} />
-            <Users className="input-icon" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }} />
+            <input 
+              type="text" 
+              placeholder="Buscar alumno..." 
+              value={searchTerm} 
+              onChange={(e) => { setSearchTerm(e.target.value); setFocusIndex(0); }}
+              className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-600 transition-all shadow-sm"
+            />
+            <Users className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           </div>
 
-          <div className="flex items-center gap-1 p-1.5 rounded-2xl" style={glassCard}>
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
             {[
               { mode: "table", icon: LayoutGrid, label: "Lista" },
-              { mode: "cards", icon: Users, label: "Tarjetas" },
-              { mode: "focus", icon: Users, label: "Enfoque" }
+              { mode: "cards", icon: Users, label: "Tarjetas" }
             ].map(({ mode, icon: Icon, label }) => (
-              <button key={mode} onClick={() => setViewMode(mode)}
-                className="px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
-                style={{
-                  background: viewMode === mode ? 'linear-gradient(135deg, hsl(262 83% 60%), hsl(270 70% 55%))' : 'transparent',
-                  color: viewMode === mode ? 'white' : isDark ? 'hsl(220 10% 60%)' : 'hsl(220 8% 35%)',
-                  boxShadow: viewMode === mode ? '0 4px 20px hsl(262 83% 60% / 0.4)' : 'none',
-                }}>
+              <button 
+                key={mode} 
+                onClick={() => setViewMode(mode)}
+                className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-wider ${
+                  viewMode === mode 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
                 <Icon className="w-4 h-4" /> {label}
               </button>
             ))}
@@ -332,207 +332,90 @@ export default function LiveSession() {
         </div>
       </div>
 
-      {/* Focus Mode */}
-      {viewMode === "focus" ? (
-        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: isDark ? 'hsl(220 25% 6%)' : 'hsl(220 40% 98%)' }}>
-          <div className="flex items-center justify-between p-6" style={{ borderBottom: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 0% / 0.05)' }}>
-            <button onClick={() => setViewMode("table")} className="p-3 rounded-2xl transition-all hover:scale-105" style={glassCard}>
-              <ArrowLeft className="w-6 h-6" style={{ color: isDark ? 'hsl(220 20% 70%)' : 'hsl(220 8% 35%)' }} />
-            </button>
-            <div className="text-center">
-              <h3 className="font-['Outfit'] font-extrabold text-lg uppercase tracking-widest" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>Modo Enfoque</h3>
-              <p className="font-['DM_Sans'] font-bold text-sm mt-1" style={{ color: 'hsl(262 70% 60%)' }}>{className}</p>
-            </div>
-            <button onClick={() => setShowStudentList(!showStudentList)} className="p-3 rounded-2xl transition-all hover:scale-105" style={glassCard}>
-              <LayoutGrid className="w-6 h-6" style={{ color: isDark ? 'hsl(220 20% 70%)' : 'hsl(220 8% 35%)' }} />
-            </button>
+      <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200/80 dark:border-slate-800 shadow-2xl shadow-slate-900/5 overflow-hidden">
+        {/* Executive Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 sm:p-8 gap-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          <div>
+            <h2 className="font-['Outfit'] font-black text-2xl text-slate-900 dark:text-white tracking-tight">Planilla de Evaluaciones</h2>
+            <p className="font-['DM_Sans'] font-bold text-xs mt-1 uppercase tracking-widest text-slate-400 dark:text-slate-500">
+              Atajo: Presioná [Enter] o [Tab] para navegar entre alumnos
+            </p>
           </div>
-
-          {showStudentList && (
-            <div className="absolute inset-0 z-50 p-6 overflow-y-auto" style={{ background: isDark ? 'hsl(220 25% 6%)' : 'hsl(220 40% 98%)' }}>
-              <div className="flex items-center justify-between mb-6">
-                <h4 className="font-['Outfit'] font-extrabold text-xl" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>Lista de Alumnos</h4>
-                <button onClick={() => setShowStudentList(false)} className="font-['DM_Sans'] font-bold uppercase text-xs tracking-widest" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>Cerrar</button>
-              </div>
-              <div className="space-y-3">
-                {filteredStudents.map((st, idx) => (
-                  <button key={st.cs_id} onClick={() => { setFocusIndex(idx); setShowStudentList(false); }}
-                    className="w-full p-4 rounded-2xl flex items-center gap-4 transition-all hover:scale-[1.02]"
-                    style={{
-                      background: idx === focusIndex ? 'linear-gradient(135deg, hsl(262 83% 60%), hsl(270 70% 55%))' : isDark 
-                        ? 'linear-gradient(145deg, hsl(220 20% 12% / 0.6), hsl(220 20% 8% / 0.3))'
-                        : 'linear-gradient(145deg, hsl(0 0% 100% / 0.6), hsl(0 0% 100% / 0.3))',
-                      backdropFilter: 'blur(20px)',
-                      border: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 100% / 0.1)',
-                      boxShadow: idx === focusIndex ? '0 8px 30px hsl(262 83% 60% / 0.4)' : '0 4px 20px rgb(0 0 0 / 0.1)',
-                      color: idx === focusIndex ? 'white' : isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)',
-                    }}>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-['Outfit'] font-extrabold" style={{ background: 'hsl(0 0% 100% / 0.2)', color: 'white' }}>
-                      {idx + 1}
-                    </div>
-                    <span className="font-['DM_Sans'] font-bold flex-1 text-left">{st.name}</span>
-                    <button onClick={(e) => { e.stopPropagation(); toggleAttendance(st.cs_id); }} className="px-3 py-1 rounded-lg text-xs font-bold uppercase">
-                      {attendance[st.cs_id] !== false ? (
-                        <span className="flex items-center gap-1" style={{ color: '#10b981' }}><CheckCircle2 className="w-4 h-4" /> Presente</span>
-                      ) : (
-                        <span className="flex items-center gap-1" style={{ color: '#ef4444' }}><X className="w-4 h-4" /> Ausente</span>
-                      )}
-                    </button>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="text-center">
-              <div className="relative inline-block mb-4">
-                <div className="absolute inset-0 rounded-[3rem] blur-xl opacity-50" style={{ background: 'linear-gradient(135deg, hsl(262 83% 60%), hsl(185 85% 60%))' }} />
-                <div className="relative w-24 h-24 rounded-[3rem] flex items-center justify-center text-4xl font-['Outfit'] font-extrabold text-white"
-                  style={{ background: 'linear-gradient(135deg, hsl(262 83% 60%), hsl(270 70% 55%))', boxShadow: '0 8px 30px hsl(262 83% 60% / 0.4)' }}>
-                  {currentStudent?.name[0].toUpperCase()}
-                </div>
-              </div>
-              <h2 className="text-2xl font-['Outfit'] font-extrabold" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>{currentStudent?.name}</h2>
-              <p className="font-['DM_Sans'] font-bold text-sm mt-2 uppercase tracking-widest" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>Alumno {focusIndex + 1} de {filteredStudents.length}</p>
-            </div>
-
-            <div className="max-w-md mx-auto space-y-4">
-              {criteria.map((c, idx) => {
-                const key = `${currentStudent?.cs_id}_${c.id}`;
-                const val = grades[key] ?? "";
-                const inheritedVal = inheritedGrades[`${currentStudent?.cs_id}_${c.name}`] ?? "";
-                const isSaving = saving[key];
-                const displayVal = val !== "" ? val : inheritedVal;
-                const isInherited = val === "" && inheritedVal !== "";
-
-                return (
-                  <div key={c.id} className="p-5 rounded-2xl transition-all hover:scale-[1.01]" style={glassCard}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-['DM_Sans'] font-bold text-xs uppercase tracking-widest" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>{idx + 1}/{criteria.length}</span>
-                      <button onClick={() => alert(`Sugerencia IA: ${generateAIFeedback(currentStudent.cs_id)}`)} 
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-105"
-                        style={{ background: 'linear-gradient(135deg, hsl(262 83% 20%), hsl(262 70% 15%))', color: 'hsl(270 70% 70%)' }}>
-                        <Sparkles className="w-3 h-3" /> IA
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-['Outfit'] font-extrabold text-lg" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>{c.name}</h4>
-                      <span className="font-['DM_Sans'] font-bold text-xs uppercase tracking-widest" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>/{c.max_score}</span>
-                    </div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <input ref={el => inputRefs.current[key] = el} type="number" min="0" max={c.max_score} step="0.5" value={displayVal}
-                        onChange={e => handleGradeChange(currentStudent.cs_id, c.id, e.target.value)}
-                        onBlur={e => saveGrade(currentStudent.cs_id, c.id, e.target.value, c.max_score)}
-                        placeholder="0.0" className="input text-center font-['Outfit'] font-extrabold text-2xl flex-1" style={{ ...glassInput, background: isInherited ? (isDark ? 'hsl(35 90% 20% / 0.3)' : 'hsl(35 90% 30% / 0.3)') : undefined }} />
-                      {isSaving && <div className="w-5 h-5 rounded-full animate-spin" style={{ border: '2px solid hsl(262 83% 60%)', borderTopColor: 'transparent' }} />}
-                      {val !== "" && !isSaving && <CheckCircle2 className="w-5 h-5" style={{ color: '#10b981' }} />}
-                    </div>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5, 0].filter(n => n <= c.max_score).map(num => (
-                        <button key={num} onClick={() => setQuickGrade(currentStudent.cs_id, c.id, num, c.max_score)}
-                          className="btn-sm rounded-lg font-bold text-xs transition-all hover:scale-105"
-                          style={{
-                            background: val === num.toString() 
-                              ? 'linear-gradient(135deg, hsl(262 83% 60%), hsl(270 70% 55%))'
-                              : isDark ? 'hsl(0 0% 100% / 0.05)' : 'hsl(0 0% 0% / 0.03)',
-                            color: val === num.toString() ? 'white' : isDark ? 'hsl(220 10% 70%)' : 'hsl(220 8% 35%)',
-                            boxShadow: val === num.toString() ? '0 4px 15px hsl(262 83% 60% / 0.4)' : 'none',
-                          }}>
-                          {num}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="p-6" style={{ borderTop: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 0% / 0.05)' }}>
-            <div className="max-w-md mx-auto flex items-center gap-3">
-              <Button onClick={() => setFocusIndex(prev => (prev - 1 + filteredStudents.length) % filteredStudents.length)} 
-                className="h-16 w-16 rounded-2xl" style={{ ...glassCard, color: isDark ? 'hsl(220 20% 70%)' : 'hsl(220 8% 35%)' }} disabled={filteredStudents.length <= 1}>
-                <ChevronLeft className="w-8 h-8" />
-              </Button>
-              <Button onClick={() => setFocusIndex(prev => (prev + 1) % filteredStudents.length)}
-                className="flex-1 h-16 rounded-2xl font-['DM_Sans'] font-bold text-lg gap-2"
-                style={{ background: 'linear-gradient(135deg, hsl(262 83% 60%), hsl(270 70% 55%))', color: 'white', boxShadow: '0 8px 30px hsl(262 83% 60% / 0.4)' }} disabled={filteredStudents.length <= 1}>
-                Siguiente Alumno <ChevronRight className="w-6 h-6" />
-              </Button>
-            </div>
-          </div>
+          <Button onClick={handleAddCriteria} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 px-6 font-black shadow-lg shadow-blue-500/20 flex items-center gap-2 text-xs uppercase tracking-wider transition-all">
+            <PlusCircle className="w-5 h-5" /> Agregar Criterio
+          </Button>
         </div>
-      ) : (
-        <div className="rounded-[2.5rem] overflow-hidden" style={glassCard}>
-          {/* Gradient Top Bar */}
-          <div className="h-1.5 w-full" style={{
-            background: 'linear-gradient(90deg, hsl(262 83% 60%), hsl(185 85% 60%), hsl(270 70% 65%), hsl(262 83% 60%))',
-            backgroundSize: '200% 100%',
-            animation: 'gradient-shift 3s ease infinite'
-          }} />
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 px-8 gap-4" style={{ borderBottom: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(0 0% 0% / 0.05)' }}>
-            <div>
-              <h2 className="font-['Outfit'] font-extrabold text-xl" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>Planilla de Notas</h2>
-              <p className="font-['DM_Sans'] font-medium text-xs mt-1 uppercase tracking-widest" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>Atajo: [Enter] para siguiente</p>
-            </div>
-            <Button onClick={handleAddCriteria} className="btn-primary gap-2 rounded-2xl h-11 px-6 font-['DM_Sans'] font-bold">
-              <PlusCircle className="w-5 h-5" /> Agregar Criterio
-            </Button>
-          </div>
-          
-          <div className="p-0">
-            {criteria.length === 0 ? (
-              <div className="py-24 text-center px-6">
-                <div className="relative inline-block mb-6">
-                  <div className="absolute inset-0 rounded-[3rem] blur-xl opacity-30" style={{ background: 'linear-gradient(135deg, hsl(262 83% 60%), hsl(185 85% 60%))' }} />
-                  <div className="relative w-20 h-20 rounded-[3rem] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, hsl(262 83% 20%), hsl(270 70% 15%))' }}>
-                    <PlusCircle className="w-10 h-10" style={{ color: 'hsl(270 70% 70%)', opacity: 0.5 }} />
-                  </div>
+        
+        <div className="p-0">
+          {criteria.length === 0 ? (
+            <div className="py-24 text-center px-6">
+              <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 rounded-[3rem] blur-xl opacity-30 bg-blue-600" />
+                <div className="relative w-20 h-20 rounded-[3rem] bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <PlusCircle className="w-10 h-10" />
                 </div>
-                <p className="font-['Outfit'] font-extrabold text-xl" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>No hay criterios de evaluación</p>
-                <p className="font-['DM_Sans'] font-medium mt-2" style={{ color: isDark ? 'hsl(220 10% 60%)' : 'hsl(220 8% 35%)' }}>Definí los aspectos a evaluar hoy</p>
-                <Button onClick={handleAddCriteria} className="btn-primary mt-8 gap-2 rounded-2xl h-12 px-8 font-['DM_Sans'] font-bold">
-                  <PlusCircle className="w-5 h-5" /> Crear criterio
-                </Button>
               </div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="py-24 text-center">
-                <Users className="w-16 h-16 mx-auto mb-4" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }} />
-                <p className="font-['Outfit'] font-extrabold" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>No se encontraron alumnos</p>
-              </div>
-            ) : viewMode === "table" ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ background: isDark ? 'hsl(220 20% 10% / 0.5)' : 'hsl(220 40% 96%)' }}>
-                      <th onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")} className="text-left px-4 py-4 font-['DM_Sans'] font-bold text-xs uppercase tracking-widest cursor-pointer" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>Alumno</th>
-                      {criteria.map(c => (
-                        <th key={c.id} className="px-4 py-4 text-center font-['DM_Sans'] font-bold text-xs uppercase tracking-widest relative group" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>
-                          <div className="truncate">{c.name}</div>
-                          <div className="text-[10px] font-normal" style={{ color: isDark ? 'hsl(220 10% 40%)' : 'hsl(220 10% 45%)' }}>Max: {c.max_score}</div>
-                          <button onClick={() => handleFillMaxGrades(c)} className="absolute top-1 left-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all" style={{ background: 'hsl(140 70% 20%)' }}><CheckCircle2 className="w-3 h-3" style={{ color: '#10b981' }} /></button>
-                          <button onClick={() => handleDeleteCriteria(c.id)} className="absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all" style={{ background: 'hsl(0 70% 20%)' }}><Trash2 className="w-3 h-3" style={{ color: '#ef4444' }} /></button>
-                        </th>
-                      ))}
-                      <th className="hidden sm:table-cell px-4 py-4 text-center font-['DM_Sans'] font-bold text-xs uppercase tracking-widest" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>Tendencia</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <p className="font-['Outfit'] font-black text-2xl text-slate-900 dark:text-white">No hay criterios de evaluación</p>
+              <p className="font-['DM_Sans'] font-medium mt-2 text-slate-500">Definí los aspectos a evaluar en la clase de hoy</p>
+              <Button onClick={handleAddCriteria} className="bg-blue-600 text-white mt-8 gap-2 rounded-2xl h-12 px-8 font-black uppercase text-xs tracking-wider shadow-lg shadow-blue-500/20">
+                <PlusCircle className="w-5 h-5" /> Crear Criterio
+              </Button>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="py-24 text-center">
+              <Users className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+              <p className="font-['Outfit'] font-black text-slate-500">No se encontraron alumnos</p>
+            </div>
+          ) : viewMode === "table" ? (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800">
+                    <th onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")} className="text-left px-6 py-5 font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200 cursor-pointer hover:text-blue-600 transition-colors w-64">
+                      Alumno
+                    </th>
+                    {criteria.map(c => (
+                      <th key={c.id} className="px-4 py-5 text-center font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200 relative group border-l border-slate-200 dark:border-slate-800 min-w-[130px]">
+                        <div className="truncate font-black text-sm">{c.name}</div>
+                        <div className="text-[10px] font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-md inline-block mt-1">
+                          MAX: {c.max_score}
+                        </div>
+                        <button onClick={() => handleFillMaxGrades(c)} title="Llenar nota máxima" className="absolute top-2 left-2 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-md">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => handleDeleteCriteria(c.id)} title="Eliminar criterio" className="absolute top-2 right-2 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all bg-rose-500 hover:bg-rose-600 text-white shadow-md">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </th>
+                    ))}
+                    <th className="hidden sm:table-cell px-4 py-5 text-center font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200 border-l border-slate-200 dark:border-slate-800 w-32">
+                      Tendencia
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                     {filteredStudents.map((student, sIdx) => {
                       const names = student.name.split(" ");
                       const mobileName = names.length > 1 ? `${names[0]} ${names[1][0]}.` : names[0];
                       return (
-                        <tr key={student.cs_id} className="group">
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              <button onClick={() => toggleAttendance(student.cs_id)} 
-                                className={`w-4 h-4 rounded-full border-2 transition-all ${attendance[student.cs_id] !== false ? 'bg-emerald-500 border-emerald-300' : 'bg-red-500 border-red-300'}`} />
-                              <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-['Outfit'] font-extrabold text-white"
-                                style={{ background: 'linear-gradient(135deg, hsl(262 83% 60%), hsl(185 85% 60%))' }}>{student.name[0].toUpperCase()}</div>
-                              <span className="font-['DM_Sans'] font-bold text-sm" style={{ color: isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)' }}>
-                                <span className="sm:hidden">{mobileName}</span><span className="hidden sm:inline">{student.name}</span>
+                        <tr key={student.cs_id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3.5">
+                              <button
+                                onClick={() => toggleAttendance(student.cs_id)}
+                                title={attendance[student.cs_id] !== false ? "Asistencia: Presente" : "Asistencia: Ausente"}
+                                className={`w-4 h-4 rounded-full transition-all shrink-0 ${
+                                  attendance[student.cs_id] !== false 
+                                    ? 'bg-emerald-500 ring-4 ring-emerald-100 dark:ring-emerald-950/60' 
+                                    : 'bg-rose-500 ring-4 ring-rose-100 dark:ring-rose-950/60'
+                                }`} 
+                              />
+                              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-['Outfit'] font-black text-sm flex items-center justify-center shadow-md shadow-indigo-500/10 shrink-0">
+                                {student.name[0].toUpperCase()}
+                              </div>
+                              <span className="font-['Outfit'] font-extrabold text-base text-slate-900 dark:text-white tracking-tight">
+                                <span className="sm:hidden">{mobileName}</span>
+                                <span className="hidden sm:inline">{student.name}</span>
                               </span>
                             </div>
                           </td>
@@ -544,42 +427,63 @@ export default function LiveSession() {
                             const displayVal = val !== "" ? val : inheritedVal;
                             const isInherited = val === "" && inheritedVal !== "";
                             const flash = gradeFlash[key];
+                            const numVal = parseFloat(displayVal);
+
+                            let inputColorClass = "bg-slate-50 dark:bg-slate-800/90 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 focus:bg-white focus:text-slate-900 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20";
+                            
+                            if (isInherited) {
+                              inputColorClass = "bg-purple-50 dark:bg-purple-950/80 text-purple-900 dark:text-purple-200 border-purple-300 dark:border-purple-700 font-black shadow-sm";
+                            } else if (val !== "") {
+                              if (numVal >= 7) {
+                                inputColorClass = "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-emerald-400 dark:border-emerald-600 font-black shadow-sm";
+                              } else if (numVal >= 4) {
+                                inputColorClass = "bg-amber-50 dark:bg-amber-950/80 text-amber-900 dark:text-amber-200 border-amber-400 dark:border-amber-600 font-black shadow-sm";
+                              } else {
+                                inputColorClass = "bg-rose-50 dark:bg-rose-950/80 text-rose-900 dark:text-rose-200 border-rose-400 dark:border-rose-600 font-black shadow-sm";
+                              }
+                            }
+
                             return (
-                              <td key={c.id} className={`px-4 py-4 text-center border-l transition-colors ${flash === "success" ? "flash-success" : flash === "danger" ? "flash-danger" : ""}`}>
-                                <div className="relative inline-flex">
-                                  <input ref={el => inputRefs.current[key] = el} type="number" min="0" max={c.max_score} step="0.5" value={displayVal}
+                              <td key={c.id} className={`px-4 py-3 text-center border-l border-slate-100 dark:border-slate-800/60 transition-colors ${flash === "success" ? "flash-success" : flash === "danger" ? "flash-danger" : ""}`}>
+                                <div className="relative inline-flex items-center justify-center">
+                                  <input 
+                                    ref={el => inputRefs.current[key] = el} 
+                                    type="number" 
+                                    min="0" 
+                                    max={c.max_score} 
+                                    step="0.5" 
+                                    value={displayVal}
                                     onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)}
                                     onBlur={e => saveGrade(student.cs_id, c.id, e.target.value, c.max_score)}
                                     onKeyDown={e => handleKeyDown(e, sIdx, cIdx)}
-                                    placeholder="—" className="input w-20 text-center font-['DM_Sans'] font-bold"
-                                    style={{ 
-                                      background: isInherited 
-                                        ? (isDark ? 'hsl(35 90% 15% / 0.3)' : 'hsl(35 90% 25% / 0.3)')
-                                        : val !== '' 
-                                          ? (isDark ? 'hsl(140 70% 15% / 0.3)' : 'hsl(140 70% 20% / 0.3)')
-                                          : (isDark ? 'hsl(220 20% 10% / 0.3)' : 'hsl(220 40% 96%)'),
-                                      color: isInherited 
-                                        ? 'hsl(35 90% 60%)' 
-                                        : val !== '' 
-                                          ? '#10b981' 
-                                          : (isDark ? 'hsl(220 20% 95%)' : 'hsl(220 10% 12%)')
-                                    }} />
-                                  {isSaving && <div className="absolute -right-2 top-1/2 -translate-y-1/2"><div className="w-2 h-2 rounded-full animate-ping" style={{ background: 'hsl(262 83% 60%)' }} /></div>}
+                                    placeholder="—"
+                                    className={`w-20 h-11 text-center font-['Outfit'] font-black text-lg rounded-2xl border-2 transition-all outline-none ${inputColorClass}`}
+                                  />
+                                  {isSaving && (
+                                    <div className="absolute -right-3 top-1/2 -translate-y-1/2">
+                                      <div className="w-2.5 h-2.5 rounded-full animate-ping bg-blue-600" />
+                                    </div>
+                                  )}
                                 </div>
                               </td>
                             );
                           })}
-                          <td className="hidden sm:table-cell px-4 py-4 border-l">
+                          <td className="hidden sm:table-cell px-4 py-3 border-l border-slate-100 dark:border-slate-800/60 text-center">
                             {(() => {
                               const spark = sparklineData[student.cs_id]?.filter(d => d.pct !== null);
-                              if (!spark || spark.length < 2) return <span className="font-['DM_Sans'] font-bold text-xs" style={{ color: isDark ? 'hsl(220 8% 50%)' : 'hsl(220 10% 55%)' }}>—</span>;
+                              if (!spark || spark.length < 2) return <span className="font-bold text-xs text-slate-300 dark:text-slate-600">—</span>;
                               const last = spark[spark.length - 1].pct;
                               const prev = spark[spark.length - 2].pct;
-                              const color = last >= prev ? '#10b981' : '#ef4444';
+                              const isUp = last >= prev;
                               return (
-                                <div className="flex flex-col items-center">
-                                  <ResponsiveContainer width={80} height={32}><LineChart data={spark}><Line type="monotone" dataKey="pct" stroke={color} strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer>
-                                  <span className="font-['DM_Sans'] font-bold text-xs" style={{ color }}>{last >= prev ? "▲" : "▼"} {last}%</span>
+                                <div className="flex items-center justify-center">
+                                  <span className={`px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1 border shadow-sm ${
+                                    isUp 
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800" 
+                                      : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                                  }`}>
+                                    {isUp ? "▲" : "▼"} {last}%
+                                  </span>
                                 </div>
                               );
                             })()}
@@ -593,7 +497,7 @@ export default function LiveSession() {
             ) : (
               <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredStudents.map(student => (
-                  <div key={student.cs_id} className="p-6 rounded-2xl transition-all hover:scale-[1.02] hover:shadow-xl" style={glassCard}>
+                  <div key={student.cs_id} className="p-6 rounded-2xl transition-all hover:scale-[1.02] hover:shadow-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="relative">
                         <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-['Outfit'] font-extrabold text-white"
@@ -619,8 +523,7 @@ export default function LiveSession() {
                             <span className="font-['DM_Sans'] font-bold text-xs uppercase tracking-wider truncate flex-1" style={{ color: isDark ? 'hsl(220 10% 60%)' : 'hsl(220 8% 35%)' }}>{c.name}</span>
                             <input type="number" min="0" max={c.max_score} step="0.5" value={displayVal} 
                               onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)} 
-                              onBlur={e => saveGrade(student.cs_id, c.id, e.target.value, c.max_score)} 
-                              className="input input-sm w-14 text-center font-['DM_Sans'] font-bold" style={glassInput} />
+                              className="w-14 h-9 text-center font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none" />
                           </div>
                         );
                       })}
@@ -631,7 +534,6 @@ export default function LiveSession() {
             )}
           </div>
         </div>
-      )}
 
       <style>{`
         @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }

@@ -43,12 +43,12 @@ function SingleToast({ badge, onDone }) {
       style={{
         animation: exiting
           ? "achievement-out 0.8s cubic-bezier(0.4,0,0.2,1) both"
-          : "achievement-in 0.6s cubic-bezier(0.34,1.56,0.64,1) both",
+          : "achievement-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both",
       }}
     >
       {/* Animated gradient ring */}
       <div className={`relative w-12 h-12 rounded-2xl flex-shrink-0 bg-gradient-to-br ${theme.ring} p-0.5`}>
-        <div className="w-full h-full rounded-[14px] bg-black/40 flex items-center justify-center">
+        <div className="w-full h-full rounded-[14px] flex items-center justify-center" style={{ backgroundColor: 'hsla(220, 25%, 6%, 0.4)' }}>
           <Icon className={`w-6 h-6 ${badge.color}`} />
         </div>
       </div>

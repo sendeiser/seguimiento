@@ -19,6 +19,7 @@ export default function PublicClassView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [pinnedStudent, setPinnedStudent] = useState(null);
   const [sessionFilter, setSessionFilter] = useState("latest"); // "latest", "all", or session.id
+  const [cuatrimestreFilter, setCuatrimestreFilter] = useState("all"); // "all", "1", "2"
   const [animKey, setAnimKey] = useState(0);
   const [newBadges, setNewBadges] = useState([]);
 
@@ -96,7 +97,7 @@ export default function PublicClassView() {
         </div>
         <h2 className="text-3xl font-black mb-3 text-slate-800 tracking-tight">Acceso Denegado</h2>
         <p className="text-slate-500 mb-10 font-medium text-base leading-relaxed">{error}</p>
-        <button onClick={() => window.location.reload()} className="bg-slate-900 hover:bg-black text-white w-full py-4 rounded-2xl font-black text-lg transition-all shadow-xl shadow-slate-900/20 active:scale-[0.98]">
+        <button onClick={() => window.location.reload()} className="bg-slate-900 hover:bg-[#0c0f14] text-white w-full py-4 rounded-2xl font-black text-lg transition-all shadow-xl shadow-slate-900/20 active:scale-[0.98]">
           Reintentar conexión
         </button>
       </div>
@@ -113,12 +114,18 @@ export default function PublicClassView() {
     });
   });
 
-  // Calculate visible items based on session filter
+  // Calculate visible items based on cuatrimestre filter & session filter
+  const filteredByCuatrimestreSessions = sortedSessions.filter(s => {
+    if (cuatrimestreFilter === "all") return true;
+    const sCuatrimestre = s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1);
+    return sCuatrimestre === Number(cuatrimestreFilter);
+  });
+
   const visibleSessions = sessionFilter === "all" 
-    ? sortedSessions 
+    ? filteredByCuatrimestreSessions 
     : (sessionFilter === "latest" 
-        ? (sortedSessions.length > 0 ? [sortedSessions[0]] : []) 
-        : sortedSessions.filter(s => s.id === sessionFilter));
+        ? (filteredByCuatrimestreSessions.length > 0 ? [filteredByCuatrimestreSessions[0]] : []) 
+        : filteredByCuatrimestreSessions.filter(s => s.id === sessionFilter));
 
   const visibleCriteria = [];
   visibleSessions.forEach(session => {
@@ -187,7 +194,7 @@ export default function PublicClassView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-blue-200 relative">
+    <div className="min-h-screen bg-[#F8FAFC] text-blue-900 font-sans selection:bg-blue-200 relative">
       
       {/* Modern Mesh Gradient Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-slate-50">
@@ -242,18 +249,46 @@ export default function PublicClassView() {
                 />
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Cuatrimestre Selector */}
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 gap-1">
+                  <button
+                    onClick={() => { setCuatrimestreFilter("all"); setAnimKey(k => k + 1); }}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      cuatrimestreFilter === "all" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    Año
+                  </button>
+                  <button
+                    onClick={() => { setCuatrimestreFilter("1"); setAnimKey(k => k + 1); }}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      cuatrimestreFilter === "1" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    1ºC
+                  </button>
+                  <button
+                    onClick={() => { setCuatrimestreFilter("2"); setAnimKey(k => k + 1); }}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      cuatrimestreFilter === "2" ? "bg-purple-600 text-white shadow-md shadow-purple-600/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    2ºC
+                  </button>
+                </div>
+
                 {/* Session Filter */}
                 <div className="relative flex-1 sm:flex-none">
                   <History className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   <select 
                     value={sessionFilter}
                     onChange={(e) => { setSessionFilter(e.target.value); setAnimKey(k => k + 1); }}
-                    className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-8 text-[11px] font-black uppercase tracking-wider text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+                    className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-9 pr-8 text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
                   >
                     <option value="latest">Hoy</option>
                     <option value="all">Todo</option>
-                    {sortedSessions.map(s => (
+                    {filteredByCuatrimestreSessions.map(s => (
                       <option key={s.id} value={s.id}>
                         {format(new Date(s.date + "T12:00:00"), "d/MM")}
                       </option>
@@ -265,17 +300,17 @@ export default function PublicClassView() {
                 </div>
                 
                 {/* View Toggles */}
-                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
                   <button 
                     onClick={() => setViewMode("table")}
-                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "table" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500"}`}
+                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "table" ? "bg-white dark:bg-slate-900 text-blue-600 shadow-sm font-bold" : "text-slate-500 dark:text-slate-400"}`}
                   >
                     <List className="w-4 h-4" />
                     <span className="text-[10px] sm:hidden font-black uppercase tracking-widest">Planilla</span>
                   </button>
                   <button 
                     onClick={() => setViewMode("cards")}
-                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "cards" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500"}`}
+                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "cards" ? "bg-white dark:bg-slate-900 text-blue-600 shadow-sm font-bold" : "text-slate-500 dark:text-slate-400"}`}
                   >
                     <LayoutGrid className="w-4 h-4" />
                     <span className="text-[10px] sm:hidden font-black uppercase tracking-widest">Tarjeta</span>
@@ -301,139 +336,165 @@ export default function PublicClassView() {
             <p className="text-slate-500 max-w-sm text-lg font-medium leading-relaxed">El docente aún no ha registrado calificaciones en esta clase. ¡Pronto aparecerán aquí!</p>
           </div>
         ) : viewMode === "table" ? (
-          /* Table View - Modernized */
-          <div className="bg-white/80 backdrop-blur-xl rounded-[32px] md:rounded-[40px] border border-white shadow-2xl shadow-slate-200/50 overflow-hidden ring-1 ring-slate-200/50">
+          /* Table View - Executive Redesign */
+          <div className="bg-white dark:bg-slate-900 rounded-[32px] md:rounded-[40px] border border-slate-200/80 dark:border-slate-800 shadow-2xl shadow-slate-900/5 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-base border-collapse table-fixed md:table-auto">
                 <thead>
-                  <tr className="bg-slate-50">
-                    <th className="text-left px-3 md:px-8 py-3 md:py-6 font-black text-[9px] md:text-xs uppercase tracking-widest text-slate-500 sticky left-0 bg-slate-50/90 backdrop-blur-md z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[110px] md:w-auto">
+                  <tr className="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800">
+                    <th className="text-left px-4 md:px-8 py-4 md:py-6 font-['Outfit'] font-black text-[10px] md:text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200 sticky left-0 bg-slate-100 dark:bg-slate-950 z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[120px] md:w-auto">
                       Alumno
                     </th>
-                    {(visibleSessions).map(session => (
-                      <th
-                        key={session.id}
-                        colSpan={(session.criteria || []).length}
-                        className="px-1 md:px-6 py-2 md:py-4 text-center text-[8px] md:text-xs uppercase tracking-widest font-black text-slate-500 border-l border-slate-200/60"
-                      >
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2">
-                          <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-blue-500 hidden sm:block" />
-                          <span className="truncate max-w-[50px] md:max-w-none leading-tight">{format(new Date(session.date + "T12:00:00"), "d MMM", { locale: es })}</span>
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-2 md:px-8 py-2 md:py-6 text-center text-[9px] md:text-xs uppercase tracking-widest font-black text-blue-600 bg-blue-50/80 border-l-2 border-blue-100 sticky right-0 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[50px] md:w-auto">
+                    {(visibleSessions).map(session => {
+                      const sCuatrimestre = session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1);
+                      return (
+                        <th
+                          key={session.id}
+                          colSpan={(session.criteria || []).length}
+                          className="px-2 md:px-6 py-3 md:py-5 text-center border-l border-slate-200 dark:border-slate-800"
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
+                              sCuatrimestre === 2 
+                                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300 border-purple-200 dark:border-purple-700" 
+                                : "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 border-blue-200 dark:border-blue-700"
+                            }`}>
+                              {sCuatrimestre}ºC
+                            </span>
+                            <span className="font-['Outfit'] font-black text-sm uppercase tracking-widest text-slate-800 dark:text-slate-100">
+                              {format(new Date(session.date + "T12:00:00"), "d 'de' MMM", { locale: es })}
+                            </span>
+                          </div>
+                        </th>
+                      );
+                    })}
+                    <th className="px-3 md:px-8 py-4 md:py-6 text-center font-['Outfit'] font-black text-[10px] md:text-xs uppercase tracking-widest text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950/80 border-l-2 border-blue-200 dark:border-blue-800 sticky right-0 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[70px] md:w-auto">
                       TOTAL
                     </th>
                   </tr>
-                  <tr className="border-b-2 border-slate-200 bg-white">
-                    <th className="sticky left-0 bg-white z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <th className="sticky left-0 bg-slate-50 dark:bg-slate-900 z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
                     {visibleCriteria.map(crit => (
-                      <th key={crit.id} className="px-1 md:px-6 py-1.5 md:py-4 text-center border-l border-slate-100 min-w-[35px] md:min-w-[140px] w-[35px] md:w-auto">
-                        <div className="text-[8px] md:text-xs font-black text-slate-700 uppercase tracking-tight md:tracking-wide truncate max-w-[32px] md:max-w-[130px] mx-auto leading-tight" title={crit.name}>{crit.name}</div>
-                        <div className="text-[7px] md:text-[10px] font-bold text-slate-400 uppercase tracking-tighter md:tracking-widest mt-0.5 md:mt-1.5 flex items-center justify-center gap-0.5">
-                          <Trophy className="hidden md:block w-3 h-3" /> <span className="hidden md:inline">Máx</span> {crit.max_score}
+                      <th key={crit.id} className="px-2 md:px-6 py-2.5 md:py-4 text-center border-l border-slate-200 dark:border-slate-800 min-w-[50px] md:min-w-[140px]">
+                        <div className="text-[10px] md:text-xs font-['Outfit'] font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider truncate max-w-[130px] mx-auto leading-tight" title={crit.name}>{crit.name}</div>
+                        <div className="text-[9px] md:text-[10px] font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-md inline-block mt-1">
+                          MÁX: {crit.max_score}
                         </div>
                       </th>
                     ))}
-                    <th className="sticky right-0 bg-blue-50/90 backdrop-blur-md border-l-2 border-blue-100 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
+                    <th className="sticky right-0 bg-blue-50 dark:bg-blue-950/60 border-l-2 border-blue-200 dark:border-blue-800 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {filteredStudents.map((student, idx) => {
                     const pct = calculateOverallPercentage(student.total, student.max);
                     const names = student.name.split(" ");
                     const mobileName = names.length > 1 ? `${names[0]} ${names[1][0]}.` : names[0];
+                    const isPinned = student.cs_id === pinnedStudent;
                     
                     return (
                     <tr
                       key={student.cs_id}
                       onClick={() => student.token && navigate(`/live/${student.token}`)}
-                      className={`cursor-pointer transition-colors group hover:bg-slate-50/80 ${student.cs_id === pinnedStudent ? "bg-blue-50/40" : "bg-transparent"}`}
+                      className={`cursor-pointer transition-colors group hover:bg-blue-50/40 dark:hover:bg-slate-800/60 ${isPinned ? "bg-blue-50/60 dark:bg-blue-950/30" : "bg-white dark:bg-slate-900"}`}
                     >
-                      <td className={`px-3 md:px-8 py-3 md:py-5 sticky left-0 z-10 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors group-hover:bg-white w-[110px] md:w-[300px] overflow-hidden ${student.cs_id === pinnedStudent ? "bg-blue-50/90" : "bg-white"}`}>
-                        <div className="flex items-center gap-1 md:gap-4">
+                      <td className={`px-4 md:px-8 py-4 md:py-5 sticky left-0 z-10 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors group-hover:bg-slate-50 dark:group-hover:bg-slate-800 w-[120px] md:w-[300px] overflow-hidden ${isPinned ? "bg-blue-50 dark:bg-slate-900" : "bg-white dark:bg-slate-900"}`}>
+                        <div className="flex items-center gap-2 md:gap-4">
                           <button 
                             onClick={(e) => { e.stopPropagation(); togglePin(student.cs_id); }}
-                            className={`p-1 md:p-1.5 rounded-lg md:rounded-xl transition-all outline-none ${student.cs_id === pinnedStudent ? "text-blue-600 bg-white md:shadow-md" : "text-slate-300 hover:text-blue-600 hover:bg-blue-50"}`}
-                            title={student.cs_id === pinnedStudent ? "Desfijar" : "Fijar"}
+                            className={`p-1.5 rounded-xl transition-all outline-none ${isPinned ? "text-amber-500 bg-amber-50 dark:bg-amber-950/50 shadow-sm" : "text-slate-300 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
+                            title={isPinned ? "Desfijar" : "Fijar Alumno"}
                           >
-                            {student.cs_id === pinnedStudent ? <Pin className="w-3 h-3 md:w-5 md:h-5 fill-current" /> : <PinOff className="w-3 h-3 md:w-5 md:h-5" />}
+                            <Pin className={`w-4 h-4 ${isPinned ? "fill-amber-500" : ""}`} />
                           </button>
                           
-                          <div className={`hidden md:flex w-10 h-10 rounded-[14px] items-center justify-center text-sm font-black shadow-sm flex-shrink-0 ${
-                            student.cs_id === pinnedStudent ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/30" :
-                            idx === 0 ? "bg-gradient-to-br from-yellow-100 to-amber-100 text-amber-700 border-2 border-amber-200" :
-                            idx === 1 ? "bg-gradient-to-br from-slate-100 to-gray-200 text-slate-700 border-2 border-slate-300" :
-                            idx === 2 ? "bg-gradient-to-br from-orange-100 to-rose-100 text-orange-800 border-2 border-orange-200" :
-                            "bg-slate-50 text-slate-500 border border-slate-200"
+                          <div className={`hidden md:flex w-10 h-10 rounded-2xl items-center justify-center text-sm font-['Outfit'] font-black shadow-md flex-shrink-0 ${
+                            isPinned ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/20" :
+                            idx === 0 ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-amber-500/20" :
+                            idx === 1 ? "bg-gradient-to-br from-slate-300 to-slate-400 text-white" :
+                            idx === 2 ? "bg-gradient-to-br from-amber-600 to-amber-700 text-white" :
+                            "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                           }`}>
-                            {idx < 3 && student.cs_id !== pinnedStudent ? <Medal className="w-5 h-5" /> : idx + 1}
+                            {idx < 3 && !isPinned ? <Medal className="w-5 h-5" /> : idx + 1}
                           </div>
                           
                           <div className="flex flex-col justify-center min-w-0">
                             <span 
-                              className={`font-black text-[10px] md:text-xl truncate leading-tight block w-full ${student.cs_id === pinnedStudent ? "text-blue-800" : "text-slate-700"}`}
+                              className="font-['Outfit'] font-extrabold text-sm md:text-lg text-slate-900 dark:text-white tracking-tight truncate leading-tight block w-full"
                               title={student.name}
                             >
                               <span className="md:hidden">{mobileName}</span>
                               <span className="hidden md:inline">{student.name}</span>
                             </span>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest hidden lg:inline ${student.gami?.rank?.color || 'text-slate-400'}`}>Nv. {student.gami?.currentLevel || 1}</span>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                Nv. {student.gami?.currentLevel || 1}
+                              </span>
                               {student.gami?.streak >= 3 && (
-                                <span className="flex items-center gap-0.5 text-[8px] font-black text-orange-600 bg-orange-100 px-1 py-0.5 rounded-full uppercase tracking-wider">
-                                   <Flame className="w-2.5 h-2.5 fill-orange-500" />
+                                <span className="flex items-center gap-0.5 text-[9px] font-black text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-800 px-2 py-0.5 rounded-md">
+                                   <Flame className="w-3 h-3 fill-orange-500 text-orange-500" />
                                    {student.gami.streak}
                                 </span>
                               )}
                               {student.gami?.hp <= 30 && (
-                                <span className="flex items-center gap-0.5 text-[8px] font-black text-red-600 bg-red-100 px-1 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-                                   <Heart className="w-2.5 h-2.5 fill-red-500" /> {student.gami.hp}
+                                <span className="flex items-center gap-0.5 text-[9px] font-black text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-2 py-0.5 rounded-md animate-pulse">
+                                   <Heart className="w-3 h-3 fill-rose-500 text-rose-500" /> {student.gami.hp}
                                 </span>
                               )}
                             </div>
-                            {/* Mobile Rank Indicator */}
-                            {idx < 3 && student.cs_id !== pinnedStudent && (
-                              <span className="md:hidden text-[7px] font-black uppercase tracking-widest text-amber-600 truncate mt-0.5">Top #{idx + 1}</span>
-                            )}
                           </div>
                         </div>
                       </td>
 
                       {visibleCriteria.map(crit => {
                         const score = student.grades?.[crit.id];
+                        const numScore = score != null ? Number(score) : null;
+                        const pctScore = numScore != null && crit.max_score > 0 ? numScore / crit.max_score : 0;
+                        
+                        let scoreColorClass = "text-slate-300 font-bold";
+                        if (numScore != null) {
+                          if (pctScore >= 0.7) {
+                            scoreColorClass = "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-2 border-emerald-400 dark:border-emerald-600 font-black shadow-sm";
+                          } else if (pctScore >= 0.4) {
+                            scoreColorClass = "bg-amber-50 dark:bg-amber-950/80 text-amber-900 dark:text-amber-200 border-2 border-amber-400 dark:border-amber-600 font-black shadow-sm";
+                          } else {
+                            scoreColorClass = "bg-rose-50 dark:bg-rose-950/80 text-rose-900 dark:text-rose-200 border-2 border-rose-400 dark:border-rose-600 font-black shadow-sm";
+                          }
+                        }
+
                         return (
-                          <td key={crit.id} className="px-0.5 md:px-6 py-2 md:py-6 text-center border-l border-slate-100/60 transition-colors group-hover:bg-slate-50/30">
-                            {score != null ? (
-                              <div className={`mx-auto flex items-center justify-center min-w-[1.25rem] w-6 h-6 md:w-14 md:h-12 md:min-w-[3.5rem] rounded md:rounded-xl border md:border-2 ${getScoreBadge(score, crit.max_score)}`}>
-                                <span className="font-black text-[10px] md:text-xl tracking-tighter leading-none">{score}</span>
+                          <td key={crit.id} className="px-2 md:px-6 py-3 md:py-5 text-center border-l border-slate-100 dark:border-slate-800/60 transition-colors">
+                            {numScore != null ? (
+                              <div className={`mx-auto w-12 h-10 md:w-16 md:h-11 rounded-2xl flex items-center justify-center font-['Outfit'] font-black text-base md:text-lg ${scoreColorClass}`}>
+                                {score}
                               </div>
                             ) : (
-                              <span className="text-slate-300 font-bold text-[10px] md:text-xl">—</span>
+                              <span className="text-slate-300 dark:text-slate-600 font-bold text-base">—</span>
                             )}
                           </td>
                         );
                       })}
                       
-                      <td className={`px-1 md:px-8 py-2 md:py-5 border-l-2 sticky right-0 z-10 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors w-[50px] md:w-[140px] ${student.cs_id === pinnedStudent ? "bg-blue-50/90 border-blue-300" : "bg-blue-50 group-hover:bg-blue-100/50 border-blue-200"}`}>
-                        <div className="flex flex-col h-full justify-center md:text-left text-center">
-                           <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-0.5 md:mb-2 items-center">
-                             <div className="flex items-baseline justify-center md:justify-start gap-0.5">
-                               <span className="font-black text-xs md:text-3xl tracking-tighter text-blue-700 leading-none">
+                      <td className="px-3 md:px-8 py-3 md:py-5 border-l-2 border-blue-200 dark:border-blue-800 sticky right-0 z-10 bg-blue-50/80 dark:bg-blue-950/60 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[70px] md:w-[150px]">
+                        <div className="flex flex-col h-full justify-center text-center md:text-left">
+                           <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-1 mb-1.5">
+                             <div className="flex items-baseline justify-center md:justify-start gap-1">
+                               <span className="font-['Outfit'] font-black text-base md:text-2xl tracking-tight text-blue-700 dark:text-blue-300 leading-none">
                                 {student.total}
                                </span>
-                               <span className="text-[11px] font-black uppercase text-blue-400 tracking-widest leading-none hidden md:inline">/ {student.max}</span>
+                               <span className="text-[10px] font-black uppercase text-blue-400 dark:text-blue-400 tracking-widest leading-none hidden md:inline">/ {student.max}</span>
                              </div>
-                             <span className="text-[8px] md:text-sm font-black text-blue-600 md:bg-white md:px-2 py-0.5 rounded md:rounded-lg md:border md:border-blue-100 shadow-[none] md:shadow-sm mt-0 md:mt-0">{Math.round(pct * 100)}%</span>
+                             <span className="text-[10px] md:text-xs font-black text-blue-700 dark:text-blue-300 bg-white dark:bg-blue-900/80 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm inline-block mx-auto md:mx-0">
+                               {Math.round(pct * 100)}%
+                             </span>
                            </div>
                            
-                           {/* Mini Progress Bar in Table */}
-                           <div className="w-full bg-blue-200/50 rounded-full h-0.5 md:h-1.5 overflow-hidden">
+                           {/* Mini Progress Bar */}
+                           <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-1.5 overflow-hidden">
                              <div 
-                                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full relative" 
-                                style={{ width: `${pct}%` }}
+                                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500" 
+                                style={{ width: `${pct * 100}%` }}
                               />
                            </div>
                         </div>

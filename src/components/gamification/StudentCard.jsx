@@ -161,14 +161,14 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
         <div className={`absolute inset-0 pointer-events-none z-0 ${rankTheme.overlay}`} />
         <SkinPattern pattern={skin?.pattern} colors={skin?.colors} isHovered={isHovered} />
       
-      <div className="flex justify-between items-start mb-2">
-        <div className="min-w-0">
+      <div className="flex justify-between items-start mb-2 gap-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="font-black text-sm md:text-base truncate tracking-tighter uppercase leading-none" style={{ color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>{name}</h3>
-          <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 text-white shadow-[0_1px_2px_rgba(0,0,0,1)]">
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 text-white shadow-[0_1px_2px_rgba(0,0,0,1)] truncate block">
             {equipped_skin ? "SKIN EQUIPADA" : `${rankTheme.rankLabel} • ${perfTheme.typeLabel}`}
           </span>
         </div>
-        <div className="flex items-center gap-1 font-black text-red-500 text-xs">
+        <div className="flex items-center gap-1 font-black text-red-500 text-xs shrink-0">
           <span className="opacity-60">HP</span>{gami?.hp || 100}
         </div>
       </div>
@@ -189,9 +189,8 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
             <span>Nivel {gami?.currentLevel || 1}</span>
             <span>{Math.round(xpPct)}% XP</span>
           </div>
-          <div className="h-1 w-full rounded-full overflow-hidden relative" style={{backgroundColor: 'hsla(220, 25%, 6%, 0.1)'}}>
+          <div className="h-1 w-full rounded-full overflow-hidden" style={{backgroundColor: 'hsla(220, 25%, 6%, 0.1)'}}>
             <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${xpPct}%` }}></div>
-            <div className="absolute inset-0 shimmer-bg rounded-full" />
           </div>
         </div>
       </div>

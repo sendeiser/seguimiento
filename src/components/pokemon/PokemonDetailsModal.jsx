@@ -73,7 +73,7 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
       
       // Play and handle browser autoplay restrictions
       audio.play().catch(err => {
-        console.log("Autoplay prevented or audio error", err);
+        // Autoplay prevented or audio error
         setIsPlayingCry(false);
       });
     }

@@ -73,13 +73,13 @@ export default function Gateway() {
 
           <div className="mt-12 pt-8 border-t border-white/5 grid grid-cols-2 gap-4">
             <div className="text-center space-y-2 group cursor-help">
-              <div className="w-10 h-10 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-slate-400 group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-all">
+              <div className="w-10 h-10 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-white group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-all">
                 <UserCircle className="w-5 h-5" />
               </div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Docentes</p>
             </div>
             <div className="text-center space-y-2 group cursor-help">
-              <div className="w-10 h-10 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-slate-400 group-hover:bg-indigo-600/20 group-hover:text-indigo-400 transition-all">
+              <div className="w-10 h-10 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-white group-hover:bg-indigo-600/20 group-hover:text-indigo-400 transition-all">
                 <BookOpen className="w-5 h-5" />
               </div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Estudiantes</p>

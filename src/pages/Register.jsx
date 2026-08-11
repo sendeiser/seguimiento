@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Button } from "../components/ui/button";
 import { UserPlus, Mail, Lock, ArrowRight, Loader2, ArrowLeft, Sun, Moon } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
+import { useToast } from "../providers/ToastProvider";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { toast } = useToast();
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -25,9 +27,9 @@ export default function Register() {
         }
       }
     });
-    if (error) alert("Error: " + error.message);
+    if (error) toast("Error: " + error.message, "error");
     else {
-      alert("¡Registro exitoso! Por favor, revisá tu correo para confirmar la cuenta (opcional según config) e iniciá sesión.");
+      toast("¡Registro exitoso! Revisá tu correo para confirmar la cuenta.", "success");
       navigate("/home");
     }
     setLoading(false);

@@ -107,7 +107,17 @@ Create a systematic plan:
 - Center everything — left-aligned with asymmetry feels more designed
 - Default to the hero metric layout (big number, small label, stats, gradient) as a template. If showing real user data, a prominent metric can work — but it should display actual data, not decorative numbers.
 - Default to CSS Grid when Flexbox would be simpler — use the simplest tool for the job
-- Use arbitrary z-index values (999, 9999) — build a semantic scale
+- Use arbitrary z-index values (999, 9999) — build a semantic scale:
+  - Base content: `z-index: 0` (or unstacked)
+  - Sticky navigation/headers: `z-index: 10`
+  - Dropdowns & Popovers: `z-index: 20`
+  - Fixed overlays / Backdrops: `z-index: 30`
+  - Modals / Dialogs: `z-index: 40`
+  - Toasts / Notifications: `z-index: 50`
+  - Tooltips: `z-index: 60`
+- Leave flex containers without `min-width: 0` or `min-height: 0` on flex items, causing child elements to break parent boundary widths.
+- Use `width: 100vw` without accounting for scrollbar width (causes horizontal overflow/scrollbar shifting). Use `100%` or `100dvw`.
+- Overlap absolute positioned components without an isolated parent container (`isolation: isolate`).
 
 ## Verify Layout Improvements
 

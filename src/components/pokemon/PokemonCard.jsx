@@ -29,31 +29,16 @@ export default function PokemonCard({ pokemon, owned, onBuy, onTrade }) {
     fairy: "bg-rose-400",
   };
 
-  const typeBgColors = {
-    normal: 'hsla(0,0%,70%,0.06)', fire: 'hsla(0,80%,55%,0.06)',
-    water: 'hsla(210,80%,55%,0.06)', electric: 'hsla(45,100%,55%,0.06)',
-    grass: 'hsla(120,60%,50%,0.06)', ice: 'hsla(180,60%,60%,0.06)',
-    fighting: 'hsla(0,60%,45%,0.06)', poison: 'hsla(280,60%,50%,0.06)',
-    ground: 'hsla(35,60%,45%,0.06)', flying: 'hsla(240,60%,65%,0.06)',
-    psychic: 'hsla(330,90%,55%,0.06)', bug: 'hsla(80,60%,45%,0.06)',
-    rock: 'hsla(40,40%,45%,0.06)', ghost: 'hsla(260,50%,50%,0.06)',
-    dragon: 'hsla(240,70%,55%,0.06)', dark: 'hsla(0,0%,20%,0.06)',
-    steel: 'hsla(0,0%,65%,0.06)', fairy: 'hsla(330,80%,65%,0.06)',
-  };
-
-  const primaryType = pokemon.types[0];
-
   return (
     <>
       <div 
         onClick={() => setShowDetails(true)}
-        className="group relative rounded-[2.5rem] p-5 transition-all duration-500 cursor-pointer hover:-translate-y-2 border-2 overflow-hidden"
-        style={{ background: typeBgColors[primaryType] || 'hsla(0,0%,70%,0.06)', borderColor: 'hsla(220,15%,80%,0.08)' }}
+        className="group relative rounded-[2.5rem] p-5 transition-all duration-500 cursor-pointer hover:-translate-y-2 bg-white border-slate-100 shadow-xl shadow-slate-200/50 border-2 overflow-hidden flex flex-col h-full min-w-0"
       >
         {/* Background Decorative Type Circle */}
-        <div className={`absolute -right-12 -top-12 w-40 h-40 rounded-full opacity-15 transition-transform duration-700 group-hover:scale-150 ${typeColors[pokemon.types[0]] || 'bg-slate-400'}`} />
+        <div className={`absolute -right-12 -top-12 w-40 h-40 rounded-full opacity-10 transition-transform duration-700 group-hover:scale-150 ${typeColors[pokemon.types[0]] || 'bg-slate-400'}`} />
 
-        <div className="relative z-10">
+        <div className="relative z-10 flex flex-col h-full">
           <div className="relative aspect-square rounded-3xl overflow-hidden mb-6 bg-slate-50 flex items-center justify-center p-4">
             <img 
               src={pokemon.sprite} 
@@ -69,7 +54,7 @@ export default function PokemonCard({ pokemon, owned, onBuy, onTrade }) {
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1 flex flex-col">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">#{String(pokemon.id).padStart(3, '0')}</span>
               <div className="flex gap-1">
@@ -98,7 +83,7 @@ export default function PokemonCard({ pokemon, owned, onBuy, onTrade }) {
               </div>
             )}
 
-            <div className="pt-2">
+            <div className="pt-2 mt-auto">
               {owned ? (
                 <div className="flex gap-2">
                   <div className="flex-1 h-14 bg-emerald-50 rounded-2xl flex flex-col items-center justify-center border border-emerald-100">

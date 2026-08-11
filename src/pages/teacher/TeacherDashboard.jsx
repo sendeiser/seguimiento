@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { Button } from "../../components/ui/button";
 import { Plus, BookOpen, GraduationCap, ArrowRight, X } from "lucide-react";
 import { generateShortCode } from "../../lib/utils";
+import { useToast } from "../../providers/ToastProvider";
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -38,7 +40,7 @@ export default function TeacherDashboard() {
       }]);
 
 
-    if (error) alert(error.message);
+    if (error) toast(error.message, "error");
     else {
       setNewClassName("");
       setShowModal(false);

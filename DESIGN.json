@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-23T00:00:00.000Z",
+  "title": "Design System: Notyx Edu",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Púrpura Colegial", "canonical": "hsl(262 83% 60%)", "tonalRamp": ["hsl(262 100% 96%)", "hsl(262 90% 90%)", "hsl(262 80% 80%)", "hsl(262 70% 68%)", "hsl(262 60% 55%)", "hsl(262 83% 60%)", "hsl(262 70% 50%)", "hsl(262 60% 40%)", "hsl(262 50% 28%)", "hsl(262 40% 15%)"] },
+      "accent-cyan": { "role": "secondary", "displayName": "Cian Consola", "canonical": "hsl(185 85% 60%)", "tonalRamp": ["hsl(185 85% 95%)", "hsl(185 85% 85%)", "hsl(185 85% 75%)", "hsl(185 85% 65%)", "hsl(185 85% 55%)", "hsl(185 85% 45%)", "hsl(185 85% 35%)", "hsl(185 85% 25%)"] },
+      "neutral-bg": { "role": "background", "displayName": "Hielo Fondo", "canonical": "hsl(220 40% 98%)", "tonalRamp": ["hsl(220 40% 98%)", "hsl(220 30% 96%)", "hsl(220 20% 92%)", "hsl(220 15% 80%)", "hsl(220 10% 65%)", "hsl(220 8% 50%)", "hsl(220 10% 35%)", "hsl(220 15% 20%)", "hsl(220 20% 12%)", "hsl(220 25% 6%)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles and dashboard headings. Heavy weight creates authority." },
+      "body": { "displayName": "Body", "purpose": "All reading text. Max 70ch line length." }
+    },
+    "shadows": [
+      { "name": "glass-sm", "value": "0 4px 24px -4px rgb(0 0 0 / 0.08)", "purpose": "Subtle float for secondary surfaces" },
+      { "name": "glass-md", "value": "0 8px 32px -8px rgb(0 0 0 / 0.12)", "purpose": "Default card elevation" },
+      { "name": "glass-lg", "value": "0 16px 48px -12px rgb(0 0 0 / 0.15)", "purpose": "Hovered cards and modals" },
+      { "name": "glow", "value": "0 0 20px var(--color-primary)", "purpose": "Active primary elements and XP bar fill" },
+      { "name": "glow-lg", "value": "0 0 40px var(--color-primary)", "purpose": "High-rank badges (Diamante, Maestro)" },
+      { "name": "neu-subtle", "value": "inset 3px 3px 6px rgb(163 177 198 / 0.3), inset -3px -3px 6px rgb(255 255 255 / 0.4)", "purpose": "XP bar and HP bar backgrounds" }
+    ],
+    "motion": [
+      { "name": "ease-fast", "value": "150ms ease", "purpose": "Input focus, hover transitions" },
+      { "name": "ease-normal", "value": "300ms ease", "purpose": "Default state transitions" },
+      { "name": "ease-slow", "value": "500ms ease", "purpose": "XP bar fill, entrance animations" },
+      { "name": "ease-spring", "value": "cubic-bezier(0.34, 1.56, 0.64, 1)", "purpose": "Spring entrances (student cards, achievements)" },
+      { "name": "ease-smooth", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Slide-fade entrances and list transitions" }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call-to-action. Violet gradient glass with glow shadow.",
+      "html": "<button class=\"ds-btn-primary\">Guardar</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 3rem; padding: 0 1.25rem; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; border-radius: 1.5rem; background: linear-gradient(135deg, hsl(262 83% 60%), hsl(270 70% 60%)); color: #fff; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 20px rgba(162,95,255,0.35); backdrop-filter: blur(10px); cursor: pointer; transition: all 300ms ease; } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(162,95,255,0.4); } .ds-btn-primary:active { transform: translateY(0) scale(0.98); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ghost glass button for secondary actions.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 3rem; padding: 0 1.25rem; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; border-radius: 1.5rem; background: rgba(255,255,255,0.15); color: hsl(220 10% 12%); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(20px); box-shadow: 0 4px 24px -4px rgba(0,0,0,0.08); cursor: pointer; transition: all 300ms ease; } .ds-btn-secondary:hover { border-color: hsla(262 83% 60% / 0.2); transform: translateY(-1px); }"
+    },
+    {
+      "name": "Glass Card",
+      "kind": "card",
+      "refersTo": "card-default",
+      "description": "Default frosted glass container with 2rem radius.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><h3 class=\"ds-card-title\">Título</h3></div><div class=\"ds-card-body\">Contenido de la tarjeta</div></div>",
+      "css": ".ds-card { background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05)); backdrop-filter: blur(20px); border-radius: 2rem; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 32px -8px rgba(0,0,0,0.12); overflow: hidden; } .ds-card-header { padding: 1.5rem; border-bottom: 1px solid hsla(220 10% 55% / 0.1); } .ds-card-title { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; color: hsl(220 10% 12%); } .ds-card-body { padding: 1.5rem; }"
+    },
+    {
+      "name": "Glass Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Frosted glass text input with primary focus ring.",
+      "html": "<div class=\"ds-input-wrapper\"><input class=\"ds-input\" placeholder=\"Nombre del alumno\" /></div>",
+      "css": ".ds-input-wrapper { position: relative; } .ds-input { width: 100%; height: 3rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 0 1.25rem; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 500; color: hsl(220 10% 12%); outline: none; transition: all 150ms ease; backdrop-filter: blur(10px); } .ds-input::placeholder { color: hsl(220 10% 55%); } .ds-input:hover { border-color: hsla(262 83% 60% / 0.2); } .ds-input:focus { border-color: hsl(262 83% 60%); box-shadow: 0 0 0 3px hsla(262 83% 60% / 0.15); }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Sidebar navigation item with active state glow.",
+      "html": "<a class=\"ds-nav-item\" href=\"#\">Dashboard</a><a class=\"ds-nav-item ds-nav-item-active\" href=\"#\">Clases</a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 700; color: hsl(220 8% 35%); transition: all 150ms ease; text-decoration: none; } .ds-nav-item:hover { background: rgba(255,255,255,0.08); color: hsl(220 10% 12%); } .ds-nav-item-active { background: hsl(262 83% 60%); color: #fff; box-shadow: 0 0 20px hsla(262 83% 60% / 0.2); }"
+    },
+    {
+      "name": "XP Bar",
+      "kind": "custom",
+      "refersTo": "xp-bar",
+      "description": "Gamification XP progress bar with neumorphic background and gradient glow fill.",
+      "html": "<div class=\"ds-xp-bar\"><div class=\"ds-xp-bar-fill\" style=\"width: 65%\"></div></div>",
+      "css": ".ds-xp-bar { height: 0.75rem; background: hsl(220 30% 96%); border-radius: 9999px; overflow: hidden; box-shadow: inset 3px 3px 6px rgba(163,177,198,0.3), inset -3px -3px 6px rgba(255,255,255,0.4); } .ds-xp-bar-fill { height: 100%; background: linear-gradient(90deg, hsl(262 83% 60%), hsl(185 85% 60%)); border-radius: 9999px; transition: width 500ms ease; box-shadow: 0 0 8px hsla(262 83% 60% / 0.4); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La Consola del Tutor",
+    "overview": "A glass dashboard that feels like commanding a console — transparent layers, glowing accents, and tactile feedback. Every surface is a pane of frosted glass floating over a deep gradient-lit background. The interface is youthful but respected: gamification elements pop with neumorphic depth and animated glow, while data surfaces stay clean, scannable, and professional.\n\nThis system explicitly rejects mediocrity — no generic SaaS templates, no flat bootstrap cards, no inconsistent spacing, no clashing visual languages. Glassmorphism is not a trend here; it is the material. The frosted layer is the canvas, the glow is the emphasis, and the neumorphic badges are the reward.",
+    "keyCharacteristics": [
+      "Frosted glass surfaces with 20px backdrop blur",
+      "Deep radial gradient backgrounds (purple + cyan) that shift between light/dark",
+      "Neumorphic gamification elements (XP bars, HP bars, rank badges) for tactile reward feel",
+      "Animated feedback for every state change (grade flash, streak glow, level spring)",
+      "High contrast text on glass surfaces — readable in any lighting"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Púrpura Colegial is the only accent that carries system-wide semantic weight. Cyan, lime, orange, pink, and violet are confined to gamification contexts.", "section": "colors" },
+      { "name": "The Glass Overlay Rule", "body": "All colored surfaces are either glass (translucent with blur) or gradient backgrounds. No flat solid-color backgrounds.", "section": "colors" },
+      { "name": "The Nunito Boundary Rule", "body": "Nunito is forbidden outside of gamification stats (XP, HP, level, rank, coins, badges).", "section": "typography" },
+      { "name": "The Float-Don't-Float Rule", "body": "Every glass surface must have a shadow. No shadow = no glass.", "section": "elevation" },
+      { "name": "The No-Flat Rule", "body": "Every component must have at least one layer of depth: glass blur, gradient, shadow, or neumorphic inset.", "section": "components" }
+    ],
+    "dos": [
+      "Use glassmorphism as the default material for cards, buttons, and navigation.",
+      "Use neumorphic inset shadows for XP bars, HP bars, and progress indicators.",
+      "Animate every state change with purposeful transitions.",
+      "Keep high contrast on all text-over-glass combinations.",
+      "Use Nunito exclusively for gamification stats.",
+      "Stagger entrance animations for lists of cards or students."
+    ],
+    "donts": [
+      "Use flat, solid-color backgrounds for cards or containers.",
+      "Use generic SaaS templates or mediocre designs.",
+      "Use border-left or border-right as a colored accent stripe.",
+      "Use gradient text.",
+      "Use the hero-metric template.",
+      "Use identical card grids with icon + heading + text.",
+      "Use bounce or elastic easings.",
+      "Animate CSS layout properties.",
+      "Exceed 3 accent colors on any single screen."
+    ]
+  }
+}

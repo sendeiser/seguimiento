@@ -18,7 +18,7 @@ export function ShopCard({ reward, purchase, notyxCoins, onBuy, onEquip, onPrevi
 
   return (
     <div 
-      className="group relative p-6 rounded-[2rem] transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2"
+      className="group relative p-6 rounded-[2rem] transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 flex flex-col h-full min-w-0"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
@@ -89,7 +89,7 @@ export function ShopCard({ reward, purchase, notyxCoins, onBuy, onEquip, onPrevi
         </p>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-4 mt-auto">
           {!isBought && (
             <div className="flex items-center justify-between">
               <span className="font-['DM_Sans'] font-bold text-xs uppercase tracking-widest" style={{ color: isDark ? '#64748b' : '#94a3b8' }}>Precio</span>

@@ -4,9 +4,11 @@ import { listPokemon, getPokemonDetails } from "../../lib/pokemonService";
 import { getStudentPokemon, addPokemonToStore } from "../../lib/pokemonStore";
 import PokemonCard from "./PokemonCard";
 import { useAuth } from "../../providers/AuthProvider";
+import { useToast } from "../../providers/ToastProvider";
 
  export default function PokemonStoreTab({ notyxCoins, onBuySuccess, onBuyRequest, ownedPokemonIds, classStudentId }) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [pokemonList, setPokemonList] = useState([]);
   const [ownedIds, setOwnedIds] = useState(new Set(ownedPokemonIds || []));
@@ -75,7 +77,7 @@ import { useAuth } from "../../providers/AuthProvider";
 
   const handleBuy = async (pokemon) => {
     if (notyxCoins < pokemon.cost_coins) {
-      alert("No tienes suficientes Notyx Coins.");
+      toast("No tienes suficientes Notyx Coins.", "warning");
       return;
     }
     
@@ -89,11 +91,11 @@ import { useAuth } from "../../providers/AuthProvider";
       // For logged-in students in GlobalMarketplace
       await addPokemonToStore(user?.id, pokemon, classStudentId);
       setOwnedIds(prev => new Set(prev).add(pokemon.id));
-      alert(`¡Has capturado a ${pokemon.name}!`);
+      toast(`¡Has capturado a ${pokemon.name}!`, "success");
       if (onBuySuccess) onBuySuccess(pokemon.cost_coins);
     } catch (e) {
       console.error(e);
-      alert("Hubo un error al guardar el Pokémon.");
+      toast("Hubo un error al guardar el Pokémon.", "error");
     }
   };
 
