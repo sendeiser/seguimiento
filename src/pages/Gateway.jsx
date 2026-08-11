@@ -45,10 +45,9 @@ export default function Gateway() {
 
         <div className="bg-white/90 backdrop-blur-2xl border border-slate-200/80 p-6 md:p-8 rounded-[3rem] shadow-2xl shadow-slate-900/5 space-y-6">
           
-          <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 text-center">Seleccioná tu Rol de Ingreso</p>
-            
-            {/* Docente / Alumno Access Card */}
+          {/* 1. Docentes Access Card */}
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 px-1">1. Para Docentes</span>
             <button
               type="button"
               onClick={() => navigate("/login")}
@@ -59,14 +58,42 @@ export default function Gateway() {
                   <UserCircle className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-['Outfit'] font-black text-slate-900 text-base leading-tight">Docentes y Alumnos</h3>
-                  <p className="text-xs font-bold text-slate-500 mt-0.5">Iniciar sesión o Registrarse</p>
+                  <h3 className="font-['Outfit'] font-black text-slate-900 text-base leading-tight">Acceso Docentes</h3>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">Iniciar sesión o Registrar escuela</p>
                 </div>
               </div>
               <ArrowRight className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform mr-1" />
             </button>
+          </div>
 
-            {/* Tutor / Familia Access Card */}
+          {/* 2. Estudiantes Class Code Form */}
+          <div className="pt-2 border-t border-slate-100">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 px-1">2. Para Estudiantes</span>
+            <form onSubmit={handleSubmit} className="space-y-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Código de Clase (Ej: X7K2P)"
+                  className={`w-full h-13 text-center font-['Outfit'] font-extrabold uppercase tracking-widest text-base rounded-2xl ${
+                    error ? 'border-2 border-rose-500 shake' : 'border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20'
+                  } bg-slate-50 text-slate-900 placeholder:text-slate-400 outline-none transition-all`}
+                  style={{ animation: error ? 'shake 0.4s ease-in-out' : 'none' }}
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-12 rounded-2xl font-black text-xs uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-white shadow-md active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                Ingresar a mi Clase <ArrowRight className="w-4 h-4" />
+              </Button>
+            </form>
+          </div>
+
+          {/* 3. Tutor / Familia Access Card */}
+          <div className="pt-2 border-t border-slate-100">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 px-1">3. Para Familias y Tutores</span>
             <button
               type="button"
               onClick={() => navigate("/tutor")}
@@ -78,31 +105,11 @@ export default function Gateway() {
                 </div>
                 <div>
                   <h3 className="font-['Outfit'] font-black text-slate-900 text-base leading-tight">Portal Familias y Tutores</h3>
-                  <p className="text-xs font-bold text-slate-500 mt-0.5">Consultar boletín con DNI</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">Consultar boletín escolar por DNI</p>
                 </div>
               </div>
               <ArrowRight className="w-5 h-5 text-emerald-600 group-hover:translate-x-1 transition-transform mr-1" />
             </button>
-          </div>
-
-          {/* Student Class Code Input */}
-          <div className="pt-4 border-t border-slate-100 space-y-3">
-            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">¿Tenés un código de clase?</p>
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Código de clase (Ej: X7K2P)"
-                className={`flex-1 h-12 text-center font-['Outfit'] font-bold uppercase tracking-widest text-sm rounded-xl ${
-                  error ? 'border-2 border-rose-500 shake' : 'border border-slate-200 focus:border-blue-600'
-                } bg-slate-50 text-slate-900 placeholder:text-slate-400 outline-none transition-all`}
-                style={{ animation: error ? 'shake 0.4s ease-in-out' : 'none' }}
-              />
-              <Button type="submit" className="h-12 px-5 rounded-xl font-black text-xs uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-white">
-                Unirme
-              </Button>
-            </form>
           </div>
 
         </div>
