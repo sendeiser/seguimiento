@@ -13,65 +13,85 @@ export default function TutorPortal() {
 
   const handleSearch = async (e) => {
     e?.preventDefault();
-    if (!queryDni.trim()) return;
+    const cleanTerm = queryDni.trim();
+    if (!cleanTerm) return;
 
     setLoading(true);
     setError("");
     setReportData(null);
 
     try {
-      // 1. Search student profile by DNI
-      const { data: studentProfile, error: profError } = await supabase
-        .from("profiles")
-        .select("id, full_name, dni")
-        .eq("dni", queryDni.trim())
-        .maybeSingle();
+      // 1. Search student enrollment in class_students by DNI or public_token
+      const { data: classStudents, error: csError } = await supabase
+        .from("class_students")
+        .select(`
+          id,
+          student_id,
+          student_name,
+          dni,
+          public_token,
+          class_id,
+          classes (
+            id, name, teacher_id
+          ),
+          profiles (
+            id, full_name
+          )
+        `)
+        .or(`dni.eq.${cleanTerm},public_token.eq.${cleanTerm}`);
 
-      if (profError) throw profError;
+      if (csError) throw csError;
 
-      if (!studentProfile) {
-        setError("No se encontró ningún estudiante registrado con ese DNI. Verifique los datos con la institución.");
+      if (!classStudents || classStudents.length === 0) {
+        setError("No se encontró ningún estudiante registrado con ese DNI o Código. Verifique los datos con la institución.");
         setLoading(false);
         return;
       }
 
-      // 2. Fetch student class enrollments and grades
-      const { data: enrollments, error: enrError } = await supabase
-        .from("class_students")
-        .select(`
-          id,
-          class_id,
-          classes (
-            id, name, teacher_id
-          )
-        `)
-        .eq("student_id", studentProfile.id);
+      const csIds = classStudents.map(cs => cs.id);
+      const mainStudent = classStudents[0];
+      const studentName = mainStudent.profiles?.full_name || mainStudent.student_name || "Estudiante";
 
-      if (enrError) throw enrError;
-
-      // 3. Fetch grades for student
+      // 2. Fetch grades for student
       const { data: grades, error: grError } = await supabase
         .from("grades")
         .select(`
           score,
           criteria_id,
-          session_id,
+          class_student_id,
           criteria (
-            id, name, max_score
-          ),
-          sessions (
-            id, date, cuatrimestre, class_id
+            id, name, max_score, session_id
           )
         `)
-        .eq("student_id", studentProfile.id);
+        .in("class_student_id", csIds);
 
       if (grError) throw grError;
+
+      // 3. Fetch sessions metadata for criteria
+      const criteriaIds = (grades || []).map(g => g.criteria_id).filter(Boolean);
+      let sessionMap = {};
+
+      if (criteriaIds.length > 0) {
+        const { data: criteriaList } = await supabase
+          .from("session_criteria")
+          .select("id, session_id, sessions(id, date, cuatrimestre)")
+          .in("id", criteriaIds);
+
+        (criteriaList || []).forEach(c => {
+          if (c.sessions) sessionMap[c.id] = c.sessions;
+        });
+      }
+
+      const fullGrades = (grades || []).map(g => ({
+        ...g,
+        sessions: sessionMap[g.criteria_id] || null
+      }));
 
       // 4. Fetch attendance
       const { data: attendance, error: attError } = await supabase
         .from("attendance")
-        .select("is_present, session_id")
-        .eq("student_id", studentProfile.id);
+        .select("is_present, session_id, class_student_id")
+        .in("class_student_id", csIds);
 
       if (attError) throw attError;
 
@@ -80,8 +100,14 @@ export default function TutorPortal() {
       const attendancePct = totalAttendance.length > 0 ? Math.round((presentCount / totalAttendance.length) * 100) : 100;
 
       // Group grades by cuatrimestre
-      const c1Grades = (grades || []).filter(g => (g.sessions?.cuatrimestre || (g.sessions?.date && new Date(g.sessions.date).getMonth() >= 6 ? 2 : 1)) === 1);
-      const c2Grades = (grades || []).filter(g => (g.sessions?.cuatrimestre || (g.sessions?.date && new Date(g.sessions.date).getMonth() >= 6 ? 2 : 1)) === 2);
+      const c1Grades = fullGrades.filter(g => {
+        const cVal = g.sessions?.cuatrimestre || (g.sessions?.date && new Date(g.sessions.date).getMonth() >= 6 ? 2 : 1);
+        return cVal === 1;
+      });
+      const c2Grades = fullGrades.filter(g => {
+        const cVal = g.sessions?.cuatrimestre || (g.sessions?.date && new Date(g.sessions.date).getMonth() >= 6 ? 2 : 1);
+        return cVal === 2;
+      });
 
       const calcAvg = (grList) => {
         if (grList.length === 0) return 0;
@@ -97,13 +123,13 @@ export default function TutorPortal() {
       };
 
       setReportData({
-        student: studentProfile,
-        classes: enrollments || [],
-        grades: grades || [],
+        student: { full_name: studentName, dni: mainStudent.dni || cleanTerm },
+        classes: classStudents,
+        grades: fullGrades,
         attendancePct,
         c1Avg: calcAvg(c1Grades),
         c2Avg: calcAvg(c2Grades),
-        overallAvg: calcAvg(grades || [])
+        overallAvg: calcAvg(fullGrades)
       });
 
     } catch (err) {

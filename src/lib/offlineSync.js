@@ -49,14 +49,13 @@ export async function syncOfflineQueue() {
   for (const item of queue) {
     try {
       if (item.type === "grade") {
-        const { session_id, student_id, criteria_id, score } = item.payload;
+        const { student_id, criteria_id, score } = item.payload;
         const { error } = await supabase.from("grades").upsert({
-          session_id,
-          student_id,
+          class_student_id: student_id,
           criteria_id,
           score,
           updated_at: new Date().toISOString()
-        }, { onConflict: "session_id,student_id,criteria_id" });
+        }, { onConflict: "class_student_id,criteria_id" });
 
         if (error) throw error;
         syncedCount++;
@@ -64,10 +63,10 @@ export async function syncOfflineQueue() {
         const { session_id, student_id, is_present } = item.payload;
         const { error } = await supabase.from("attendance").upsert({
           session_id,
-          student_id,
+          class_student_id: student_id,
           is_present,
           updated_at: new Date().toISOString()
-        }, { onConflict: "session_id,student_id" });
+        }, { onConflict: "session_id,class_student_id" });
 
         if (error) throw error;
         syncedCount++;
