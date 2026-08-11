@@ -23,30 +23,30 @@ export default function Gateway() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 overflow-hidden relative font-sans theme-gateway">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 overflow-hidden relative font-sans">
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-float" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 blur-[120px] rounded-full animate-float-reverse" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-200/40 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-200/40 blur-[120px] rounded-full" />
       </div>
 
       <div className="max-w-md w-full relative z-10 animate-in slide-up">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[2rem] mb-6 shadow-2xl shadow-blue-500/20 ring-1 ring-white/20">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-[2rem] mb-6 shadow-xl shadow-blue-500/20">
             <ShieldAlert className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight mb-2">
-            NOTYX <span className="text-blue-500">EDU</span>
+          <h1 className="text-4xl font-['Outfit'] font-black text-slate-900 tracking-tight mb-2">
+            NOTYX <span className="text-blue-600">EDU</span>
           </h1>
-          <p className="text-slate-400 font-bold text-sm uppercase tracking-[0.2em]">
+          <p className="text-slate-500 font-bold text-xs uppercase tracking-[0.2em]">
             Plataforma de Seguimiento Académico
           </p>
         </div>
 
-        <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 p-6 md:p-10 rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="space-y-4">
-              <label className="label-lg text-slate-500 ml-2">
+        <div className="bg-white/90 backdrop-blur-2xl border border-slate-200/80 p-6 md:p-10 rounded-[3rem] shadow-2xl shadow-slate-900/5">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-3">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-2 block">
                 Código de Acceso
               </label>
               <div className="relative group">
@@ -55,9 +55,9 @@ export default function Gateway() {
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="Escribe tu código aquí..."
-                  className={`input input-lg text-center uppercase tracking-widest ${
-                    error ? 'border-red-500/50 shake' : 'border-transparent group-focus-within:border-blue-500/50'
-                  } bg-slate-800/50 text-white placeholder:text-slate-600`}
+                  className={`w-full h-14 text-center font-['Outfit'] font-extrabold uppercase tracking-widest text-lg rounded-2xl ${
+                    error ? 'border-2 border-rose-500 shake' : 'border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20'
+                  } bg-slate-50 text-slate-900 placeholder:text-slate-400 outline-none transition-all`}
                   style={{ animation: error ? 'shake 0.4s ease-in-out' : 'none' }}
                 />
               </div>
@@ -65,48 +65,48 @@ export default function Gateway() {
 
             <Button
               type="submit"
-              className="w-full h-16 rounded-[1.5rem] font-black text-lg shadow-xl shadow-blue-600/20 transition-all active:scale-95 flex items-center justify-center gap-3 border-none ring-1 ring-white/10"
+              className="w-full h-14 rounded-2xl font-black text-base shadow-xl shadow-blue-600/20 bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-95 flex items-center justify-center gap-3"
             >
               INGRESAR <ArrowRight className="w-5 h-5" />
             </Button>
           </form>
 
-          <div className="mt-10 pt-8 border-t border-white/10 space-y-4">
+          <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Acceso Directo por Rol</p>
             
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => navigate("/login")}
-                className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-800/80 hover:bg-blue-600/20 hover:border-blue-500/50 border border-white/5 text-left transition-all group"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200/80 text-left transition-all group"
               >
-                <div className="w-10 h-10 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                   <UserCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-white leading-tight">Docentes / Alumnos</p>
-                  <p className="text-[9px] font-bold text-slate-400">Iniciar sesión</p>
+                  <p className="text-xs font-black text-slate-900 leading-tight">Docentes / Alumnos</p>
+                  <p className="text-[9px] font-bold text-slate-500">Iniciar sesión</p>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => navigate("/tutor")}
-                className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-800/80 hover:bg-emerald-600/20 hover:border-emerald-500/50 border border-white/5 text-left transition-all group"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-emerald-50 border border-slate-200/80 text-left transition-all group"
               >
-                <div className="w-10 h-10 bg-emerald-600/20 text-emerald-400 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-white leading-tight">Portal Tutores</p>
-                  <p className="text-[9px] font-bold text-slate-400">Consulta con DNI</p>
+                  <p className="text-xs font-black text-slate-900 leading-tight">Portal Tutores</p>
+                  <p className="text-[9px] font-bold text-slate-500">Consulta con DNI</p>
                 </div>
               </button>
             </div>
           </div>
         </div>
 
-        <p className="mt-8 text-center text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] flex items-center justify-center gap-2">
+        <p className="mt-8 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] flex items-center justify-center gap-2">
           <Sparkles className="w-3 h-3 text-blue-500" /> Notyx Edu Plataforma Académica
         </p>
       </div>
