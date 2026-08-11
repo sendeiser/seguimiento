@@ -59,7 +59,7 @@ export default function Gateway() {
                 </div>
                 <div>
                   <h3 className="font-['Outfit'] font-black text-slate-900 text-base leading-tight">Acceso Docentes</h3>
-                  <p className="text-xs font-bold text-slate-500 mt-0.5">Iniciar sesión</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">Iniciar sesión o Crear cuenta de profesor</p>
                 </div>
               </div>
               <ArrowRight className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform mr-1" />

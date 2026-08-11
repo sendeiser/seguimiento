@@ -137,11 +137,19 @@ export default function Login() {
             </form>
 
             <div className="mt-8 pt-6 flex flex-col items-center gap-3" style={{ borderTop: '1px solid hsl(0 0% 0% / 0.05)' }}>
-              <Link to="/tutor" className="w-full">
-                <Button variant="secondary" className="w-full h-11 rounded-xl font-['DM_Sans'] font-bold text-xs gap-2 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
-                  <GraduationCap className="w-4 h-4" /> Portal Familias y Tutores
-                </Button>
-              </Link>
+              <p className="text-xs font-bold text-slate-500">¿Sos docente y no tenés cuenta?</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                <Link to="/register" className="w-full">
+                  <Button variant="secondary" className="w-full h-11 rounded-xl font-['DM_Sans'] font-bold text-xs gap-2">
+                    <UserPlus className="w-4 h-4 text-blue-600" /> Crear Cuenta Docente
+                  </Button>
+                </Link>
+                <Link to="/tutor" className="w-full">
+                  <Button variant="secondary" className="w-full h-11 rounded-xl font-['DM_Sans'] font-bold text-xs gap-2 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
+                    <GraduationCap className="w-4 h-4" /> Portal Tutores
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
