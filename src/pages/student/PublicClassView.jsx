@@ -251,11 +251,11 @@ export default function PublicClassView() {
               
               <div className="flex flex-wrap items-center gap-2">
                 {/* Cuatrimestre Selector */}
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 gap-1">
+                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                   <button
                     onClick={() => { setCuatrimestreFilter("all"); setAnimKey(k => k + 1); }}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      cuatrimestreFilter === "all" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      cuatrimestreFilter === "all" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     Año
@@ -263,7 +263,7 @@ export default function PublicClassView() {
                   <button
                     onClick={() => { setCuatrimestreFilter("1"); setAnimKey(k => k + 1); }}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      cuatrimestreFilter === "1" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      cuatrimestreFilter === "1" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     1ºC
@@ -271,7 +271,7 @@ export default function PublicClassView() {
                   <button
                     onClick={() => { setCuatrimestreFilter("2"); setAnimKey(k => k + 1); }}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      cuatrimestreFilter === "2" ? "bg-purple-600 text-white shadow-md shadow-purple-600/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      cuatrimestreFilter === "2" ? "bg-purple-600 text-white shadow-md shadow-purple-600/20" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     2ºC
@@ -284,7 +284,7 @@ export default function PublicClassView() {
                   <select 
                     value={sessionFilter}
                     onChange={(e) => { setSessionFilter(e.target.value); setAnimKey(k => k + 1); }}
-                    className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-9 pr-8 text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+                    className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-8 text-[11px] font-black uppercase tracking-wider text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
                   >
                     <option value="latest">Hoy</option>
                     <option value="all">Todo</option>
@@ -300,17 +300,17 @@ export default function PublicClassView() {
                 </div>
                 
                 {/* View Toggles */}
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
                   <button 
                     onClick={() => setViewMode("table")}
-                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "table" ? "bg-white dark:bg-slate-900 text-blue-600 shadow-sm font-bold" : "text-slate-500 dark:text-slate-400"}`}
+                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "table" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500"}`}
                   >
                     <List className="w-4 h-4" />
                     <span className="text-[10px] sm:hidden font-black uppercase tracking-widest">Planilla</span>
                   </button>
                   <button 
                     onClick={() => setViewMode("cards")}
-                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "cards" ? "bg-white dark:bg-slate-900 text-blue-600 shadow-sm font-bold" : "text-slate-500 dark:text-slate-400"}`}
+                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "cards" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500"}`}
                   >
                     <LayoutGrid className="w-4 h-4" />
                     <span className="text-[10px] sm:hidden font-black uppercase tracking-widest">Tarjeta</span>
@@ -337,12 +337,12 @@ export default function PublicClassView() {
           </div>
         ) : viewMode === "table" ? (
           /* Table View - Executive Redesign */
-          <div className="bg-white dark:bg-slate-900 rounded-[32px] md:rounded-[40px] border border-slate-200/80 dark:border-slate-800 shadow-2xl shadow-slate-900/5 overflow-hidden">
+          <div className="bg-white rounded-[32px] md:rounded-[40px] border border-slate-200/80 shadow-2xl shadow-slate-900/5 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-base border-collapse table-fixed md:table-auto">
                 <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800">
-                    <th className="text-left px-4 md:px-8 py-4 md:py-6 font-['Outfit'] font-black text-[10px] md:text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200 sticky left-0 bg-slate-100 dark:bg-slate-950 z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[120px] md:w-auto">
+                  <tr className="bg-slate-100 text-slate-800 border-b border-slate-200">
+                    <th className="text-left px-4 md:px-8 py-4 md:py-6 font-['Outfit'] font-black text-[10px] md:text-xs uppercase tracking-widest text-slate-800 sticky left-0 bg-slate-100 z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[120px] md:w-auto">
                       Alumno
                     </th>
                     {(visibleSessions).map(session => {
@@ -351,42 +351,42 @@ export default function PublicClassView() {
                         <th
                           key={session.id}
                           colSpan={(session.criteria || []).length}
-                          className="px-2 md:px-6 py-3 md:py-5 text-center border-l border-slate-200 dark:border-slate-800"
+                          className="px-2 md:px-6 py-3 md:py-5 text-center border-l border-slate-200"
                         >
                           <div className="flex items-center justify-center gap-2">
                             <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
                               sCuatrimestre === 2 
-                                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300 border-purple-200 dark:border-purple-700" 
-                                : "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 border-blue-200 dark:border-blue-700"
+                                ? "bg-purple-100 text-purple-700 border-purple-200" 
+                                : "bg-blue-100 text-blue-700 border-blue-200"
                             }`}>
                               {sCuatrimestre}ºC
                             </span>
-                            <span className="font-['Outfit'] font-black text-sm uppercase tracking-widest text-slate-800 dark:text-slate-100">
+                            <span className="font-['Outfit'] font-black text-sm uppercase tracking-widest text-slate-800">
                               {format(new Date(session.date + "T12:00:00"), "d 'de' MMM", { locale: es })}
                             </span>
                           </div>
                         </th>
                       );
                     })}
-                    <th className="px-3 md:px-8 py-4 md:py-6 text-center font-['Outfit'] font-black text-[10px] md:text-xs uppercase tracking-widest text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950/80 border-l-2 border-blue-200 dark:border-blue-800 sticky right-0 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[70px] md:w-auto">
+                    <th className="px-3 md:px-8 py-4 md:py-6 text-center font-['Outfit'] font-black text-[10px] md:text-xs uppercase tracking-widest text-blue-700 bg-blue-100/80 border-l-2 border-blue-200 sticky right-0 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[70px] md:w-auto">
                       TOTAL
                     </th>
                   </tr>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-                    <th className="sticky left-0 bg-slate-50 dark:bg-slate-900 z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="sticky left-0 bg-slate-50 z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
                     {visibleCriteria.map(crit => (
-                      <th key={crit.id} className="px-2 md:px-6 py-2.5 md:py-4 text-center border-l border-slate-200 dark:border-slate-800 min-w-[50px] md:min-w-[140px]">
-                        <div className="text-[10px] md:text-xs font-['Outfit'] font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider truncate max-w-[130px] mx-auto leading-tight" title={crit.name}>{crit.name}</div>
-                        <div className="text-[9px] md:text-[10px] font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-md inline-block mt-1">
+                      <th key={crit.id} className="px-2 md:px-6 py-2.5 md:py-4 text-center border-l border-slate-200 min-w-[50px] md:min-w-[140px]">
+                        <div className="text-[10px] md:text-xs font-['Outfit'] font-black text-slate-800 uppercase tracking-wider truncate max-w-[130px] mx-auto leading-tight" title={crit.name}>{crit.name}</div>
+                        <div className="text-[9px] md:text-[10px] font-black text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md inline-block mt-1">
                           MÁX: {crit.max_score}
                         </div>
                       </th>
                     ))}
-                    <th className="sticky right-0 bg-blue-50 dark:bg-blue-950/60 border-l-2 border-blue-200 dark:border-blue-800 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
+                    <th className="sticky right-0 bg-blue-50 border-l-2 border-blue-200 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                <tbody className="divide-y divide-slate-100">
                   {filteredStudents.map((student, idx) => {
                     const pct = calculateOverallPercentage(student.total, student.max);
                     const names = student.name.split(" ");
@@ -397,13 +397,13 @@ export default function PublicClassView() {
                     <tr
                       key={student.cs_id}
                       onClick={() => student.token && navigate(`/live/${student.token}`)}
-                      className={`cursor-pointer transition-colors group hover:bg-blue-50/40 dark:hover:bg-slate-800/60 ${isPinned ? "bg-blue-50/60 dark:bg-blue-950/30" : "bg-white dark:bg-slate-900"}`}
+                      className={`cursor-pointer transition-colors group hover:bg-blue-50/40 ${isPinned ? "bg-blue-50/60" : "bg-white"}`}
                     >
-                      <td className={`px-4 md:px-8 py-4 md:py-5 sticky left-0 z-10 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors group-hover:bg-slate-50 dark:group-hover:bg-slate-800 w-[120px] md:w-[300px] overflow-hidden ${isPinned ? "bg-blue-50 dark:bg-slate-900" : "bg-white dark:bg-slate-900"}`}>
+                      <td className={`px-4 md:px-8 py-4 md:py-5 sticky left-0 z-10 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors group-hover:bg-slate-50 w-[120px] md:w-[300px] overflow-hidden ${isPinned ? "bg-blue-50" : "bg-white"}`}>
                         <div className="flex items-center gap-2 md:gap-4">
                           <button 
                             onClick={(e) => { e.stopPropagation(); togglePin(student.cs_id); }}
-                            className={`p-1.5 rounded-xl transition-all outline-none ${isPinned ? "text-amber-500 bg-amber-50 dark:bg-amber-950/50 shadow-sm" : "text-slate-300 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
+                            className={`p-1.5 rounded-xl transition-all outline-none ${isPinned ? "text-amber-500 bg-amber-50 shadow-sm" : "text-slate-300 hover:text-amber-500 hover:bg-slate-100"}`}
                             title={isPinned ? "Desfijar" : "Fijar Alumno"}
                           >
                             <Pin className={`w-4 h-4 ${isPinned ? "fill-amber-500" : ""}`} />
@@ -414,31 +414,31 @@ export default function PublicClassView() {
                             idx === 0 ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-amber-500/20" :
                             idx === 1 ? "bg-gradient-to-br from-slate-300 to-slate-400 text-white" :
                             idx === 2 ? "bg-gradient-to-br from-amber-600 to-amber-700 text-white" :
-                            "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                            "bg-slate-100 text-slate-600 border border-slate-200"
                           }`}>
                             {idx < 3 && !isPinned ? <Medal className="w-5 h-5" /> : idx + 1}
                           </div>
                           
                           <div className="flex flex-col justify-center min-w-0">
                             <span 
-                              className="font-['Outfit'] font-extrabold text-sm md:text-lg text-slate-900 dark:text-white tracking-tight truncate leading-tight block w-full"
+                              className="font-['Outfit'] font-extrabold text-sm md:text-lg text-slate-900 tracking-tight truncate leading-tight block w-full"
                               title={student.name}
                             >
                               <span className="md:hidden">{mobileName}</span>
                               <span className="hidden md:inline">{student.name}</span>
                             </span>
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
                                 Nv. {student.gami?.currentLevel || 1}
                               </span>
                               {student.gami?.streak >= 3 && (
-                                <span className="flex items-center gap-0.5 text-[9px] font-black text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-800 px-2 py-0.5 rounded-md">
+                                <span className="flex items-center gap-0.5 text-[9px] font-black text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">
                                    <Flame className="w-3 h-3 fill-orange-500 text-orange-500" />
                                    {student.gami.streak}
                                 </span>
                               )}
                               {student.gami?.hp <= 30 && (
-                                <span className="flex items-center gap-0.5 text-[9px] font-black text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-2 py-0.5 rounded-md animate-pulse">
+                                <span className="flex items-center gap-0.5 text-[9px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md animate-pulse">
                                    <Heart className="w-3 h-3 fill-rose-500 text-rose-500" /> {student.gami.hp}
                                 </span>
                               )}
@@ -455,43 +455,43 @@ export default function PublicClassView() {
                         let scoreColorClass = "text-slate-300 font-bold";
                         if (numScore != null) {
                           if (pctScore >= 0.7) {
-                            scoreColorClass = "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-2 border-emerald-400 dark:border-emerald-600 font-black shadow-sm";
+                            scoreColorClass = "bg-emerald-50 text-emerald-800 border-2 border-emerald-400 font-black shadow-sm";
                           } else if (pctScore >= 0.4) {
-                            scoreColorClass = "bg-amber-50 dark:bg-amber-950/80 text-amber-900 dark:text-amber-200 border-2 border-amber-400 dark:border-amber-600 font-black shadow-sm";
+                            scoreColorClass = "bg-amber-50 text-amber-900 border-2 border-amber-400 font-black shadow-sm";
                           } else {
-                            scoreColorClass = "bg-rose-50 dark:bg-rose-950/80 text-rose-900 dark:text-rose-200 border-2 border-rose-400 dark:border-rose-600 font-black shadow-sm";
+                            scoreColorClass = "bg-rose-50 text-rose-900 border-2 border-rose-400 font-black shadow-sm";
                           }
                         }
 
                         return (
-                          <td key={crit.id} className="px-2 md:px-6 py-3 md:py-5 text-center border-l border-slate-100 dark:border-slate-800/60 transition-colors">
+                          <td key={crit.id} className="px-2 md:px-6 py-3 md:py-5 text-center border-l border-slate-100 transition-colors">
                             {numScore != null ? (
                               <div className={`mx-auto w-12 h-10 md:w-16 md:h-11 rounded-2xl flex items-center justify-center font-['Outfit'] font-black text-base md:text-lg ${scoreColorClass}`}>
                                 {score}
                               </div>
                             ) : (
-                              <span className="text-slate-300 dark:text-slate-600 font-bold text-base">—</span>
+                              <span className="text-slate-300 font-bold text-base">—</span>
                             )}
                           </td>
                         );
                       })}
                       
-                      <td className="px-3 md:px-8 py-3 md:py-5 border-l-2 border-blue-200 dark:border-blue-800 sticky right-0 z-10 bg-blue-50/80 dark:bg-blue-950/60 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[70px] md:w-[150px]">
+                      <td className="px-3 md:px-8 py-3 md:py-5 border-l-2 border-blue-200 sticky right-0 z-10 bg-blue-50/80 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[70px] md:w-[150px]">
                         <div className="flex flex-col h-full justify-center text-center md:text-left">
                            <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-1 mb-1.5">
                              <div className="flex items-baseline justify-center md:justify-start gap-1">
-                               <span className="font-['Outfit'] font-black text-base md:text-2xl tracking-tight text-blue-700 dark:text-blue-300 leading-none">
+                               <span className="font-['Outfit'] font-black text-base md:text-2xl tracking-tight text-blue-700 leading-none">
                                 {student.total}
                                </span>
-                               <span className="text-[10px] font-black uppercase text-blue-400 dark:text-blue-400 tracking-widest leading-none hidden md:inline">/ {student.max}</span>
+                               <span className="text-[10px] font-black uppercase text-blue-400 tracking-widest leading-none hidden md:inline">/ {student.max}</span>
                              </div>
-                             <span className="text-[10px] md:text-xs font-black text-blue-700 dark:text-blue-300 bg-white dark:bg-blue-900/80 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm inline-block mx-auto md:mx-0">
+                             <span className="text-[10px] md:text-xs font-black text-blue-700 bg-white px-2 py-0.5 rounded-lg border border-blue-200 shadow-sm inline-block mx-auto md:mx-0">
                                {Math.round(pct * 100)}%
                              </span>
                            </div>
                            
                            {/* Mini Progress Bar */}
-                           <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-1.5 overflow-hidden">
+                           <div className="w-full bg-blue-200 rounded-full h-1.5 overflow-hidden">
                              <div 
                                 className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500" 
                                 style={{ width: `${pct * 100}%` }}

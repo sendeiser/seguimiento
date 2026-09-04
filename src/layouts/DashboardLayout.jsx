@@ -165,7 +165,7 @@ export default function DashboardLayout() {
                     {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
                   </button>
                   <button onClick={handleLogout}
-                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 transition-all"
                     aria-label="Cerrar sesión"
                   >
                     <LogOut className="w-3.5 h-3.5" />

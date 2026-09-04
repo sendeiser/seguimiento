@@ -76,7 +76,7 @@ export default function StudentReportModal({ student, className, criteria, grade
           </div>
 
           {/* Academic Overview Summary Grid */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-center">
               <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 block">Promedio General</span>
               <span className="font-['Outfit'] font-black text-3xl text-blue-800 mt-1 block">{percentage}%</span>
@@ -98,51 +98,53 @@ export default function StudentReportModal({ student, className, criteria, grade
             <h4 className="font-['Outfit'] font-black text-sm uppercase tracking-widest text-slate-900 mb-3 flex items-center gap-2">
               <Award className="w-4 h-4 text-blue-600" /> Calificaciones por Criterio
             </h4>
-            <table className="w-full text-sm border-collapse border border-slate-200">
-              <thead>
-                <tr className="bg-slate-100 text-slate-800">
-                  <th className="text-left px-4 py-3 font-bold border border-slate-200">Criterio de Evaluación</th>
-                  <th className="text-center px-4 py-3 font-bold border border-slate-200">Nota Obtenida</th>
-                  <th className="text-center px-4 py-3 font-bold border border-slate-200">Puntaje Máximo</th>
-                  <th className="text-right px-4 py-3 font-bold border border-slate-200">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {criteriaScores.map(c => (
-                  <tr key={c.id}>
-                    <td className="px-4 py-3 font-bold text-slate-800 border border-slate-200">{c.name}</td>
-                    <td className="px-4 py-3 text-center font-black text-base border border-slate-200">
-                      {c.score !== null ? c.score : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold text-slate-500 border border-slate-200">{c.max_score}</td>
-                    <td className="px-4 py-3 text-right border border-slate-200">
-                      {c.score !== null ? (
-                        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-md border ${
-                          c.score / c.max_score >= 0.7 
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-300" 
-                            : c.score / c.max_score >= 0.4
-                            ? "bg-amber-50 text-amber-900 border-amber-300"
-                            : "bg-rose-50 text-rose-900 border-rose-300"
-                        }`}>
-                          {c.score / c.max_score >= 0.7 ? "Excelente" : c.score / c.max_score >= 0.4 ? "Regular" : "Reforzar"}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 font-bold text-xs">Pendiente</span>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse border border-slate-200">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-800">
+                    <th className="text-left px-4 py-3 font-bold border border-slate-200">Criterio de Evaluación</th>
+                    <th className="text-center px-4 py-3 font-bold border border-slate-200">Nota Obtenida</th>
+                    <th className="text-center px-4 py-3 font-bold border border-slate-200">Puntaje Máximo</th>
+                    <th className="text-right px-4 py-3 font-bold border border-slate-200">Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {criteriaScores.map(c => (
+                    <tr key={c.id}>
+                      <td className="px-4 py-3 font-bold text-slate-800 border border-slate-200">{c.name}</td>
+                      <td className="px-4 py-3 text-center font-black text-base border border-slate-200">
+                        {c.score !== null ? c.score : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-center font-bold text-slate-500 border border-slate-200">{c.max_score}</td>
+                      <td className="px-4 py-3 text-right border border-slate-200">
+                        {c.score !== null ? (
+                          <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-md border ${
+                            c.score / c.max_score >= 0.7 
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-300" 
+                              : c.score / c.max_score >= 0.4
+                              ? "bg-amber-50 text-amber-900 border-amber-300"
+                              : "bg-rose-50 text-rose-900 border-rose-300"
+                          }`}>
+                            {c.score / c.max_score >= 0.7 ? "Excelente" : c.score / c.max_score >= 0.4 ? "Regular" : "Reforzar"}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-bold text-xs">Pendiente</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Footer Signature Box */}
-          <div className="pt-8 border-t border-slate-200 flex justify-between items-end">
-            <div className="text-center w-48">
+          <div className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row gap-6 sm:gap-0 justify-between items-center sm:items-end">
+            <div className="text-center w-full sm:w-48">
               <div className="border-b border-slate-400 mb-2 h-10" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Firma del Docente</span>
             </div>
-            <div className="text-center w-48">
+            <div className="text-center w-full sm:w-48">
               <div className="border-b border-slate-400 mb-2 h-10" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Firma Padre / Tutor</span>
             </div>

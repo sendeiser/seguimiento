@@ -87,7 +87,7 @@ export default function TeacherDashboard() {
               <Card className="card card-hover h-full rounded-3xl">
                 <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-600 opacity-80 group-hover:opacity-100 transition-opacity" />
                 <CardHeader className="flex-1 p-6">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 w-12 h-12 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <div className="bg-blue-50 w-12 h-12 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 border border-blue-100">
                     <GraduationCap className="w-6 h-6 text-blue-600" />
                   </div>
                   <CardTitle className="text-xl font-black text-[var(--text-primary)] group-hover:text-blue-600 transition-colors uppercase tracking-tight">{cls.name}</CardTitle>

@@ -505,14 +505,14 @@ export default function ClassView() {
         <div className="space-y-8 animate-in slide-up">
           {/* Top Control Bar */}
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-             <form onSubmit={handleAddStudent} className="flex gap-3 w-full md:w-auto">
+             <form onSubmit={handleAddStudent} className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                 <input 
                   placeholder="Nombre del alumno..." 
-                  className="bg-white border border-slate-200 rounded-2xl h-14 px-6 font-bold w-full md:w-80 outline-none focus:border-blue-400 transition-all"
+                  className="bg-white border border-slate-200 rounded-2xl h-14 px-6 font-bold w-full sm:w-80 outline-none focus:border-blue-400 transition-all"
                   value={newStudentName}
                   onChange={e => setNewStudentName(e.target.value)}
                 />
-                <Button type="submit" className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px]"><UserPlus className="w-5 h-5 mr-2" /> Agregar</Button>
+                <Button type="submit" className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px] w-full sm:w-auto"><UserPlus className="w-5 h-5 mr-2" /> Agregar</Button>
              </form>
              <div className="relative w-full md:w-80">
                 <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
@@ -819,7 +819,7 @@ export default function ClassView() {
       {/* --- MODALS --- */}
       {showSessionModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-           <div className="bg-white rounded-[40px] w-full max-w-sm p-10 shadow-2xl animate-in zoom-in duration-300">
+           <div className="bg-white rounded-[32px] sm:rounded-[40px] w-full max-w-sm p-6 sm:p-8 shadow-2xl animate-in zoom-in duration-300">
               <h3 className="text-2xl font-black text-slate-900 mb-2">
                 {editingSession ? 'Editar Sesión' : 'Nueva Sesión'}
               </h3>
@@ -865,7 +865,7 @@ export default function ClassView() {
 
       {(showRewardModal || showHouseModal) && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-           <div className="bg-white rounded-[40px] w-full max-w-md p-10 shadow-2xl animate-in zoom-in duration-300">
+           <div className="bg-white rounded-[32px] sm:rounded-[40px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
               <h3 className="text-2xl font-black text-slate-900 mb-6">
                 {editingItem ? 'Editar' : 'Crear'} {showRewardModal ? 'Premio' : 'Casa'}
               </h3>

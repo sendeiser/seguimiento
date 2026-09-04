@@ -141,10 +141,10 @@ export default function TutorPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col items-center p-4 sm:p-8">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center p-4 sm:p-8">
       
       {/* Top Brand Header */}
-      <header className="w-full max-w-4xl flex items-center justify-between py-6 border-b border-slate-200 dark:border-slate-800 mb-8">
+      <header className="w-full max-w-4xl flex items-center justify-between py-6 border-b border-slate-200 mb-8">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
             <GraduationCap className="w-7 h-7" />
@@ -154,7 +154,7 @@ export default function TutorPortal() {
             <p className="font-['DM_Sans'] font-bold text-xs text-slate-400 uppercase tracking-widest">Portal de Familias y Tutores</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider">
+        <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider">
           <ShieldCheck className="w-4 h-4" /> Acceso Seguro
         </div>
       </header>
@@ -162,9 +162,9 @@ export default function TutorPortal() {
       <main className="w-full max-w-4xl space-y-8">
         
         {/* DNI Search Form */}
-        <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 sm:p-10 border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-900/5">
+        <div className="bg-white rounded-[32px] p-6 sm:p-10 border border-slate-200/80 shadow-xl shadow-slate-900/5">
           <div className="max-w-xl mx-auto text-center space-y-4">
-            <h2 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-slate-900 dark:text-white tracking-tight">Consulta de Boletín Escolar</h2>
+            <h2 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-slate-900 tracking-tight">Consulta de Boletín Escolar</h2>
             <p className="text-slate-500 font-medium text-sm">
               Ingresá el DNI del alumno para consultar sus calificaciones, asistencia y desempeño del 1º y 2º cuatrimestre.
             </p>
@@ -177,7 +177,7 @@ export default function TutorPortal() {
                   placeholder="Número de DNI del alumno..."
                   value={queryDni}
                   onChange={(e) => setQueryDni(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-base font-bold outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-base font-bold outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all"
                 />
               </div>
               <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-13 px-8 font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-500/20">
@@ -186,7 +186,7 @@ export default function TutorPortal() {
             </form>
 
             {error && (
-              <div className="flex items-center gap-2 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-sm font-bold text-left mt-4">
+              <div className="flex items-center gap-2 p-4 rounded-2xl bg-rose-50 text-rose-700 border border-rose-200 text-sm font-bold text-left mt-4">
                 <AlertCircle className="w-5 h-5 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -216,42 +216,42 @@ export default function TutorPortal() {
 
             {/* Cuatrimestres Breakdown */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 text-center shadow-sm">
                 <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">1º Cuatrimestre</span>
-                <span className="font-['Outfit'] font-black text-3xl text-blue-600 dark:text-blue-400 mt-2 block">
+                <span className="font-['Outfit'] font-black text-3xl text-blue-600 mt-2 block">
                   {reportData.c1Avg > 0 ? `${reportData.c1Avg}%` : "—"}
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 text-center shadow-sm">
                 <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">2º Cuatrimestre</span>
-                <span className="font-['Outfit'] font-black text-3xl text-purple-600 dark:text-purple-400 mt-2 block">
+                <span className="font-['Outfit'] font-black text-3xl text-purple-600 mt-2 block">
                   {reportData.c2Avg > 0 ? `${reportData.c2Avg}%` : "—"}
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 text-center shadow-sm">
                 <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">Asistencia General</span>
-                <span className="font-['Outfit'] font-black text-3xl text-emerald-600 dark:text-emerald-400 mt-2 block">
+                <span className="font-['Outfit'] font-black text-3xl text-emerald-600 mt-2 block">
                   {reportData.attendancePct}%
                 </span>
               </div>
             </div>
 
             {/* Detailed Grades List */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <h4 className="font-['Outfit'] font-black text-lg text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm">
+              <h4 className="font-['Outfit'] font-black text-lg text-slate-900 mb-6 flex items-center gap-2">
                 <Award className="w-5 h-5 text-blue-600" /> Detalle de Evaluaciones por Criterio
               </h4>
 
               {reportData.grades.length === 0 ? (
                 <p className="text-slate-400 font-bold text-center py-8">Aún no hay calificaciones registradas por los docentes.</p>
               ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                <div className="divide-y divide-slate-100">
                   {reportData.grades.map(g => (
                     <div key={g.criteria_id + g.session_id} className="py-4 flex items-center justify-between">
                       <div>
-                        <span className="font-['Outfit'] font-extrabold text-base text-slate-900 dark:text-white block">
+                        <span className="font-['Outfit'] font-extrabold text-base text-slate-900 block">
                           {g.criteria?.name || "Evaluación"}
                         </span>
                         <span className="text-xs font-bold text-slate-400">

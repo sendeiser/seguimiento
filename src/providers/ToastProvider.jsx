@@ -40,10 +40,10 @@ export function ToastProvider({ children }) {
   }, [])
 
   const typeStyles = {
-    info: "bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700",
-    success: "bg-emerald-500/90 text-white border-emerald-400",
-    error: "bg-red-500/90 text-white border-red-400",
-    warning: "bg-amber-500/90 text-white border-amber-400",
+    info: "bg-white/95 text-slate-900 border-slate-200 shadow-xl",
+    success: "bg-emerald-600 text-white border-emerald-500 shadow-xl",
+    error: "bg-rose-600 text-white border-rose-500 shadow-xl",
+    warning: "bg-amber-500 text-white border-amber-400 shadow-xl",
   }
 
   const typeIcons = {
@@ -79,9 +79,9 @@ export function ToastProvider({ children }) {
       )}
 
       {confirmState && (
-        <div role="dialog" aria-modal="true" aria-labelledby="confirm-title" className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-in">
-            <p id="confirm-title" className="text-gray-900 dark:text-gray-100 text-base font-medium mb-6">
+        <div role="dialog" aria-modal="true" aria-labelledby="confirm-title" className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 animate-scale-in">
+            <p id="confirm-title" className="text-slate-900 text-base font-medium mb-6">
               {confirmState.message}
             </p>
             <div className="flex justify-end gap-3">

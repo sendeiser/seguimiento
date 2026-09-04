@@ -36,33 +36,25 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden font-sans">
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/5 blur-[100px] rounded-full animate-float" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/5 blur-[100px] rounded-full animate-float-reverse" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-200/40 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-purple-200/40 blur-[120px] rounded-full" />
       </div>
 
-      {/* Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className="absolute top-4 right-4 p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
-      >
-        {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
-
       <div className="w-full max-w-md animate-in slide-up">
-        <Link to="/" className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-[var(--text-secondary)] hover:text-blue-600 transition-colors mb-6 group">
+        <Link to="/" className="inline-flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-500 hover:text-blue-600 transition-colors mb-6 group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Volver al inicio
         </Link>
 
-        <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-slate-200/50 dark:shadow-slate-900/50 bg-[var(--bg-primary)]/80 backdrop-blur-xl overflow-hidden group">
+        <Card className="rounded-[2.5rem] border border-slate-200/80 shadow-2xl shadow-slate-900/5 bg-white/95 backdrop-blur-2xl overflow-hidden group">
           <div className="h-1.5 bg-gradient-to-r from-purple-500 to-blue-600 opacity-60 group-hover:opacity-100 transition-opacity" />
-          <CardHeader className="space-y-2 pt-10 pb-6 px-10">
-            <div className="bg-purple-50 dark:bg-purple-900/20 w-12 h-12 rounded-2xl flex items-center justify-center mb-4">
+          <CardHeader className="space-y-2 pt-10 pb-6 px-8 sm:px-10">
+            <div className="bg-purple-50 w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border border-purple-100">
               <UserPlus className="w-6 h-6 text-purple-600" />
             </div>
-            <CardTitle className="text-3xl font-black text-[var(--text-primary)] tracking-tight">Crear Cuenta</CardTitle>
-            <CardDescription className="font-bold text-[var(--text-secondary)]">Registrate como docente para empezar.</CardDescription>
+            <CardTitle className="text-3xl font-black text-slate-900 tracking-tight font-['Outfit']">Crear Cuenta</CardTitle>
+            <CardDescription className="font-bold text-slate-500">Registrate como docente para empezar.</CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-12">
             <form onSubmit={handleRegister} className="space-y-6">
