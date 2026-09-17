@@ -9,12 +9,12 @@ const LEVELS = {
   hard: { max: 100, time: 30, xp: 150, label: 'Leyenda' }
 };
 
-export default function MathBlitzGame({ studentId, onExit, onWin }) {
+export default function MathBlitzGame({ studentId, onExit, onWin, isDuel = false, initialDifficulty = 'easy', onDuelScore }) {
   const [problem, setProblem] = useState({ a: 0, b: 0, op: '+', res: 0 });
   const [input, setInput] = useState('');
   const [score, setScore] = useState(0);
-  const [difficulty, setDifficulty] = useState('easy');
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [difficulty, setDifficulty] = useState(initialDifficulty || 'easy');
+  const [timeLeft, setTimeLeft] = useState(LEVELS[initialDifficulty || 'easy']?.time || 30);
   const [status, setStatus] = useState('playing'); // playing, finished
   const inputRef = useRef(null);
 
@@ -70,42 +70,64 @@ export default function MathBlitzGame({ studentId, onExit, onWin }) {
 
   const handleFinish = () => {
     setStatus('finished');
-    if (score >= 5) {
+    if (onDuelScore) {
+      onDuelScore(score);
+    }
+    if (score >= 3) {
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       const xp = Math.min(score * 10, LEVELS[difficulty].xp);
-      saveProgress();
-      if (onWin) onWin(xp);
+      const coins = score >= 10 ? 15 : score >= 5 ? 8 : 3;
+      saveProgress(coins);
+      if (onWin) onWin(xp, coins);
     }
   };
 
-  const saveProgress = async () => {
-    const { data: existing } = await supabase
-      .from('student_game_progress')
-      .select('*')
-      .eq('class_student_id', studentId)
-      .eq('game_name', 'Math Blitz')
-      .eq('difficulty', difficulty)
-      .single();
+  const saveProgress = async (earnedCoins = 5) => {
+    if (!studentId) return;
+    try {
+      const { data: existing } = await supabase
+        .from('student_game_progress')
+        .select('*')
+        .eq('class_student_id', studentId)
+        .eq('game_name', 'Math Blitz')
+        .eq('difficulty', difficulty)
+        .maybeSingle();
 
-    if (existing) {
-      await supabase
-        .from('student_game_progress')
-        .update({
-          high_score: Math.max(existing.high_score, score),
-          total_games_played: existing.total_games_played + 1,
-          last_played_at: new Date().toISOString()
-        })
-        .eq('id', existing.id);
-    } else {
-      await supabase
-        .from('student_game_progress')
-        .insert([{
-          class_student_id: studentId,
-          game_name: 'Math Blitz',
-          difficulty: difficulty,
-          high_score: score,
-          total_games_played: 1
-        }]);
+      if (existing) {
+        await supabase
+          .from('student_game_progress')
+          .update({
+            high_score: Math.max(existing.high_score, score),
+            total_games_played: (existing.total_games_played || 0) + 1,
+            last_played_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('student_game_progress')
+          .insert([{
+            class_student_id: studentId,
+            game_name: 'Math Blitz',
+            difficulty: difficulty,
+            high_score: score,
+            total_games_played: 1,
+            last_played_at: new Date().toISOString()
+          }]);
+      }
+
+      // Record minigame coin reward
+      if (earnedCoins > 0) {
+        await supabase
+          .from('student_minigame_logs')
+          .insert([{
+            class_student_id: studentId,
+            game_name: 'Math Blitz',
+            reward_coins: earnedCoins,
+            completed_at: new Date().toISOString()
+          }]);
+      }
+    } catch (err) {
+      console.warn("Error saving MathBlitz progress:", err);
     }
   };
 
@@ -120,14 +142,20 @@ export default function MathBlitzGame({ studentId, onExit, onWin }) {
               <Timer className="w-4 h-4" />
               <span className="font-black">{timeLeft}s</span>
            </div>
-           <select 
-             className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-black text-[10px] uppercase outline-none focus:border-orange-400"
-             value={difficulty}
-             onChange={(e) => setDifficulty(e.target.value)}
-             disabled={status === 'finished'}
-           >
-             {Object.keys(LEVELS).map(l => <option key={l} value={l}>{LEVELS[l].label}</option>)}
-           </select>
+           {isDuel ? (
+             <span className="px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-1.5 shadow-sm">
+               ⚔️ Duelo ({LEVELS[difficulty]?.label})
+             </span>
+           ) : (
+             <select 
+               className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-black text-[10px] uppercase outline-none focus:border-orange-400"
+               value={difficulty}
+               onChange={(e) => setDifficulty(e.target.value)}
+               disabled={status === 'finished'}
+             >
+               {Object.keys(LEVELS).map(l => <option key={l} value={l}>{LEVELS[l].label}</option>)}
+             </select>
+           )}
         </div>
       </div>
 

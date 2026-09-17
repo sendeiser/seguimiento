@@ -21,6 +21,7 @@ import PokemonStoreTab from "../../components/pokemon/PokemonStoreTab";
 import PokedexTab from "../../components/pokemon/PokedexTab";
 import { ShopCard } from "../../components/shop/ShopCards";
 import { RewardIcon } from "../../lib/skinThemes";
+import ArenaHub from "../../components/arena/ArenaHub";
 
 export default function PublicStudentView() {
   const { token } = useParams();
@@ -41,13 +42,8 @@ export default function PublicStudentView() {
   const [activeShopTab, setActiveShopTab] = useState("rewards"); // rewards, pokemon, pokedex
   const [rewardCategory, setRewardCategory] = useState("all"); // all, skins, powerups, class
 
-  // Arena Games State
-  const [activeGame, setActiveGame] = useState(null); 
-  
-  // Difficulty & Progress
-  const [difficulty, setDifficulty] = useState('easy'); 
-  const [gameProgress, setGameProgress] = useState([]);
-  const [activeUnlocks, setActiveUnlocks] = useState([]);
+  const [classmates, setClassmates] = useState([]);
+  const [minigameBonusCoins, setMinigameBonusCoins] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -59,6 +55,7 @@ export default function PublicStudentView() {
   const spentOnPokemon = data?.pokemon?.reduce((sum, p) => sum + (p.cost_coins || 0), 0) || 0;
   const spentCoins = spentOnRewards + spentOnPokemon;
   const gami = data?.sessions ? calculateGamification(data.sessions, null, null, spentCoins, data.class_max_xp) : null;
+  const totalNotyxCoins = Math.max(0, (gami?.notyxCoins || 0) + minigameBonusCoins);
 
   const fetchData = async () => {
     const { data: result, error: rpcError } = await supabase.rpc("get_student_live_data", { p_token: token });
@@ -71,11 +68,22 @@ export default function PublicStudentView() {
     setData(result);
     setLoading(false);
 
-    const { data: progData } = await supabase.from("student_game_progress").select("*").eq("class_student_id", result.cs_id);
-    setGameProgress(progData || []);
+    // Fetch classmates for duels and rankings
+    if (result.class_id) {
+      const { data: cData } = await supabase
+        .from("class_students")
+        .select("id, student_name, avatar_url, house_id")
+        .eq("class_id", result.class_id);
+      setClassmates(cData || []);
+    }
 
-    const { data: unlocks } = await supabase.from("student_temporary_unlocks").select("*").eq("class_student_id", result.cs_id).gt("expires_at", new Date().toISOString());
-    setActiveUnlocks(unlocks || []);
+    // Fetch minigame bonus coins
+    const { data: logs } = await supabase
+      .from("student_minigame_logs")
+      .select("reward_coins")
+      .eq("class_student_id", result.cs_id);
+    const bonus = (logs || []).reduce((sum, l) => sum + (l.reward_coins || 0), 0);
+    setMinigameBonusCoins(bonus);
   };
 
   const handlePurchase = (reward) => {
@@ -620,94 +628,15 @@ export default function PublicStudentView() {
         )}
 
         {activeTab === "games" && (
-           <div className="space-y-12 animate-in slide-up">
-              {activeGame === 'Sudoku' ? (
-                <SudokuGame studentId={data.cs_id} onExit={() => setActiveGame(null)} onWin={handleGameWin} />
-              ) : activeGame === 'Pyramid' ? (
-                <PyramidGame studentId={data.cs_id} onExit={() => setActiveGame(null)} onWin={handleGameWin} />
-              ) : activeGame === 'Memory Match' ? (
-                <MemoryGame studentId={data.cs_id} onExit={() => setActiveGame(null)} onWin={handleGameWin} />
-              ) : activeGame === 'Math Blitz' ? (
-                <MathBlitzGame studentId={data.cs_id} onExit={() => setActiveGame(null)} onWin={handleGameWin} />
-              ) : (
-                <>
-                  <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 text-center md:text-left">
-                       <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-                          <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-xl border border-white/20"><Gamepad2 className="w-8 h-8 md:w-10 md:h-10" /></div>
-                          <div>
-                             <h2 className="text-2xl md:text-4xl font-black tracking-tight leading-none mb-1 md:mb-2">Arena de Juegos</h2>
-                             <p className="text-indigo-100 text-sm md:text-lg font-medium italic">Entrena tu mente y gana monedas</p>
-                          </div>
-                       </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    {/* Sudoku Game Card */}
-                    <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border-2 border-slate-100 hover:border-indigo-200 transition-all flex flex-col group relative overflow-hidden">
-                       <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform" />
-                       <div className="relative z-10">
-                          <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-50 text-indigo-500 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6"><Brain className="w-6 h-6 md:w-8 md:h-8" /></div>
-                          <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">Sudyx (4x4)</h3>
-                          <p className="text-slate-500 text-xs md:text-sm font-medium mb-6 md:mb-8 leading-relaxed">Completa el desafío lógico de números.</p>
-                          {activeUnlocks.some(u => u.unlock_type === 'game' && u.unlock_key === 'Sudoku') ? (
-                            <Button onClick={() => setActiveGame('Sudoku')} className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2"><Play className="w-4 h-4 fill-white" /> Jugar Ahora</Button>
-                          ) : (
-                            <div className="bg-slate-50 text-slate-400 h-14 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest border border-slate-100"><Lock className="w-4 h-4" /> Bloqueado</div>
-                          )}
-                       </div>
-                    </div>
-
-                    {/* Pyramid Game Card */}
-                    <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border-2 border-slate-100 hover:border-emerald-200 transition-all flex flex-col group relative overflow-hidden">
-                       <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform" />
-                       <div className="relative z-10">
-                          <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-50 text-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6"><Binary className="w-6 h-6 md:w-8 md:h-8" /></div>
-                          <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">Pyramyx</h3>
-                          <p className="text-slate-500 text-xs md:text-sm font-medium mb-6 md:mb-8 leading-relaxed">Suma y construye la pirámide numérica.</p>
-                          {activeUnlocks.some(u => u.unlock_type === 'game' && u.unlock_key === 'Pyramid') ? (
-                            <Button onClick={() => setActiveGame('Pyramid')} className="w-full h-14 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2"><Play className="w-4 h-4 fill-white" /> Jugar Ahora</Button>
-                          ) : (
-                            <div className="bg-slate-50 text-slate-400 h-14 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest border border-slate-100"><Lock className="w-4 h-4" /> Bloqueado</div>
-                          )}
-                       </div>
-                    </div>
-
-                    {/* Memory Card */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border-2 border-slate-100 hover:border-purple-200 transition-all flex flex-col group relative overflow-hidden">
-                       <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform" />
-                       <div className="relative z-10">
-                          <div className="w-16 h-16 bg-purple-50 text-purple-500 rounded-2xl flex items-center justify-center mb-6"><Puzzle className="w-8 h-8" /></div>
-                          <h3 className="text-2xl font-black text-slate-800 mb-2">Memory Match</h3>
-                          <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">Encuentra los pares y entrena tu memoria.</p>
-                          {activeUnlocks.some(u => u.unlock_type === 'game' && u.unlock_key === 'Memory Match') ? (
-                            <Button onClick={() => setActiveGame('Memory Match')} className="w-full h-14 bg-purple-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2"><Play className="w-4 h-4 fill-white" /> Jugar Ahora</Button>
-                          ) : (
-                            <div className="bg-slate-50 text-slate-400 h-14 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest border border-slate-100"><Lock className="w-4 h-4" /> Bloqueado</div>
-                          )}
-                       </div>
-                    </div>
-
-                    {/* Math Blitz */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border-2 border-slate-100 hover:border-orange-200 transition-all flex flex-col group relative overflow-hidden">
-                       <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform" />
-                       <div className="relative z-10">
-                          <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center mb-6"><Zap className="w-8 h-8" /></div>
-                          <h3 className="text-2xl font-black text-slate-800 mb-2">Math Blitz</h3>
-                          <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">¡Cálculo mental contra reloj!</p>
-                          {activeUnlocks.some(u => u.unlock_type === 'game' && u.unlock_key === 'Math Blitz') ? (
-                            <Button onClick={() => setActiveGame('Math Blitz')} className="w-full h-14 bg-orange-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2"><Play className="w-4 h-4 fill-white" /> Jugar Ahora</Button>
-                          ) : (
-                            <div className="bg-slate-50 text-slate-400 h-14 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest border border-slate-100"><Lock className="w-4 h-4" /> Bloqueado</div>
-                          )}
-                       </div>
-                    </div>
-                  </div>
-                </>
-              )}
-           </div>
+           <ArenaHub 
+             classStudentId={data.cs_id}
+             classId={data.class_id}
+             studentName={data.student_name}
+             avatarUrl={data.avatar_url}
+             notyxCoins={totalNotyxCoins}
+             studentsList={classmates}
+             onRewardEarned={() => fetchData()}
+           />
         )}
       </div>
 

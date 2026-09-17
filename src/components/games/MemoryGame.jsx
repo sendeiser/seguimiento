@@ -11,11 +11,11 @@ const LEVELS = {
 
 const ICONS = ['🍎', '🍌', '🍇', '🍓', '🍒', '🍍', '🥝', '🥑', '🍔', '🍕', '🌮', '🍦'];
 
-export default function MemoryGame({ studentId, onExit, onWin }) {
+export default function MemoryGame({ studentId, onExit, onWin, isDuel = false, initialDifficulty = 'easy', onDuelScore }) {
   const [cards, setCards] = useState([]);
   const [flipped, setFlipped] = useState([]);
   const [solved, setSolved] = useState([]);
-  const [difficulty, setDifficulty] = useState('easy');
+  const [difficulty, setDifficulty] = useState(initialDifficulty || 'easy');
   const [status, setStatus] = useState('playing');
   const [time, setTime] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
@@ -72,39 +72,64 @@ export default function MemoryGame({ studentId, onExit, onWin }) {
     setStatus('won');
     setTimerActive(false);
     confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-    saveProgress();
-    if (onWin) onWin(LEVELS[difficulty].xp);
+    
+    const basePoints = difficulty === 'hard' ? 1000 : difficulty === 'medium' ? 600 : 350;
+    const score = Math.max(50, basePoints - time * 5);
+    const xp = LEVELS[difficulty]?.xp || 50;
+    const coins = difficulty === 'hard' ? 15 : difficulty === 'medium' ? 10 : 5;
+
+    if (onDuelScore) {
+      onDuelScore(score);
+    }
+    saveProgress(score, coins);
+    if (onWin) onWin(xp, coins);
   };
 
-  const saveProgress = async () => {
-    const score = Math.max(500 - time, 50);
-    const { data: existing } = await supabase
-      .from('student_game_progress')
-      .select('*')
-      .eq('class_student_id', studentId)
-      .eq('game_name', 'Memory Match')
-      .eq('difficulty', difficulty)
-      .single();
+  const saveProgress = async (finalScore, earnedCoins = 5) => {
+    if (!studentId) return;
+    try {
+      const { data: existing } = await supabase
+        .from('student_game_progress')
+        .select('*')
+        .eq('class_student_id', studentId)
+        .eq('game_name', 'Memory Match')
+        .eq('difficulty', difficulty)
+        .maybeSingle();
 
-    if (existing) {
-      await supabase
-        .from('student_game_progress')
-        .update({
-          high_score: Math.max(existing.high_score, score),
-          total_games_played: existing.total_games_played + 1,
-          last_played_at: new Date().toISOString()
-        })
-        .eq('id', existing.id);
-    } else {
-      await supabase
-        .from('student_game_progress')
-        .insert([{
-          class_student_id: studentId,
-          game_name: 'Memory Match',
-          difficulty: difficulty,
-          high_score: score,
-          total_games_played: 1
-        }]);
+      if (existing) {
+        await supabase
+          .from('student_game_progress')
+          .update({
+            high_score: Math.max(existing.high_score, finalScore),
+            total_games_played: (existing.total_games_played || 0) + 1,
+            last_played_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('student_game_progress')
+          .insert([{
+            class_student_id: studentId,
+            game_name: 'Memory Match',
+            difficulty: difficulty,
+            high_score: finalScore,
+            total_games_played: 1,
+            last_played_at: new Date().toISOString()
+          }]);
+      }
+
+      if (earnedCoins > 0) {
+        await supabase
+          .from('student_minigame_logs')
+          .insert([{
+            class_student_id: studentId,
+            game_name: 'Memory Match',
+            reward_coins: earnedCoins,
+            completed_at: new Date().toISOString()
+          }]);
+      }
+    } catch (err) {
+      console.warn("Error saving Memory progress:", err);
     }
   };
 
@@ -125,14 +150,20 @@ export default function MemoryGame({ studentId, onExit, onWin }) {
               <Timer className="w-4 h-4 text-indigo-500" />
               <span className="font-black text-slate-700">{formatTime(time)}</span>
            </div>
-           <select 
-             className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-black text-[10px] uppercase outline-none focus:border-indigo-400"
-             value={difficulty}
-             onChange={(e) => setDifficulty(e.target.value)}
-             disabled={status === 'won'}
-           >
-             {Object.keys(LEVELS).map(l => <option key={l} value={l}>{LEVELS[l].label}</option>)}
-           </select>
+           {isDuel ? (
+             <span className="px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-1.5 shadow-sm">
+               ⚔️ Duelo ({LEVELS[difficulty]?.label})
+             </span>
+           ) : (
+             <select 
+               className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-black text-[10px] uppercase outline-none focus:border-indigo-400"
+               value={difficulty}
+               onChange={(e) => setDifficulty(e.target.value)}
+               disabled={status === 'won'}
+             >
+               {Object.keys(LEVELS).map(l => <option key={l} value={l}>{LEVELS[l].label}</option>)}
+             </select>
+           )}
         </div>
       </div>
 

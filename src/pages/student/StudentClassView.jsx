@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, Trophy, Medal, ShoppingBag, ShoppingCart, Swords, Heart, Sparkles, Flame, Crown, Flag, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Trophy, Medal, ShoppingBag, ShoppingCart, Swords, Heart, Sparkles, Flame, Crown, Flag, ShieldCheck, Star, Gamepad2 } from "lucide-react";
 import { useAuth } from "../../providers/AuthProvider";
 import { useToast } from "../../providers/ToastProvider";
 import { SkillsRadar } from "../../components/ui/SkillsRadar";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import { RewardIcon } from "../../lib/skinThemes";
+import ArenaHub from "../../components/arena/ArenaHub";
 
 export default function StudentClassView() {
   const { id } = useParams(); // class id
@@ -24,6 +25,9 @@ export default function StudentClassView() {
   const [notyxCoins, setNotyxCoins] = useState(0);
   const [myGami, setMyGami] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeMainTab, setActiveMainTab] = useState("academic"); // "academic" | "arena"
+  const [myCsId, setMyCsId] = useState(null);
+  const [classmates, setClassmates] = useState([]);
 
   // Icon mapping for dynamic badge rendering
   const IconMap = { Flag, Flame, Star, Crown, TrendingUp: ShieldCheck };
@@ -66,7 +70,7 @@ export default function StudentClassView() {
       { data: rwData }
     ] = await Promise.all([
       supabase.from("sessions").select("id, date, cuatrimestre, session_criteria(id, name, max_score)").eq("class_id", id).order("date", { ascending: false }),
-      supabase.from("class_students").select("house_id, student_id, profiles(id, full_name)").eq("class_id", id),
+      supabase.from("class_students").select("id, house_id, student_id, student_name, avatar_url, profiles(id, full_name)").eq("class_id", id),
       supabase.from("class_houses").select("*").eq("class_id", id),
       supabase.from("student_purchases").select("*, rewards(cost_coins)").eq("student_id", user.id).neq("status", "cancelled"),
       supabase.from("rewards").select("*").eq("class_id", id)
@@ -87,7 +91,19 @@ export default function StudentClassView() {
 
     const mySpentCoins = allPurchases?.reduce((acc, curr) => acc + (curr.rewards?.cost_coins || 0), 0) || 0;
 
+    let minigameBonus = 0;
     if (stData) {
+      const myCs = stData.find(s => s.student_id === user.id);
+      if (myCs) {
+        setMyCsId(myCs.id);
+        const { data: logs } = await supabase
+          .from("student_minigame_logs")
+          .select("reward_coins")
+          .eq("class_student_id", myCs.id);
+        minigameBonus = (logs || []).reduce((sum, l) => sum + (l.reward_coins || 0), 0);
+      }
+      setClassmates(stData);
+
       const lb = stData.map(st => {
           const p = st.profiles;
           if (!p) return null;
@@ -100,13 +116,10 @@ export default function StudentClassView() {
             criteria: s.session_criteria || []
           }));
 
-          // For other students we don't know their total spent coins globally easily here without more queries, 
-          // but for the leaderboard XP is the main metric. 
-          // We calculate their coins based on THIS class's xp for now in the engine.
           const gami = calculateGamification(baseSessions, userGrades, userAtt, p.id === user.id ? mySpentCoins : 0);
           
           if (p.id === user.id) {
-             setNotyxCoins(gami.notyxCoins);
+             setNotyxCoins(Math.max(0, gami.notyxCoins + minigameBonus));
              setMyGami(gami);
           }
           
@@ -226,9 +239,46 @@ export default function StudentClassView() {
         </div>
       </div>
 
-      {/* Main RPG Card */}
-      {myGami && (
-        <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-2xl shadow-slate-900/5 overflow-hidden relative">
+      {/* Main View Switcher Tabs */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white border border-slate-200/80 shadow-sm self-start">
+        <button
+          onClick={() => setActiveMainTab("academic")}
+          className={`px-5 py-2.5 rounded-xl font-['Outfit'] font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+            activeMainTab === 'academic' 
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' 
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Trophy className="w-4 h-4" />
+          <span>Progreso y Clases</span>
+        </button>
+        <button
+          onClick={() => setActiveMainTab("arena")}
+          className={`px-5 py-2.5 rounded-xl font-['Outfit'] font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+            activeMainTab === 'arena' 
+              ? 'bg-gradient-to-r from-rose-500 to-purple-600 text-white shadow-md shadow-rose-500/30' 
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Gamepad2 className="w-4 h-4" />
+          <span>Arena Competitiva</span>
+        </button>
+      </div>
+
+      {activeMainTab === 'arena' ? (
+        <ArenaHub
+          classStudentId={myCsId}
+          classId={id}
+          studentName={user?.user_metadata?.full_name || 'Estudiante'}
+          notyxCoins={notyxCoins}
+          studentsList={classmates}
+          onRewardEarned={fetchData}
+        />
+      ) : (
+        <>
+          {/* Main RPG Card */}
+          {myGami && (
+            <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-2xl shadow-slate-900/5 overflow-hidden relative">
           <div className={`absolute top-0 right-0 w-80 h-80 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-20 pointer-events-none ${myGami.rank.bg}`} />
           
           <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
@@ -444,6 +494,8 @@ export default function StudentClassView() {
           );
         })}
       </div>
+      </>
+      )}
     </div>
   );
 }
