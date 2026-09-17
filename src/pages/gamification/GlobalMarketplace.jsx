@@ -366,8 +366,7 @@ export default function GlobalMarketplace() {
                            <Button 
                            variant="secondary"
                            onClick={() => setPreviewSkin(null)}
-                           className="h-14 px-8 rounded-2xl font-['DM_Sans'] font-bold uppercase tracking-wider transition-all hover:scale-105"
-                           className={glassButton}
+                           className={`h-14 px-8 rounded-2xl font-['DM_Sans'] font-bold uppercase tracking-wider transition-all hover:scale-105 ${glassButton}`}
                            >
                            Cerrar
                            </Button>
@@ -429,6 +428,8 @@ export default function GlobalMarketplace() {
                                   reward={reward}
                                   isBought={myPurchases.some(p => p.reward_id === reward.id)}
                                   isEquipped={myPurchases.find(p => p.reward_id === reward.id)?.status === 'equipped'}
+                                  notyxCoins={notyxCoins}
+                                  isDark={isDark}
                                   onBuy={() => handleBuy(reward)}
                                   onEquip={() => handleEquip(reward)}
                                   onPreview={() => setPreviewSkin(reward)}
@@ -485,6 +486,8 @@ export default function GlobalMarketplace() {
                                   reward={reward}
                                   isBought={myPurchases.some(p => p.reward_id === reward.id)}
                                   isEquipped={myPurchases.find(p => p.reward_id === reward.id)?.status === 'equipped'}
+                                  notyxCoins={notyxCoins}
+                                  isDark={isDark}
                                   onBuy={() => handleBuy(reward)}
                                   onEquip={() => handleEquip(reward)}
                                   onPreview={() => setPreviewSkin(reward)}

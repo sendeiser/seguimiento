@@ -10,6 +10,7 @@ import { useAuth } from "../../providers/AuthProvider";
 import { useToast } from "../../providers/ToastProvider";
 import { SkillsRadar } from "../../components/ui/SkillsRadar";
 import { calculateGamification } from "../../lib/gamificationEngine";
+import { RewardIcon } from "../../lib/skinThemes";
 
 export default function StudentClassView() {
   const { id } = useParams(); // class id
@@ -365,9 +366,11 @@ export default function StudentClassView() {
                   const isBought = myPurchases.some(p => p.reward_id === reward.id && p.status === 'pending');
                   const canAfford = notyxCoins >= reward.cost_coins;
                   return (
-                    <div key={reward.id} className="bg-white rounded-3xl p-5 border border-yellow-100 shadow-md flex flex-col">
-                       <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 mb-4 text-2xl">{reward.icon}</div>
-                       <h4 className="font-black text-slate-800 text-lg mb-1">{reward.name}</h4>
+                     <div key={reward.id} className="bg-white rounded-3xl p-5 border border-yellow-100 shadow-md flex flex-col">
+                        <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 mb-4 text-2xl">
+                          <RewardIcon reward={reward} name={reward.name} icon={reward.icon} className="w-6 h-6 text-orange-600" textClassName="text-2xl" />
+                        </div>
+                        <h4 className="font-black text-slate-800 text-lg mb-1">{reward.name}</h4>
                        <p className="text-xs text-slate-500 font-medium mb-6 flex-1">{reward.description}</p>
                        <Button 
                          onClick={() => handleBuy(reward)}

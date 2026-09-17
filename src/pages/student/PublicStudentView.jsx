@@ -19,6 +19,8 @@ import MemoryGame from "../../components/games/MemoryGame";
 import MathBlitzGame from "../../components/games/MathBlitzGame";
 import PokemonStoreTab from "../../components/pokemon/PokemonStoreTab";
 import PokedexTab from "../../components/pokemon/PokedexTab";
+import { ShopCard } from "../../components/shop/ShopCards";
+import { RewardIcon } from "../../lib/skinThemes";
 
 export default function PublicStudentView() {
   const { token } = useParams();
@@ -501,7 +503,9 @@ export default function PublicStudentView() {
                                return (
                                  <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isBought ? 'border-amber-400 bg-amber-50/30' : 'border-slate-100 hover:border-amber-200'}`}>
                                     <div>
-                                       <div className="text-5xl w-20 h-20 rounded-3xl bg-amber-50 flex items-center justify-center border border-amber-100 mb-6 shadow-inner">{reward.icon}</div>
+                                       <div className="w-20 h-20 rounded-3xl bg-amber-50 flex items-center justify-center border border-amber-100 mb-6 shadow-inner">
+                                         <RewardIcon reward={reward} name={reward.name} icon={reward.icon} className="w-10 h-10 text-amber-600" textClassName="text-4xl" />
+                                       </div>
                                        <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
                                        <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">{reward.description}</p>
                                     </div>
@@ -523,10 +527,13 @@ export default function PublicStudentView() {
                    {(rewardCategory === 'all' || rewardCategory === 'skins') && cosmetics.length > 0 && (
                       <div className="space-y-6">
                          <div className="flex items-center gap-3 px-2">
-                            <div className="bg-fuchsia-100 p-2 rounded-xl"><Sparkles className="w-5 h-5 text-fuchsia-600" /></div>
-                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">Temas Legendarios</h3>
+                            <div className="bg-fuchsia-100 p-2.5 rounded-2xl shadow-sm"><Sparkles className="w-5 h-5 text-fuchsia-600" /></div>
+                            <div>
+                              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Temas Legendarios</h3>
+                              <p className="text-xs text-slate-400 font-medium">Personalizá tu tarjeta de estudiante con efectos, halos y partículas animadas</p>
+                            </div>
                          </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {cosmetics.map(reward => {
                                const purchase = data.purchases?.find(p => p.reward_id === reward.id);
                                const isBought = !!purchase;
@@ -534,28 +541,20 @@ export default function PublicStudentView() {
                                const canAfford = gami.notyxCoins >= reward.cost_coins;
 
                                return (
-                                 <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isEquipped ? 'border-fuchsia-400 ring-8 ring-fuchsia-100' : 'border-slate-100'}`}>
-                                    <div>
-                                       <div className="flex justify-between items-start mb-6">
-                                          <div className="text-5xl w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center border border-slate-100">{reward.icon}</div>
-                                          <button onClick={() => setPreviewSkin(reward)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-blue-500 transition-all"><Eye className="w-6 h-6" /></button>
-                                       </div>
-                                       <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
-                                       <p className="text-slate-500 text-sm font-medium mb-8 line-clamp-2">{reward.description}</p>
-                                    </div>
-                                    <div className="space-y-3">
-                                       {isEquipped ? (
-                                         <div className="bg-fuchsia-50 text-fuchsia-600 h-16 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest border-2 border-fuchsia-200">Equipado</div>
-                                       ) : isBought ? (
-                                         <Button onClick={() => handleEquip(reward)} className="w-full h-16 rounded-2xl bg-slate-900 text-white font-black uppercase text-xs tracking-widest">Equipar</Button>
-                                       ) : (
-                                          <Button onClick={() => handlePurchase(reward)} disabled={!canAfford} className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-widest ${canAfford ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-white'}`}>
-                                            <CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}
-                                         </Button>
-                                       )}
-                                    </div>
-                                 </div>
-                               )
+                                 <ShopCard
+                                   key={reward.id}
+                                   reward={reward}
+                                   purchase={purchase}
+                                   isBought={isBought}
+                                   isEquipped={isEquipped}
+                                   notyxCoins={gami.notyxCoins}
+                                   canAfford={canAfford}
+                                   onPurchase={handlePurchase}
+                                   onEquip={handleEquip}
+                                   onPreview={setPreviewSkin}
+                                   isLoading={purchasing === reward.id}
+                                 />
+                               );
                             })}
                          </div>
                       </div>
@@ -565,8 +564,11 @@ export default function PublicStudentView() {
                    {(rewardCategory === 'all' || rewardCategory === 'class') && classRewards.length > 0 && (
                       <div className="space-y-6">
                          <div className="flex items-center gap-3 px-2">
-                            <div className="bg-blue-100 p-2 rounded-xl"><Trophy className="w-5 h-5 text-blue-600" /></div>
-                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">Premios de Clase</h3>
+                            <div className="bg-blue-100 p-2.5 rounded-2xl shadow-sm"><Trophy className="w-5 h-5 text-blue-600" /></div>
+                            <div>
+                              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Premios de Clase</h3>
+                              <p className="text-xs text-slate-400 font-medium">Recompensas especiales canjeables en el aula</p>
+                            </div>
                          </div>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             {classRewards.map(reward => {
@@ -575,7 +577,9 @@ export default function PublicStudentView() {
                                return (
                                  <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isBought ? 'border-blue-400 bg-blue-50/30' : 'border-slate-100 hover:border-blue-200'}`}>
                                     <div>
-                                       <div className="text-5xl w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center border border-blue-100 mb-6 shadow-inner">{reward.icon}</div>
+                                       <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center border border-blue-100 mb-6 shadow-inner">
+                                         <RewardIcon reward={reward} name={reward.name} icon={reward.icon} className="w-10 h-10 text-blue-600" textClassName="text-4xl" />
+                                       </div>
                                        <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
                                        <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">{reward.description}</p>
                                     </div>

@@ -6,8 +6,73 @@ export const DragonIcon = ({ className }) => (
   </svg>
 );
 
-export const SkinPattern = ({ pattern, colors, isHovered }) => {
-  if (!pattern) return null;
+export const formatCssColor = (colorStr, alpha) => {
+  if (!colorStr) return "transparent";
+  const str = String(colorStr).trim();
+
+  // Already formatted CSS function
+  if (str.startsWith("rgb") || str.startsWith("hsl(")) {
+    if (alpha !== undefined) {
+      const aVal = typeof alpha === "number" && alpha > 1 ? alpha / 100 : alpha;
+      return str.replace(/\)$/, ` / ${aVal})`);
+    }
+    return str;
+  }
+
+  // Hex color
+  if (str.startsWith("#")) {
+    if (alpha !== undefined) {
+      const aVal = typeof alpha === "number" && alpha > 1 ? alpha / 100 : alpha;
+      const aHex = Math.round(Math.min(1, Math.max(0, aVal)) * 255).toString(16).padStart(2, "0");
+      return `${str.slice(0, 7)}${aHex}`;
+    }
+    return str;
+  }
+
+  // HSL triplet string: e.g. "15 100% 50%" or "15 100% 50%20"
+  const matchWithOpacity = str.match(/^(\d+(?:\.\d+)?\s+\d+(?:\.\d+)?%\s+\d+(?:\.\d+)?%)(?:\s*([0-9.]+))?$/);
+  if (matchWithOpacity) {
+    const hslBase = matchWithOpacity[1];
+    const embeddedAlpha = matchWithOpacity[2];
+    const finalAlpha = alpha !== undefined 
+      ? (typeof alpha === "number" && alpha > 1 ? alpha / 100 : alpha)
+      : (embeddedAlpha ? parseFloat(embeddedAlpha) / 100 : undefined);
+
+    if (finalAlpha !== undefined && finalAlpha < 1) {
+      return `hsl(${hslBase} / ${finalAlpha})`;
+    }
+    return `hsl(${hslBase})`;
+  }
+
+  return str;
+};
+
+export const SkinPattern = ({ pattern, colors: rawColors, isHovered }) => {
+  if (!pattern || !rawColors) return null;
+
+  const toCol = (c, a) => formatCssColor(c, a);
+
+  const colors = {
+    primary: toCol(rawColors.primary),
+    secondary: toCol(rawColors.secondary),
+    accent: toCol(rawColors.accent),
+    frame: toCol(rawColors.frame),
+    glow: rawColors.glow || "rgba(147,51,234,0.6)",
+    // Pre-calculated alphas for pattern cases
+    primary20: toCol(rawColors.primary, 0.2),
+    primary30: toCol(rawColors.primary, 0.3),
+    primary40: toCol(rawColors.primary, 0.4),
+    primary60: toCol(rawColors.primary, 0.6),
+    primary80: toCol(rawColors.primary, 0.8),
+    primary90: toCol(rawColors.primary, 0.9),
+    secondary40: toCol(rawColors.secondary, 0.4),
+    secondary50: toCol(rawColors.secondary, 0.5),
+    secondary60: toCol(rawColors.secondary, 0.6),
+    secondary80: toCol(rawColors.secondary, 0.8),
+    frame20: toCol(rawColors.frame, 0.2),
+    frame30: toCol(rawColors.frame, 0.3),
+    frame40: toCol(rawColors.frame, 0.4),
+  };
 
   switch (pattern) {
     case 'dragon-fire':
@@ -28,7 +93,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'electric':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          <div className="absolute inset-0" style={{ background: `radial-gradient(circle at top right, ${colors.primary}20, transparent 60%)` }} />
+          <div className="absolute inset-0" style={{ background: `radial-gradient(circle at top right, ${colors.primary20}, transparent 60%)` }} />
           {[...Array(8)].map((_, i) => (
             <div key={i} className="absolute h-px w-[150%]" style={{
               top: `${10 + i * 12}%`, left: '-25%',
@@ -43,7 +108,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'ice-storm':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem] opacity-80">
-           <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${colors.frame}30, transparent 50%, ${colors.primary}20)` }} />
+           <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${colors.frame30}, transparent 50%, ${colors.primary20})` }} />
            {[...Array(25)].map((_, i) => (
              <div key={i} className="absolute bg-white" style={{
                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' : 'circle(50% at 50% 50%)',
@@ -58,7 +123,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'forest':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-           <div className="absolute inset-0" style={{ background: `linear-gradient(to top right, ${colors.primary}40, transparent 70%)` }} />
+           <div className="absolute inset-0" style={{ background: `linear-gradient(to top right, ${colors.primary40}, transparent 70%)` }} />
            {[...Array(12)].map((_, i) => (
              <div key={i} className="absolute opacity-60" style={{
                 background: i % 2 === 0 ? colors.accent : colors.frame,
@@ -74,7 +139,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'void-eye':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]" style={{ '--eye-color': colors.frame }}>
-           <div className="absolute inset-0" style={{ background: `radial-gradient(circle at center, ${colors.secondary}60 0%, transparent 60%)` }} />
+           <div className="absolute inset-0" style={{ background: `radial-gradient(circle at center, ${colors.secondary60} 0%, transparent 60%)` }} />
            <div className="absolute top-1/2 left-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-[100%_0_100%_0] rotate-45 border-4" style={{
              borderColor: colors.accent,
              animation: 'pulse-eye 4s ease-in-out infinite'
@@ -97,7 +162,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'inferno':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${colors.primary}90, ${colors.secondary}50, transparent 80%)` }} />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${colors.primary90}, ${colors.secondary50}, transparent 80%)` }} />
           {[...Array(15)].map((_, i) => (
              <div key={i} className="absolute rounded-[100%_0_100%_0] mix-blend-color-dodge" style={{
                background: `linear-gradient(45deg, ${colors.accent}, transparent)`,
@@ -112,7 +177,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'obsidian-rain':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${colors.secondary}80, transparent)` }} />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${colors.secondary80}, transparent)` }} />
           {[...Array(30)].map((_, i) => (
             <div key={i} className="absolute" style={{
               width: 2, height: Math.random() * 30 + 20,
@@ -145,7 +210,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'fallen-feathers':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem] opacity-50">
-          <div className="absolute inset-0" style={{ background: `radial-gradient(circle at top, ${colors.frame}40, transparent)` }} />
+          <div className="absolute inset-0" style={{ background: `radial-gradient(circle at top, ${colors.frame40}, transparent)` }} />
           {[...Array(12)].map((_, i) => (
             <div key={i} className="absolute" style={{
               width: 15, height: 40, background: `linear-gradient(to bottom, ${colors.primary}, transparent)`,
@@ -160,7 +225,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'crystal-hex':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          <div className="absolute inset-0" style={{ background: `linear-gradient(45deg, ${colors.primary}40, transparent)` }} />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(45deg, ${colors.primary40}, transparent)` }} />
           {[...Array(10)].map((_, i) => (
              <div key={i} className="absolute" style={{
                width: 0, height: 0,
@@ -190,14 +255,14 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
            ))}
            <div className="absolute top-1/2 left-1/2 w-20 h-20 border-4 -translate-x-1/2 -translate-y-1/2" style={{
              borderColor: colors.accent, boxShadow: `0 0 30px ${colors.primary}, inset 0 0 20px ${colors.primary}`,
-             background: `repeating-linear-gradient(45deg, transparent, transparent 5px, ${colors.frame}20 5px, ${colors.frame}20 10px)`
+             background: `repeating-linear-gradient(45deg, transparent, transparent 5px, ${colors.frame20} 5px, ${colors.frame20} 10px)`
            }} />
         </div>
       );
     case 'royal-crown':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-           <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${colors.primary}60, transparent, ${colors.secondary}60)` }} />
+           <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${colors.primary60}, transparent, ${colors.secondary60})` }} />
            {[...Array(6)].map((_, i) => (
              <div key={i} className="absolute top-0 w-full h-[150%] origin-top opacity-30 mix-blend-overlay" style={{
                background: `linear-gradient(to bottom, ${colors.accent}, transparent)`,
@@ -209,7 +274,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'void-skull':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          <div className="absolute inset-0" style={{ background: `radial-gradient(circle at bottom, ${colors.primary}80 0%, transparent 80%)` }} />
+          <div className="absolute inset-0" style={{ background: `radial-gradient(circle at bottom, ${colors.primary80} 0%, transparent 80%)` }} />
           {[...Array(8)].map((_, i) => (
              <div key={i} className="absolute text-4xl" style={{
                color: colors.frame, textShadow: `0 0 15px ${colors.accent}`,
@@ -249,7 +314,7 @@ export const SkinPattern = ({ pattern, colors, isHovered }) => {
     case 'abyssal-anchor':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${colors.primary}90, ${colors.secondary}40, transparent)` }} />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${colors.primary90}, ${colors.secondary40}, transparent)` }} />
           {[...Array(15)].map((_, i) => (
              <div key={i} className="absolute rounded-full border-2 mix-blend-screen" style={{
                borderColor: colors.accent, boxShadow: `inset 0 0 10px ${colors.frame}`,
@@ -506,13 +571,79 @@ export const getSkinByName = (name) => {
   if (!name) return null;
   
   // Try direct match
-  if (SKIN_THEMES[name]) return SKIN_THEMES[name];
+  let skin = SKIN_THEMES[name];
   
-  // Try normalized match (remove accents)
-  const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const normalizedName = normalize(name);
-  
-  return Object.values(SKIN_THEMES).find(skin => 
-    normalize(skin.name) === normalizedName
-  ) || null;
+  // Try normalized match (remove accents, lowercase, trim)
+  if (!skin) {
+    const normalize = (str) => String(str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const target = normalize(name);
+    skin = Object.values(SKIN_THEMES).find(s => normalize(s.name) === target) || null;
+  }
+
+  if (!skin) return null;
+
+  return {
+    ...skin,
+    colors: {
+      ...skin.colors,
+      primary: formatCssColor(skin.colors.primary),
+      secondary: formatCssColor(skin.colors.secondary),
+      accent: formatCssColor(skin.colors.accent),
+      frame: formatCssColor(skin.colors.frame),
+      glow: skin.colors.glow || "rgba(147,51,234,0.6)",
+      rawPrimary: skin.colors.primary,
+      rawSecondary: skin.colors.secondary,
+      rawAccent: skin.colors.accent
+    }
+  };
+};
+
+export const LUCIDE_ICON_MAP = {
+  "flame": Flame,
+  "cloud-rain": CloudRain,
+  "rainbow": Rainbow,
+  "star": Star,
+  "dragon": DragonIcon,
+  "zap": Zap,
+  "snowflake": Snowflake,
+  "trees": Trees,
+  "eye": Eye,
+  "shield": Shield,
+  "hexagon": Hexagon,
+  "cpu": Cpu,
+  "crown": Crown,
+  "skull": Skull,
+  "heart": Heart,
+  "sun": Sun,
+  "anchor": Anchor,
+  "sparkles": Sparkles,
+  "gem": Gem,
+  "moon": Moon
+};
+
+export const RewardIcon = ({ reward, name, icon, className = "w-6 h-6", textClassName = "text-2xl", style = {} }) => {
+  const iconVal = icon || reward?.icon;
+  const rewardName = name || reward?.name;
+
+  const skin = getSkinByName(rewardName);
+  if (skin?.icon) {
+    const IconComponent = skin.icon;
+    return <IconComponent className={className} style={{ color: skin.colors.frame, ...style }} />;
+  }
+
+  const iconKey = typeof iconVal === "string" ? iconVal.toLowerCase().trim() : null;
+  if (iconKey && LUCIDE_ICON_MAP[iconKey]) {
+    const IconComponent = LUCIDE_ICON_MAP[iconKey];
+    return <IconComponent className={className} style={style} />;
+  }
+
+  if (typeof iconVal === "string" && iconVal.length > 0) {
+    // If it's an icon slug like "cloud-rain" that didn't match, avoid dumping raw string
+    if (iconVal.length > 4 && /^[a-z0-9-]+$/i.test(iconVal)) {
+      return <Sparkles className={className} style={style} />;
+    }
+    return <span className={textClassName} style={style}>{iconVal}</span>;
+  }
+
+  return <Sparkles className={className} style={style} />;
 };

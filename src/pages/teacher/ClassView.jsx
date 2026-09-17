@@ -15,6 +15,7 @@ import {
   UserCheck, Clock, MessageSquareQuote, FileText, CheckSquare, ShieldAlert, Sparkles
 } from "lucide-react";
 import { exportAttendanceMatrixToCSV } from "../../lib/reportExporter";
+import { RewardIcon } from "../../lib/skinThemes";
 
 const BASE_URL = window.location.origin;
 
@@ -1073,7 +1074,9 @@ export default function ClassView() {
                  {rewards.map(r => (
                    <div key={r.id} className="bg-white rounded-3xl p-5 border border-slate-100 flex items-center justify-between hover:shadow-lg transition-all group">
                       <div className="flex items-center gap-5">
-                         <div className="text-3xl w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">{r.icon}</div>
+                         <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
+                           <RewardIcon reward={r} name={r.name} icon={r.icon} className="w-7 h-7 text-slate-700" textClassName="text-3xl" />
+                         </div>
                          <div>
                             <h4 className="font-black text-slate-800 leading-none mb-1">{r.name}</h4>
                             <p className="text-xs text-slate-400 font-medium">{r.description || 'Sin descripción'}</p>
@@ -1099,7 +1102,9 @@ export default function ClassView() {
                     {purchases.filter(p => p.status === 'pending').map(p => (
                       <div key={p.id} className="bg-emerald-50 rounded-3xl p-5 border border-emerald-100 flex items-center justify-between animate-in zoom-in duration-300">
                          <div className="flex items-center gap-4">
-                            <div className="text-2xl">{p.rewards?.icon}</div>
+                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-emerald-200">
+                              <RewardIcon reward={p.rewards} name={p.rewards?.name} icon={p.rewards?.icon} className="w-5 h-5 text-emerald-600" textClassName="text-xl" />
+                            </div>
                             <div>
                                <h4 className="font-black text-slate-800 leading-none mb-1">{p.profiles?.full_name}</h4>
                                <p className="text-xs text-emerald-700 font-medium">Compró: <span className="font-black uppercase tracking-tight">{p.rewards?.name}</span></p>
