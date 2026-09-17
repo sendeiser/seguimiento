@@ -72,7 +72,7 @@ export default function LiveSession() {
   useEffect(() => {
     fetchData();
     const subscription = supabase
-      .channel("live-session-grades")
+      .channel(`live-session-grades-${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "grades" }, () => {
         fetchGrades();
       })
@@ -81,101 +81,150 @@ export default function LiveSession() {
   }, [id]);
 
   const fetchData = async () => {
-    const { data: s } = await supabase.from("sessions").select("*, classes(name, id)").eq("id", id).single();
-    if (!s) return;
-    setSession(s);
-    setClassName(s.classes.name);
-
-    const [{ data: cData }, { data: stData }, { data: aData }] = await Promise.all([
-      supabase.from("session_criteria").select("*").eq("session_id", id).order("created_at"),
-      supabase.from("class_students").select("id, student_id, student_name, dni, profiles(full_name)").eq("class_id", s.classes.id),
-      supabase.from("attendance").select("*").eq("session_id", id),
-    ]);
-
-    setCriteria(cData || []);
-    const mapped = (stData || []).map(st => ({
-      cs_id: st.id,
-      student_id: st.student_id,
-      dni: st.dni,
-      name: st.profiles?.full_name || st.student_name || "Sin nombre",
-    }));
-    setStudents(mapped);
-
-    // Map attendance & observations
-    const aMap = {};
-    const obsMap = {};
-    (aData || []).forEach(a => {
-      aMap[a.class_student_id] = {
-        status: a.status || (a.is_present ? "present" : "absent"),
-        is_present: a.is_present !== false,
-        observation: a.observation || ""
-      };
-      if (a.observation) {
-        obsMap[a.class_student_id] = a.observation;
-      }
-    });
-    setAttendance(aMap);
-    setObservations(obsMap);
-
-    if (cData?.length > 0) {
-      const cIds = cData.map(c => c.id);
-      const { data: gData } = await supabase.from("grades").select("*").in("criteria_id", cIds);
-      const map = {};
-      (gData || []).forEach(g => { map[`${g.class_student_id}_${g.criteria_id}`] = g.score; });
-      setGrades(map);
-
-      const { data: otherSessions } = await supabase.from("sessions").select("id").eq("class_id", s.classes.id).neq("id", id);
-      if (otherSessions?.length > 0) {
-        const osIds = otherSessions.map(os => os.id);
-        const { data: allPrevCrit } = await supabase.from("session_criteria").select("id, name").in("session_id", osIds);
-        if (allPrevCrit?.length > 0) {
-          const { data: allPrevGrades } = await supabase.from("grades").select("*, session_criteria(name)").in("criteria_id", allPrevCrit.map(apc => apc.id)).order("updated_at", { ascending: false });
-          const iMap = {};
-          (allPrevGrades || []).forEach(g => {
-            const critName = g.session_criteria?.name;
-            const iKey = `${g.class_student_id}_${critName}`;
-            if (!iMap[iKey]) iMap[iKey] = g.score;
-          });
-          setInheritedGrades(iMap);
-        }
-      }
-    }
-    setLoading(false);
-
     try {
-      const { data: allSess } = await supabase.from("sessions").select("id, date").eq("class_id", s.classes.id).order("date", { ascending: false }).limit(6);
-      if (allSess?.length > 1) {
-        const allSessIds = allSess.map(ss => ss.id);
-        const { data: allCrit } = await supabase.from("session_criteria").select("id, session_id, max_score").in("session_id", allSessIds);
-        const { data: allGr } = await supabase.from("grades").select("class_student_id, criteria_id, score").in("criteria_id", (allCrit || []).map(c => c.id));
+      // 1. Fire core requests in parallel on millisecond 0
+      const [sessionRes, critRes, attRes] = await Promise.all([
+        supabase
+          .from("sessions")
+          .select("*, classes(id, name, class_students(id, student_id, student_name, dni, profiles(full_name))))")
+          .eq("id", id)
+          .single(),
+        supabase
+          .from("session_criteria")
+          .select("*, grades(*)")
+          .eq("session_id", id)
+          .order("created_at"),
+        supabase
+          .from("attendance")
+          .select("*")
+          .eq("session_id", id),
+      ]);
+
+      const s = sessionRes.data;
+      if (!s) {
+        setLoading(false);
+        return;
+      }
+
+      setSession(s);
+      setClassName(s.classes?.name || "Clase");
+
+      // Extract and map students (with fallback if nested relation isn't populated)
+      let rawStudents = s.classes?.class_students || [];
+      if (!rawStudents.length && s.classes?.id) {
+        const { data: stFallback } = await supabase
+          .from("class_students")
+          .select("id, student_id, student_name, dni, profiles(full_name)")
+          .eq("class_id", s.classes.id);
+        rawStudents = stFallback || [];
+      }
+
+      const mappedStudents = rawStudents.map(st => ({
+        cs_id: st.id,
+        student_id: st.student_id,
+        dni: st.dni,
+        name: st.profiles?.full_name || st.student_name || "Sin nombre",
+      }));
+      setStudents(mappedStudents);
+
+      // Criteria & Current Session Grades from single nested join
+      const cData = critRes.data || [];
+      setCriteria(cData);
+
+      const gMap = {};
+      cData.forEach(c => {
+        (c.grades || []).forEach(g => {
+          gMap[`${g.class_student_id}_${c.id}`] = g.score;
+        });
+      });
+      setGrades(gMap);
+
+      // Attendance & Observations map
+      const aMap = {};
+      const obsMap = {};
+      (attRes.data || []).forEach(a => {
+        aMap[a.class_student_id] = {
+          status: a.status || (a.is_present ? "present" : "absent"),
+          is_present: a.is_present !== false,
+          observation: a.observation || ""
+        };
+        if (a.observation) {
+          obsMap[a.class_student_id] = a.observation;
+        }
+      });
+      setAttendance(aMap);
+      setObservations(obsMap);
+
+      // TABLE READY! Immediately reveal the interface to the teacher (0 waiting)
+      setLoading(false);
+
+      // 2. Load historical fallback grades and sparklines in the background (non-blocking)
+      if (s.classes?.id) {
+        loadHistoricalAndSparklines(s.classes.id, id, mappedStudents);
+      }
+    } catch (err) {
+      console.error("Error al cargar la clase:", err);
+      setLoading(false);
+    }
+  };
+
+  // Background non-blocking loader for inherited grades and sparklines in a single query
+  const loadHistoricalAndSparklines = async (classId, currentSessionId, studentList) => {
+    try {
+      const { data: pastSessions } = await supabase
+        .from("sessions")
+        .select("id, date, session_criteria(id, name, max_score, grades(class_student_id, score, updated_at))")
+        .eq("class_id", classId)
+        .order("date", { ascending: false })
+        .limit(6);
+
+      if (!pastSessions || pastSessions.length === 0) return;
+
+      // 1. Compute inherited grades from previous sessions
+      const otherSessions = pastSessions.filter(ps => ps.id !== currentSessionId);
+      const iMap = {};
+      otherSessions.forEach(os => {
+        (os.session_criteria || []).forEach(crit => {
+          (crit.grades || []).forEach(g => {
+            const iKey = `${g.class_student_id}_${crit.name}`;
+            if (iMap[iKey] === undefined) {
+              iMap[iKey] = g.score;
+            }
+          });
+        });
+      });
+      setInheritedGrades(iMap);
+
+      // 2. Compute sparkline trends
+      if (pastSessions.length > 1) {
         const sData = {};
-        const sessionsOldFirst = [...allSess].reverse();
+        const sessionsOldFirst = [...pastSessions].reverse();
         sessionsOldFirst.forEach(ss => {
-          const critForSess = (allCrit || []).filter(c => c.session_id === ss.id);
-          const maxTotal = critForSess.reduce((s, c) => s + (c.max_score || 0), 0);
-          (stData || []).forEach(st => {
-            if (!sData[st.id]) sData[st.id] = [];
-            const total = critForSess.reduce((sum, c) => {
-              const g = (allGr || []).find(g => g.class_student_id === st.id && g.criteria_id === c.id);
+          const critList = ss.session_criteria || [];
+          const maxTotal = critList.reduce((sum, c) => sum + (c.max_score || 0), 0);
+          studentList.forEach(st => {
+            if (!sData[st.cs_id]) sData[st.cs_id] = [];
+            const total = critList.reduce((sum, c) => {
+              const g = (c.grades || []).find(gr => gr.class_student_id === st.cs_id);
               return sum + (g ? Number(g.score) : 0);
             }, 0);
-            sData[st.id].push({ pct: maxTotal > 0 ? Math.round((total / maxTotal) * 100) : null });
+            sData[st.cs_id].push({ pct: maxTotal > 0 ? Math.round((total / maxTotal) * 100) : null });
           });
         });
         setSparklineData(sData);
       }
     } catch (e) {
-      console.error("Error loading sparkline data", e);
+      console.error("Error cargando historial de notas:", e);
     }
   };
 
   const fetchGrades = async () => {
     if (!criteria.length) return;
     const cIds = criteria.map(c => c.id);
-    const { data: gData } = await supabase.from("grades").select("*").in("criteria_id", cIds);
+    const { data: gData } = await supabase.from("grades").select("class_student_id, criteria_id, score").in("criteria_id", cIds);
     const map = {};
     (gData || []).forEach(g => { map[`${g.class_student_id}_${g.criteria_id}`] = g.score; });
-    setGrades(map);
+    setGrades(prev => ({ ...prev, ...map }));
   };
 
   const handleAddCriteria = async () => {
@@ -243,7 +292,13 @@ export default function LiveSession() {
     setSaving(prev => ({ ...prev, [key]: false }));
     const flashType = maxScore > 0 && score / maxScore > 0.5 ? "success" : "danger";
     setGradeFlash(prev => ({ ...prev, [key]: flashType }));
-    setTimeout(() => { const n = {...prev}; delete n[key]; setGradeFlash(n); }, 900);
+    setTimeout(() => {
+      setGradeFlash(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }, 900);
   };
 
   const setQuickGrade = async (csId, criteriaId, score, maxScore) => {

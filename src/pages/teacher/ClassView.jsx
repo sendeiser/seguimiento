@@ -64,7 +64,7 @@ export default function ClassView() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // Fetching all data for class
+      // Fetching all data for class in parallel
       const [
         { data: cls }, 
         { data: sData }, 
@@ -75,7 +75,7 @@ export default function ClassView() {
         { data: pData2 }
       ] = await Promise.all([
         supabase.from("classes").select("*").eq("id", id).single(),
-        supabase.from("sessions").select("*").eq("class_id", id).order("date", { ascending: false }),
+        supabase.from("sessions").select("*, attendance(*)").eq("class_id", id).order("date", { ascending: false }),
         supabase.from("class_students").select("id, student_id, student_name, public_token, house_id, dni, profiles(full_name)").eq("class_id", id),
         supabase.from("rewards").select("*").eq("class_id", id).order("created_at", { ascending: false }),
         supabase.from("class_houses").select("*").eq("class_id", id).order("created_at", { ascending: false }),
@@ -88,14 +88,9 @@ export default function ClassView() {
       const filteredProg = (pData2 || []).filter(p => classStudentIds.includes(p.class_student_id));
       setArenaProgress(filteredProg);
 
-      // Fetch all attendance for this class sessions
-      const sessionIds = (sData || []).map(s => s.id);
-      if (sessionIds.length > 0) {
-        const { data: attData } = await supabase.from("attendance").select("*").in("session_id", sessionIds);
-        setAllAttendance(attData || []);
-      } else {
-        setAllAttendance([]);
-      }
+      // Extract all attendance directly from sessions join (0 extra network queries)
+      const allAtt = (sData || []).flatMap(s => s.attendance || []);
+      setAllAttendance(allAtt);
 
       setClassData(cls);
       setSessions(sData || []);
