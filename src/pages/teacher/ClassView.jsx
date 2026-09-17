@@ -11,8 +11,10 @@ import {
   Pencil, Trash2, X, ArrowLeft, Download, Trophy, 
   ShoppingBag, Shield, Star, Swords, Search, CheckCircle2, 
   ShoppingCart, Flame, AlertCircle, Coins as LucideCoins, ExternalLink, UserPlus,
-  Gamepad2, Binary, Brain, Zap, BarChart3, Lock, Puzzle 
+  Gamepad2, Binary, Brain, Zap, BarChart3, Lock, Puzzle,
+  UserCheck, Clock, MessageSquareQuote, FileText, CheckSquare, ShieldAlert, Sparkles
 } from "lucide-react";
+import { exportAttendanceMatrixToCSV } from "../../lib/reportExporter";
 
 const BASE_URL = window.location.origin;
 
@@ -28,8 +30,16 @@ export default function ClassView() {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState("sessions"); // sessions | students | ranking | rewards | arena
+  const [activeTab, setActiveTab] = useState("sessions"); // sessions | students | attendance | gamification | arena
   const [arenaProgress, setArenaProgress] = useState([]);
+
+  // Attendance Module State
+  const [allAttendance, setAllAttendance] = useState([]);
+  const [attendanceRiskFilter, setAttendanceRiskFilter] = useState("all"); // "all" | "risk"
+  const [attendanceSearch, setAttendanceSearch] = useState("");
+  const [quickAttendanceModal, setQuickAttendanceModal] = useState(null); // { student, session, currentRecord }
+  const [quickObsText, setQuickObsText] = useState("");
+  const [savingQuickAtt, setSavingQuickAtt] = useState(false);
 
   // Cuatrimestre state
   const [activeCuatrimestre, setActiveCuatrimestre] = useState(1);
@@ -78,7 +88,14 @@ export default function ClassView() {
       const filteredProg = (pData2 || []).filter(p => classStudentIds.includes(p.class_student_id));
       setArenaProgress(filteredProg);
 
-      // Students found
+      // Fetch all attendance for this class sessions
+      const sessionIds = (sData || []).map(s => s.id);
+      if (sessionIds.length > 0) {
+        const { data: attData } = await supabase.from("attendance").select("*").in("session_id", sessionIds);
+        setAllAttendance(attData || []);
+      } else {
+        setAllAttendance([]);
+      }
 
       setClassData(cls);
       setSessions(sData || []);
@@ -127,6 +144,41 @@ export default function ClassView() {
     await supabase.from("class_students").update({ dni }).eq("id", sid);
     // Optimistic update
     setStudents(prev => prev.map(s => s.id === sid ? { ...s, dni } : s));
+  };
+
+  const updateStudentAttendanceRecord = async (sessionId, classStudentId, newStatus, newObservation) => {
+    setSavingQuickAtt(true);
+    const isPres = newStatus === "present" || newStatus === "late";
+    const cleanObs = newObservation !== undefined ? newObservation.trim() : undefined;
+
+    const payload = {
+      session_id: sessionId,
+      class_student_id: classStudentId,
+      status: newStatus,
+      is_present: isPres
+    };
+    if (cleanObs !== undefined) {
+      payload.observation = cleanObs || null;
+    }
+
+    const { error } = await supabase.from("attendance").upsert(payload, { onConflict: "session_id,class_student_id" });
+    if (error) {
+      toast("Error al actualizar asistencia: " + error.message, "error");
+    } else {
+      toast("Asistencia actualizada correctamente", "success");
+      setAllAttendance(prev => {
+        const idx = prev.findIndex(a => a.session_id === sessionId && a.class_student_id === classStudentId);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], ...payload };
+          return updated;
+        } else {
+          return [...prev, payload];
+        }
+      });
+      setQuickAttendanceModal(null);
+    }
+    setSavingQuickAtt(false);
   };
 
   // --- REWARD ACTIONS ---
@@ -394,6 +446,7 @@ export default function ClassView() {
         <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-[24px] w-fit border border-slate-200/50 min-w-full sm:min-w-0">
           <button onClick={() => setActiveTab("sessions")} className={`tab-btn flex-shrink-0 ${activeTab === 'sessions' ? 'active' : ''}`}><CalendarPlus className="w-4 h-4" /> Sesiones</button>
           <button onClick={() => setActiveTab("students")} className={`tab-btn flex-shrink-0 ${activeTab === 'students' ? 'active' : ''}`}><Users className="w-4 h-4" /> Alumnos</button>
+          <button onClick={() => setActiveTab("attendance")} className={`tab-btn flex-shrink-0 ${activeTab === 'attendance' ? 'active' : ''}`}><UserCheck className="w-4 h-4" /> Asistencia</button>
           <button onClick={() => setActiveTab("gamification")} className={`tab-btn flex-shrink-0 ${activeTab === 'gamification' ? 'active' : ''}`}><Trophy className="w-4 h-4" /> Gamificación</button>
           <button onClick={() => setActiveTab("arena")} className={`tab-btn flex-shrink-0 ${activeTab === 'arena' ? 'active' : ''}`}><Gamepad2 className="w-4 h-4" /> Arena</button>
         </div>
@@ -638,6 +691,348 @@ export default function ClassView() {
           </div>
         </div>
       )}
+
+      {/* 2.5 ATTENDANCE TAB */}
+      {activeTab === "attendance" && (() => {
+        // Filter sessions by cuatrimestre
+        const relevantSessions = sessions.filter(s => {
+          if (cuatrimestreFilter === "all") return true;
+          const sCuatri = s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1);
+          return sCuatri === Number(cuatrimestreFilter);
+        }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        // Fast lookup map: `${session_id}_${class_student_id}` -> attendance record
+        const attMap = {};
+        allAttendance.forEach(a => {
+          attMap[`${a.session_id}_${a.class_student_id}`] = a;
+        });
+
+        // Compute statistics per student
+        const studentStats = students.map(st => {
+          let pCount = 0;
+          let tCount = 0;
+          let jCount = 0;
+          let aCount = 0;
+          let obsCount = 0;
+
+          relevantSessions.forEach(s => {
+            const rec = attMap[`${s.id}_${st.id}`];
+            let stStatus = "present";
+            if (rec) {
+              stStatus = rec.status || (rec.is_present ? "present" : "absent");
+              if (rec.observation) obsCount++;
+            }
+            if (stStatus === "present") pCount++;
+            else if (stStatus === "late") tCount++;
+            else if (stStatus === "justified") jCount++;
+            else if (stStatus === "absent") aCount++;
+          });
+
+          const totalS = relevantSessions.length;
+          const attended = pCount + tCount;
+          const percentage = totalS > 0 ? Math.round((attended / totalS) * 100) : 100;
+          const isAtRisk = totalS >= 2 && percentage < 75;
+
+          return {
+            student: st,
+            pCount,
+            tCount,
+            jCount,
+            aCount,
+            obsCount,
+            percentage,
+            isAtRisk,
+            attended
+          };
+        });
+
+        // Global metrics
+        const totalSessionsCount = relevantSessions.length;
+        const totalStudentsCount = students.length;
+        const atRiskCount = studentStats.filter(s => s.isAtRisk).length;
+        const perfectAttendanceCount = studentStats.filter(s => s.percentage === 100 && totalSessionsCount > 0).length;
+        const totalClassPercentage = totalStudentsCount > 0 
+          ? Math.round(studentStats.reduce((sum, s) => sum + s.percentage, 0) / totalStudentsCount) 
+          : 100;
+
+        // Filter student list by risk & search
+        const displayList = studentStats.filter(item => {
+          const nameMatch = getStudentName(item.student).toLowerCase().includes(attendanceSearch.toLowerCase()) ||
+            (item.student.dni && item.student.dni.includes(attendanceSearch));
+          if (!nameMatch) return false;
+          if (attendanceRiskFilter === "risk") return item.isAtRisk;
+          return true;
+        });
+
+        return (
+          <div className="space-y-8 animate-in slide-up">
+            {/* Top Metrics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Asistencia Global */}
+              <div className="p-6 rounded-[28px] bg-white border border-slate-100 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Asistencia Global</span>
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="font-['Outfit'] font-black text-3xl text-slate-900 tracking-tight">{totalClassPercentage}%</span>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Promedio de la materia</p>
+                </div>
+              </div>
+
+              {/* Total Clases Dictadas */}
+              <div className="p-6 rounded-[28px] bg-white border border-slate-100 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Clases Dictadas</span>
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
+                    <CalendarPlus className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="font-['Outfit'] font-black text-3xl text-slate-900 tracking-tight">{totalSessionsCount}</span>
+                  <p className="text-xs text-slate-500 font-medium mt-1">
+                    {cuatrimestreFilter === "all" ? "Año completo" : `${cuatrimestreFilter}º Cuatrimestre`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Alumnos en Riesgo */}
+              <div className={`p-6 rounded-[28px] border shadow-sm relative overflow-hidden transition-all ${
+                atRiskCount > 0 
+                  ? "bg-rose-50/70 border-rose-200" 
+                  : "bg-white border-slate-100"
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${atRiskCount > 0 ? "text-rose-600" : "text-slate-400"}`}>
+                    Alumnos en Riesgo
+                  </span>
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${
+                    atRiskCount > 0 ? "bg-rose-100 text-rose-600" : "bg-slate-50 text-slate-400"
+                  }`}>
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className={`font-['Outfit'] font-black text-3xl tracking-tight ${
+                    atRiskCount > 0 ? "text-rose-700" : "text-slate-900"
+                  }`}>
+                    {atRiskCount}
+                  </span>
+                  <p className={`text-xs font-medium mt-1 ${atRiskCount > 0 ? "text-rose-600 font-bold" : "text-slate-500"}`}>
+                    {atRiskCount > 0 ? "Menor al 75% de asistencia" : "Sin casos críticos"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Asistencia Perfecta */}
+              <div className="p-6 rounded-[28px] bg-white border border-slate-100 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Asistencia Perfecta</span>
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="font-['Outfit'] font-black text-3xl text-slate-900 tracking-tight">{perfectAttendanceCount}</span>
+                  <p className="text-xs text-slate-500 font-medium mt-1">100% de presencia</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Controls Bar */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-[28px] border border-slate-100 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Buscar alumno o DNI..."
+                    value={attendanceSearch}
+                    onChange={(e) => setAttendanceSearch(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
+                  <button
+                    onClick={() => setAttendanceRiskFilter("all")}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                      attendanceRiskFilter === "all" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    Todos ({students.length})
+                  </button>
+                  <button
+                    onClick={() => setAttendanceRiskFilter("risk")}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${
+                      attendanceRiskFilter === "risk" 
+                        ? "bg-rose-600 text-white shadow-xs" 
+                        : "text-slate-500 hover:text-rose-600"
+                    }`}
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" /> En Riesgo ({atRiskCount})
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <Button
+                  onClick={() => exportAttendanceMatrixToCSV(classData?.name || "Clase", relevantSessions, students, allAttendance, cuatrimestreFilter)}
+                  className="rounded-2xl h-11 px-5 font-black text-xs uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4 text-emerald-600" /> Exportar Planilla (CSV)
+                </Button>
+              </div>
+            </div>
+
+            {/* Attendance Matrix Table */}
+            <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl overflow-hidden">
+              {relevantSessions.length === 0 ? (
+                <div className="p-16 text-center">
+                  <CalendarPlus className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <p className="font-['Outfit'] font-black text-slate-800 text-lg">No hay sesiones creadas en este periodo</p>
+                  <p className="text-slate-400 text-xs font-medium mt-1">Creá una nueva sesión para comenzar el seguimiento de asistencia</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200/80">
+                        <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-500 sticky left-0 bg-slate-50 z-20 w-64 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                          Estudiante
+                        </th>
+                        {relevantSessions.map(s => {
+                          const dateObj = new Date(s.date + "T12:00:00");
+                          return (
+                            <th key={s.id} className="px-3 py-3 text-center border-l border-slate-200/60 min-w-[72px]">
+                              <Link to={`/session/${s.id}`} className="group block hover:text-blue-600 transition-colors" title="Abrir sesión en vivo">
+                                <span className="block font-['Outfit'] font-black text-xs text-slate-800 group-hover:text-blue-600">
+                                  {format(dateObj, "d MMM", { locale: es })}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mt-0.5">
+                                  {format(dateObj, "EEE", { locale: es })}
+                                </span>
+                              </Link>
+                            </th>
+                          );
+                        })}
+                        <th className="px-3 py-4 text-center font-black text-[10px] uppercase tracking-widest text-emerald-700 bg-emerald-50/50 border-l border-slate-200/80 w-12" title="Presentes">
+                          P
+                        </th>
+                        <th className="px-3 py-4 text-center font-black text-[10px] uppercase tracking-widest text-amber-700 bg-amber-50/50 border-l border-slate-200/80 w-12" title="Tardes">
+                          T
+                        </th>
+                        <th className="px-3 py-4 text-center font-black text-[10px] uppercase tracking-widest text-purple-700 bg-purple-50/50 border-l border-slate-200/80 w-12" title="Justificadas">
+                          J
+                        </th>
+                        <th className="px-3 py-4 text-center font-black text-[10px] uppercase tracking-widest text-rose-700 bg-rose-50/50 border-l border-slate-200/80 w-12" title="Ausentes">
+                          A
+                        </th>
+                        <th className="px-5 py-4 text-center font-black text-[10px] uppercase tracking-widest text-slate-700 border-l border-slate-200/80 w-24">
+                          % Final
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {displayList.map(item => {
+                        const st = item.student;
+                        return (
+                          <tr key={st.id} className="hover:bg-slate-50/60 transition-colors">
+                            {/* Sticky student name column */}
+                            <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50/60 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                                  {getStudentName(st)[0]}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-['Outfit'] font-black text-sm text-slate-800 truncate block">
+                                    {getStudentName(st)}
+                                  </span>
+                                  {st.dni && (
+                                    <span className="text-[10px] font-bold text-slate-400">
+                                      DNI: {st.dni}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Session status cells */}
+                            {relevantSessions.map(s => {
+                              const rec = attMap[`${s.id}_${st.id}`];
+                              let status = "present";
+                              if (rec) {
+                                status = rec.status || (rec.is_present ? "present" : "absent");
+                              }
+                              const hasObs = Boolean(rec?.observation);
+
+                              const statusBadge = {
+                                present: { code: "P", full: "Presente", bg: "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200" },
+                                late: { code: "T", full: "Tarde", bg: "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200" },
+                                justified: { code: "J", full: "Justificado", bg: "bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200" },
+                                absent: { code: "A", full: "Ausente", bg: "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200" }
+                              }[status] || { code: "P", full: "Presente", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+
+                              return (
+                                <td key={s.id} className="px-2 py-3 text-center border-l border-slate-100">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setQuickAttendanceModal({
+                                        student: st,
+                                        session: s,
+                                        currentStatus: status,
+                                        observation: rec?.observation || ""
+                                      });
+                                      setQuickObsText(rec?.observation || "");
+                                    }}
+                                    title={`${statusBadge.full} · ${s.date}${hasObs ? ` · "${rec.observation}"` : ""}`}
+                                    className={`relative inline-flex items-center justify-center w-8 h-8 rounded-xl font-black text-xs border transition-all ${statusBadge.bg}`}
+                                  >
+                                    {statusBadge.code}
+                                    {hasObs && (
+                                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-2 ring-white" />
+                                    )}
+                                  </button>
+                                </td>
+                              );
+                            })}
+
+                            {/* Totals Summary */}
+                            <td className="px-3 py-4 text-center font-bold text-xs text-emerald-700 bg-emerald-50/20 border-l border-slate-100">
+                              {item.pCount}
+                            </td>
+                            <td className="px-3 py-4 text-center font-bold text-xs text-amber-700 bg-amber-50/20 border-l border-slate-100">
+                              {item.tCount}
+                            </td>
+                            <td className="px-3 py-4 text-center font-bold text-xs text-purple-700 bg-purple-50/20 border-l border-slate-100">
+                              {item.jCount}
+                            </td>
+                            <td className="px-3 py-4 text-center font-bold text-xs text-rose-700 bg-rose-50/20 border-l border-slate-100">
+                              {item.aCount}
+                            </td>
+                            <td className="px-5 py-4 text-center border-l border-slate-100">
+                              <span className={`px-2.5 py-1 rounded-xl text-xs font-['Outfit'] font-black inline-block border ${
+                                item.percentage >= 75
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                              }`}>
+                                {item.percentage}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 3. GAMIFICATION TAB */}
       {activeTab === "gamification" && (
@@ -1020,7 +1415,198 @@ export default function ClassView() {
         </div>
       )}
 
-      {/* Styles for tabs */}
+      {/* QUICK ATTENDANCE & OBSERVATION MODAL */}
+      {quickAttendanceModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full border border-slate-100 shadow-2xl p-6 sm:p-7 space-y-6 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-['Outfit'] font-black text-lg flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                  {getStudentName(quickAttendanceModal.student)[0]}
+                </div>
+                <div>
+                  <h3 className="text-lg font-['Outfit'] font-black text-slate-900 leading-tight">
+                    {getStudentName(quickAttendanceModal.student)}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      Clase: {(() => {
+                        const [y, m, d] = quickAttendanceModal.session.date.split('-');
+                        const dObj = new Date(y, m - 1, d);
+                        return format(dObj, "d 'de' MMMM, yyyy", { locale: es });
+                      })()}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700">
+                      {quickAttendanceModal.session.cuatrimestre || 1}º Cuat.
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setQuickAttendanceModal(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Status Selection Cards */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+                Estado de Asistencia
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  {
+                    key: "present",
+                    label: "Presente (P)",
+                    desc: "Asistió a clase",
+                    borderActive: "border-emerald-500 bg-emerald-50/80 text-emerald-900 shadow-sm shadow-emerald-500/10",
+                    badge: "bg-emerald-600 text-white",
+                    icon: CheckCircle2
+                  },
+                  {
+                    key: "late",
+                    label: "Tarde (T)",
+                    desc: "Llegó con demora",
+                    borderActive: "border-amber-500 bg-amber-50/80 text-amber-900 shadow-sm shadow-amber-500/10",
+                    badge: "bg-amber-600 text-white",
+                    icon: Clock
+                  },
+                  {
+                    key: "justified",
+                    label: "Justificado (J)",
+                    desc: "Falta justificada",
+                    borderActive: "border-purple-500 bg-purple-50/80 text-purple-900 shadow-sm shadow-purple-500/10",
+                    badge: "bg-purple-600 text-white",
+                    icon: ShieldAlert
+                  },
+                  {
+                    key: "absent",
+                    label: "Ausente (A)",
+                    desc: "No asistió",
+                    borderActive: "border-rose-500 bg-rose-50/80 text-rose-900 shadow-sm shadow-rose-500/10",
+                    badge: "bg-rose-600 text-white",
+                    icon: X
+                  }
+                ].map((s) => {
+                  const isSelected = quickAttendanceModal.currentStatus === s.key;
+                  const Icon = s.icon;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setQuickAttendanceModal(prev => ({ ...prev, currentStatus: s.key }))}
+                      className={`p-3.5 rounded-2xl border text-left transition-all relative ${
+                        isSelected 
+                          ? s.borderActive 
+                          : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/60 text-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-['Outfit'] font-black text-xs">
+                          {s.label}
+                        </span>
+                        <Icon className={`w-4 h-4 ${isSelected ? "opacity-100" : "opacity-40"}`} />
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                        {s.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pedagogical Observations */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                  <MessageSquareQuote className="w-3.5 h-3.5 text-indigo-500" />
+                  Observación Pedagógica (Opcional)
+                </label>
+                {quickObsText && (
+                  <button
+                    type="button"
+                    onClick={() => setQuickObsText("")}
+                    className="text-[10px] font-bold text-slate-400 hover:text-rose-600"
+                  >
+                    Borrar nota
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Esta observación aparecerá en el informe descargable/imprimible del alumno para esta fecha:
+              </p>
+
+              {/* Quick Preset Tags */}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "💡 Gran participación",
+                  "⭐ Trabajo destacado",
+                  "📋 Tarea incompleta",
+                  "⏳ Llegó tarde",
+                  "💬 Conversa en clase",
+                  "🩺 Retiro temprano",
+                  "🎯 Buen desempeño",
+                  "⚠️ Requiere refuerzo"
+                ].map((tag, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setQuickObsText(prev => prev ? `${prev}. ${tag}` : tag)}
+                    className="text-[11px] font-bold bg-indigo-50/60 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 px-2.5 py-1 rounded-xl transition-all"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                rows={3}
+                value={quickObsText}
+                onChange={(e) => setQuickObsText(e.target.value)}
+                placeholder="Escribe notas sobre participación, conducta, tareas o motivos de inasistencia..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none"
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setQuickAttendanceModal(null)}
+                disabled={savingQuickAtt}
+                className="rounded-xl h-11 px-5 font-bold text-slate-500 text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={() => updateStudentAttendanceRecord(
+                  quickAttendanceModal.session.id,
+                  quickAttendanceModal.student.id,
+                  quickAttendanceModal.currentStatus,
+                  quickObsText
+                )}
+                disabled={savingQuickAtt}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-11 px-6 font-['Outfit'] font-black text-xs uppercase tracking-wider shadow-md shadow-indigo-600/20 flex items-center gap-2"
+              >
+                {savingQuickAtt ? (
+                  "Guardando..."
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" /> Guardar Asistencia
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <style>{`
         .tab-btn {
           display: flex;

@@ -4,7 +4,12 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle2, X, Users, XCircle, ChevronLeft, ChevronRight, LayoutGrid, ArrowLeft, PlusCircle, Sparkles, Trash2, TrendingUp, Pencil, Download, Printer, Wifi, WifiOff } from "lucide-react";
+import { 
+  CheckCircle2, X, Users, XCircle, ChevronLeft, ChevronRight, LayoutGrid, 
+  ArrowLeft, PlusCircle, Sparkles, Trash2, TrendingUp, Pencil, Download, 
+  Printer, Wifi, WifiOff, MessageSquareQuote, Clock, AlertCircle, Check, 
+  FileText, CheckSquare, ShieldAlert, Sparkle
+} from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useToast } from "../../providers/ToastProvider";
@@ -28,6 +33,11 @@ export default function LiveSession() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
   const [attendance, setAttendance] = useState({});
+  const [observations, setObservations] = useState({});
+  const [attendanceFilter, setAttendanceFilter] = useState("all"); // all | present | late | justified | absent | with_obs
+  const [selectedStudentForObs, setSelectedStudentForObs] = useState(null);
+  const [obsModalText, setObsModalText] = useState("");
+  const [savingObs, setSavingObs] = useState(false);
   const [inheritedGrades, setInheritedGrades] = useState({});
   const [showOverallAverage, setShowOverallAverage] = useState(false);
   const [gradeFlash, setGradeFlash] = useState({});
@@ -76,18 +86,36 @@ export default function LiveSession() {
     setSession(s);
     setClassName(s.classes.name);
 
-    const [{ data: cData }, { data: stData }] = await Promise.all([
+    const [{ data: cData }, { data: stData }, { data: aData }] = await Promise.all([
       supabase.from("session_criteria").select("*").eq("session_id", id).order("created_at"),
-      supabase.from("class_students").select("id, student_id, student_name, profiles(full_name)").eq("class_id", s.classes.id),
+      supabase.from("class_students").select("id, student_id, student_name, dni, profiles(full_name)").eq("class_id", s.classes.id),
+      supabase.from("attendance").select("*").eq("session_id", id),
     ]);
 
     setCriteria(cData || []);
     const mapped = (stData || []).map(st => ({
       cs_id: st.id,
       student_id: st.student_id,
+      dni: st.dni,
       name: st.profiles?.full_name || st.student_name || "Sin nombre",
     }));
     setStudents(mapped);
+
+    // Map attendance & observations
+    const aMap = {};
+    const obsMap = {};
+    (aData || []).forEach(a => {
+      aMap[a.class_student_id] = {
+        status: a.status || (a.is_present ? "present" : "absent"),
+        is_present: a.is_present !== false,
+        observation: a.observation || ""
+      };
+      if (a.observation) {
+        obsMap[a.class_student_id] = a.observation;
+      }
+    });
+    setAttendance(aMap);
+    setObservations(obsMap);
 
     if (cData?.length > 0) {
       const cIds = cData.map(c => c.id);
@@ -95,11 +123,6 @@ export default function LiveSession() {
       const map = {};
       (gData || []).forEach(g => { map[`${g.class_student_id}_${g.criteria_id}`] = g.score; });
       setGrades(map);
-
-      const { data: aData } = await supabase.from("attendance").select("*").eq("session_id", id);
-      const aMap = {};
-      (aData || []).forEach(a => { aMap[a.class_student_id] = a.is_present; });
-      setAttendance(aMap);
 
       const { data: otherSessions } = await supabase.from("sessions").select("id").eq("class_id", s.classes.id).neq("id", id);
       if (otherSessions?.length > 0) {
@@ -141,7 +164,9 @@ export default function LiveSession() {
         });
         setSparklineData(sData);
       }
-    } catch (_) {}
+    } catch (e) {
+      console.error("Error loading sparkline data", e);
+    }
   };
 
   const fetchGrades = async () => {
@@ -242,21 +267,174 @@ export default function LiveSession() {
     }
   };
 
-  const filteredStudents = students.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+  const getAttendanceStatus = (csId) => {
+    const rec = attendance[csId];
+    if (!rec) return "present";
+    if (typeof rec === "string") return rec;
+    if (typeof rec === "boolean") return rec ? "present" : "absent";
+    return rec.status || (rec.is_present ? "present" : "absent");
+  };
 
-  const toggleAttendance = async (csId) => {
-    const newState = !attendance[csId];
-    setAttendance(prev => ({ ...prev, [csId]: newState }));
-    await supabase.from("attendance").upsert({ session_id: id, class_student_id: csId, is_present: newState }, { onConflict: "session_id,class_student_id" });
+  const isStudentPresent = (csId) => {
+    const st = getAttendanceStatus(csId);
+    return st === "present" || st === "late";
+  };
+
+  const setStudentAttendanceStatus = async (csId, newStatus) => {
+    const isPres = newStatus === "present" || newStatus === "late";
+    const existingObs = observations[csId] || attendance[csId]?.observation || "";
     
-    // Recompensa Pokémon por asistencia (+20 XP)
-    if (newState) {
+    setAttendance(prev => ({
+      ...prev,
+      [csId]: {
+        status: newStatus,
+        is_present: isPres,
+        observation: existingObs
+      }
+    }));
+
+    if (!navigator.onLine) {
+      queueOfflineUpdate("attendance", { session_id: id, class_student_id: csId, status: newStatus, is_present: isPres });
+      setPendingQueueCount(getOfflineQueue().length);
+    } else {
+      await supabase.from("attendance").upsert({
+        session_id: id,
+        class_student_id: csId,
+        status: newStatus,
+        is_present: isPres,
+        observation: existingObs || null
+      }, { onConflict: "session_id,class_student_id" });
+    }
+
+    // Recompensa Pokémon por asistencia (+20 XP al marcar presente o tarde)
+    if (isPres) {
       const student = students.find(s => s.cs_id === csId);
       if (student?.student_id) {
         addXPToAllStudentPokemon(student.student_id, 20);
       }
     }
   };
+
+  const saveStudentObservation = async (csId, newObs) => {
+    const cleanObs = newObs?.trim() || "";
+    const currentStatus = getAttendanceStatus(csId);
+    const isPres = currentStatus === "present" || currentStatus === "late";
+
+    setObservations(prev => ({ ...prev, [csId]: cleanObs }));
+    setAttendance(prev => ({
+      ...prev,
+      [csId]: {
+        ...(prev[csId] || {}),
+        status: currentStatus,
+        is_present: isPres,
+        observation: cleanObs
+      }
+    }));
+
+    await supabase.from("attendance").upsert({
+      session_id: id,
+      class_student_id: csId,
+      status: currentStatus,
+      is_present: isPres,
+      observation: cleanObs || null
+    }, { onConflict: "session_id,class_student_id" });
+
+    toast("Observación pedagógica guardada", "success");
+    setSelectedStudentForObs(null);
+  };
+
+  const deleteStudentObservation = async (csId) => {
+    const currentStatus = getAttendanceStatus(csId);
+    const isPres = currentStatus === "present" || currentStatus === "late";
+
+    setObservations(prev => {
+      const copy = { ...prev };
+      delete copy[csId];
+      return copy;
+    });
+
+    setAttendance(prev => ({
+      ...prev,
+      [csId]: {
+        ...(prev[csId] || {}),
+        status: currentStatus,
+        is_present: isPres,
+        observation: null
+      }
+    }));
+
+    await supabase.from("attendance").upsert({
+      session_id: id,
+      class_student_id: csId,
+      status: currentStatus,
+      is_present: isPres,
+      observation: null
+    }, { onConflict: "session_id,class_student_id" });
+
+    toast("Observación eliminada", "info");
+    setSelectedStudentForObs(null);
+  };
+
+  const markAllAttendance = async (statusToSet = "present") => {
+    const isPres = statusToSet === "present" || statusToSet === "late";
+    const newAtt = { ...attendance };
+    const records = [];
+
+    students.forEach(s => {
+      const existingObs = observations[s.cs_id] || attendance[s.cs_id]?.observation || "";
+      newAtt[s.cs_id] = {
+        status: statusToSet,
+        is_present: isPres,
+        observation: existingObs
+      };
+      records.push({
+        session_id: id,
+        class_student_id: s.cs_id,
+        status: statusToSet,
+        is_present: isPres,
+        observation: existingObs || null
+      });
+    });
+
+    setAttendance(newAtt);
+    const { error } = await supabase.from("attendance").upsert(records, { onConflict: "session_id,class_student_id" });
+    if (error) {
+      toast("Error al guardar asistencia masiva: " + error.message, "error");
+    } else {
+      toast(statusToSet === "present" ? "¡Todos los alumnos marcados como Presentes!" : "Asistencia actualizada", "success");
+    }
+  };
+
+  // Live attendance tally statistics
+  const attStats = students.reduce((acc, s) => {
+    const status = getAttendanceStatus(s.cs_id);
+    if (status === "present") acc.present++;
+    else if (status === "late") acc.late++;
+    else if (status === "justified") acc.justified++;
+    else if (status === "absent") acc.absent++;
+    
+    if (observations[s.cs_id] || attendance[s.cs_id]?.observation) {
+      acc.withObs++;
+    }
+    return acc;
+  }, { present: 0, late: 0, justified: 0, absent: 0, withObs: 0 });
+
+  const totalStudents = students.length;
+  const attendedCount = attStats.present + attStats.late;
+  const attendanceRate = totalStudents > 0 ? Math.round((attendedCount / totalStudents) * 100) : 100;
+
+  const filteredStudents = students.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+
+    const status = getAttendanceStatus(s.cs_id);
+    if (attendanceFilter === "present") return status === "present";
+    if (attendanceFilter === "late") return status === "late";
+    if (attendanceFilter === "absent") return status === "absent";
+    if (attendanceFilter === "justified") return status === "justified";
+    if (attendanceFilter === "with_obs") return Boolean(observations[s.cs_id] || attendance[s.cs_id]?.observation);
+    return true;
+  }).sort((a, b) => sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
 
   const generateAIFeedback = (csId) => {
     const studentGrades = criteria.map(c => {
@@ -375,7 +553,7 @@ export default function LiveSession() {
           
           <div className="flex flex-wrap items-center gap-2">
             <Button
-              onClick={() => exportClassToCSV(className || "Clase", students, criteria, grades, attendance)}
+              onClick={() => exportClassToCSV(className || "Clase", students, criteria, grades, attendance, "all", observations)}
               className="bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl h-12 px-5 font-black flex items-center gap-2 text-xs uppercase tracking-wider transition-all border border-slate-200"
             >
               <Download className="w-4 h-4 text-emerald-600" /> Excel / CSV
@@ -383,6 +561,89 @@ export default function LiveSession() {
             <Button onClick={handleAddCriteria} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 px-6 font-black shadow-lg shadow-blue-500/20 flex items-center gap-2 text-xs uppercase tracking-wider transition-all">
               <PlusCircle className="w-5 h-5" /> Agregar Criterio
             </Button>
+          </div>
+        </div>
+
+        {/* Attendance & Pedagogical Observations Control Panel */}
+        <div className="p-4 sm:p-6 bg-slate-50/70 border-b border-slate-200/80 space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Tally Metrics */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1">Asistencia:</span>
+              
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{attStats.present} Presentes</span>
+                <span className="text-emerald-500/80 font-bold ml-0.5">({attendanceRate}%)</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-black">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <span>{attStats.late} Tardes</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-800 border border-purple-200 text-xs font-black">
+                <AlertCircle className="w-3.5 h-3.5 text-purple-600" />
+                <span>{attStats.justified} Justif.</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-800 border border-rose-200 text-xs font-black">
+                <X className="w-3.5 h-3.5 text-rose-600" />
+                <span>{attStats.absent} Ausentes</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-800 border border-indigo-200 text-xs font-black">
+                <MessageSquareQuote className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{attStats.withObs} con notas</span>
+              </div>
+            </div>
+
+            {/* Quick Bulk Actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => markAllAttendance("present")}
+                className="rounded-xl font-bold text-xs h-9 px-3 border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 gap-1.5"
+                title="Marcar todos como presentes"
+              >
+                <CheckSquare className="w-3.5 h-3.5 text-emerald-600" /> Marcar Todos Presentes
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => markAllAttendance("absent")}
+                className="rounded-xl font-bold text-xs h-9 px-3 border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 gap-1.5"
+                title="Marcar todos como ausentes"
+              >
+                <X className="w-3.5 h-3.5 text-rose-500" /> Marcar Todos Ausentes
+              </Button>
+            </div>
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-2 shrink-0">Filtrar lista:</span>
+            {[
+              { id: "all", label: `Todos (${students.length})` },
+              { id: "present", label: `Presentes (${attStats.present})` },
+              { id: "late", label: `Tardes (${attStats.late})` },
+              { id: "justified", label: `Justificados (${attStats.justified})` },
+              { id: "absent", label: `Ausentes (${attStats.absent})` },
+              { id: "with_obs", label: `Con Observación (${attStats.withObs})` }
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setAttendanceFilter(f.id)}
+                className={`px-3 py-1.5 rounded-xl font-black text-[11px] transition-all shrink-0 ${
+                  attendanceFilter === f.id
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
         
@@ -404,15 +665,15 @@ export default function LiveSession() {
           ) : filteredStudents.length === 0 ? (
             <div className="py-24 text-center">
               <Users className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-              <p className="font-['Outfit'] font-black text-slate-500">No se encontraron alumnos</p>
+              <p className="font-['Outfit'] font-black text-slate-500">No se encontraron alumnos con el filtro seleccionado</p>
             </div>
           ) : viewMode === "table" ? (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-100 text-slate-800 border-b border-slate-200">
-                    <th onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")} className="text-left px-6 py-5 font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 cursor-pointer hover:text-blue-600 transition-colors w-64">
-                      Alumno
+                    <th onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")} className="text-left px-6 py-5 font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 cursor-pointer hover:text-blue-600 transition-colors w-72">
+                      Alumno & Asistencia
                     </th>
                     {criteria.map(c => (
                       <th key={c.id} className="px-4 py-5 text-center font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 relative group border-l border-slate-200 min-w-[130px]">
@@ -437,33 +698,85 @@ export default function LiveSession() {
                     {filteredStudents.map((student, sIdx) => {
                       const names = student.name.split(" ");
                       const mobileName = names.length > 1 ? `${names[0]} ${names[1][0]}.` : names[0];
+                      const studentObs = observations[student.cs_id] || attendance[student.cs_id]?.observation;
+
                       return (
                         <tr key={student.cs_id} className="group hover:bg-slate-50/80 transition-colors">
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <button
-                                onClick={() => toggleAttendance(student.cs_id)}
-                                title={attendance[student.cs_id] !== false ? "Asistencia: Presente" : "Asistencia: Ausente"}
-                                className={`w-4 h-4 rounded-full transition-all shrink-0 ${
-                                  attendance[student.cs_id] !== false 
-                                    ? 'bg-emerald-500 ring-4 ring-emerald-100' 
-                                    : 'bg-rose-500 ring-4 ring-rose-100'
-                                }`} 
-                              />
-                              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-['Outfit'] font-black text-sm flex items-center justify-center shadow-md shadow-indigo-500/10 shrink-0">
-                                {student.name[0].toUpperCase()}
+                            <div className="space-y-2">
+                              {/* Top row: Avatar + Name + Report button */}
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-['Outfit'] font-black text-sm flex items-center justify-center shadow-md shadow-indigo-500/10 shrink-0">
+                                  {student.name[0].toUpperCase()}
+                                </div>
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <span className="font-['Outfit'] font-extrabold text-sm text-slate-900 tracking-tight truncate">
+                                    <span className="sm:hidden">{mobileName}</span>
+                                    <span className="hidden sm:inline">{student.name}</span>
+                                  </span>
+                                  {student.dni && (
+                                    <span className="hidden xl:inline text-[10px] font-bold text-slate-400">
+                                      · {student.dni}
+                                    </span>
+                                  )}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setSelectedStudentForReport(student); }}
+                                    className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all shrink-0"
+                                    title="Imprimir Boletín / Informe PDF"
+                                  >
+                                    <Printer className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <span className="font-['Outfit'] font-extrabold text-base text-slate-900 tracking-tight truncate">
-                                  <span className="sm:hidden">{mobileName}</span>
-                                  <span className="hidden sm:inline">{student.name}</span>
-                                </span>
+
+                              {/* Bottom row: 4-state switcher + Observation button */}
+                              <div className="flex items-center gap-2 pt-0.5">
+                                {/* Segmented 4-state buttons */}
+                                <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200">
+                                  {[
+                                    { key: "present", label: "P", full: "Presente", activeClass: "bg-emerald-600 text-white shadow-xs" },
+                                    { key: "late", label: "T", full: "Tarde", activeClass: "bg-amber-500 text-white shadow-xs" },
+                                    { key: "justified", label: "J", full: "Justificado", activeClass: "bg-purple-600 text-white shadow-xs" },
+                                    { key: "absent", label: "A", full: "Ausente", activeClass: "bg-rose-600 text-white shadow-xs" }
+                                  ].map(s => {
+                                    const currentStatus = getAttendanceStatus(student.cs_id);
+                                    const isSelected = currentStatus === s.key;
+                                    return (
+                                      <button
+                                        key={s.key}
+                                        type="button"
+                                        onClick={() => setStudentAttendanceStatus(student.cs_id, s.key)}
+                                        title={`Marcar como ${s.full}`}
+                                        className={`w-6 h-6 rounded-md text-[10px] font-black transition-all flex items-center justify-center ${
+                                          isSelected ? s.activeClass : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/60"
+                                        }`}
+                                      >
+                                        {s.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Observation Button */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setSelectedStudentForReport(student); }}
-                                  className="p-1.5 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all shrink-0"
-                                  title="Imprimir Boletín / Informe PDF"
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedStudentForObs(student);
+                                    setObsModalText(studentObs || "");
+                                  }}
+                                  title={studentObs ? `Observación: "${studentObs}"` : "Agregar observación pedagógica"}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all border ${
+                                    studentObs
+                                      ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                                      : "bg-white text-slate-400 border-slate-200 hover:text-slate-700 hover:bg-slate-50"
+                                  }`}
                                 >
-                                  <Printer className="w-4 h-4" />
+                                  <MessageSquareQuote className={`w-3 h-3 ${studentObs ? "text-indigo-600" : "text-slate-400"}`} />
+                                  {studentObs ? (
+                                    <span className="max-w-[70px] truncate normal-case font-bold">{studentObs}</span>
+                                  ) : (
+                                    <span>+ Nota</span>
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -545,46 +858,204 @@ export default function LiveSession() {
               </div>
             ) : (
               <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredStudents.map(student => (
-                  <div key={student.cs_id} className="p-6 rounded-3xl transition-all hover:scale-[1.02] hover:shadow-xl bg-white border border-slate-200/80 shadow-md shadow-slate-900/5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="relative">
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-['Outfit'] font-black text-white text-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/20">
-                          {student.name[0].toUpperCase()}
+                {filteredStudents.map(student => {
+                  const studentObs = observations[student.cs_id] || attendance[student.cs_id]?.observation;
+                  return (
+                    <div key={student.cs_id} className="p-6 rounded-3xl transition-all hover:shadow-xl bg-white border border-slate-200/80 shadow-md shadow-slate-900/5 space-y-4">
+                      {/* Card Header with 4-state switcher and Obs button */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-['Outfit'] font-black text-white text-base bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/20 shrink-0">
+                            {student.name[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="font-['Outfit'] font-extrabold text-slate-900 text-base leading-tight">{student.name}</h3>
+                            <p className="font-['DM_Sans'] font-bold text-[10px] uppercase tracking-widest text-slate-400 mt-0.5">
+                              {student.dni ? `DNI: ${student.dni}` : "Alumno"}
+                            </p>
+                          </div>
                         </div>
-                        <button onClick={() => toggleAttendance(student.cs_id)} 
-                          className={`absolute -top-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${attendance[student.cs_id] !== false ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                          {attendance[student.cs_id] !== false ? <CheckCircle2 className="w-3 h-3 text-white" /> : <X className="w-3 h-3 text-white" />}
+
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedStudentForReport(student); }}
+                          className="p-1.5 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all shrink-0"
+                          title="Imprimir Boletín"
+                        >
+                          <Printer className="w-4 h-4" />
                         </button>
                       </div>
-                      <div>
-                        <h3 className="font-['Outfit'] font-extrabold text-slate-900 text-lg">{student.name}</h3>
-                        <p className="font-['DM_Sans'] font-bold text-[10px] uppercase tracking-widest text-slate-400">Eval. Diaria</p>
+
+                      {/* Attendance 4-state switcher & Obs row */}
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                        <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200">
+                          {[
+                            { key: "present", label: "P", full: "Presente", activeClass: "bg-emerald-600 text-white shadow-xs" },
+                            { key: "late", label: "T", full: "Tarde", activeClass: "bg-amber-500 text-white shadow-xs" },
+                            { key: "justified", label: "J", full: "Justificado", activeClass: "bg-purple-600 text-white shadow-xs" },
+                            { key: "absent", label: "A", full: "Ausente", activeClass: "bg-rose-600 text-white shadow-xs" }
+                          ].map(s => {
+                            const currentStatus = getAttendanceStatus(student.cs_id);
+                            const isSelected = currentStatus === s.key;
+                            return (
+                              <button
+                                key={s.key}
+                                type="button"
+                                onClick={() => setStudentAttendanceStatus(student.cs_id, s.key)}
+                                title={`Marcar como ${s.full}`}
+                                className={`w-6 h-6 rounded-md text-[10px] font-black transition-all flex items-center justify-center ${
+                                  isSelected ? s.activeClass : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/60"
+                                }`}
+                              >
+                                {s.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedStudentForObs(student);
+                            setObsModalText(studentObs || "");
+                          }}
+                          className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border transition-all ${
+                            studentObs
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                              : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          <MessageSquareQuote className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>{studentObs ? "Nota guardada" : "+ Nota"}</span>
+                        </button>
+                      </div>
+
+                      {/* Observation snippet if exists */}
+                      {studentObs && (
+                        <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100 text-xs italic text-indigo-900 flex items-start gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                          <p className="truncate">{studentObs}</p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        {criteria.map(c => {
+                          const key = `${student.cs_id}_${c.id}`;
+                          const val = grades[key] ?? "";
+                          const inheritedVal = inheritedGrades[`${student.cs_id}_${c.name}`] ?? "";
+                          const displayVal = val !== "" ? val : inheritedVal;
+                          return (
+                            <div key={c.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                              <span className="font-['DM_Sans'] font-bold text-xs uppercase tracking-wider truncate flex-1 text-slate-700">{c.name}</span>
+                              <input type="number" min="0" max={c.max_score} step="0.5" value={displayVal} 
+                                onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)} 
+                                onBlur={e => saveGrade(student.cs_id, c.id, e.target.value, c.max_score)}
+                                className="w-16 h-10 text-center font-['Outfit'] font-black text-base bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20" />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      {criteria.map(c => {
-                        const key = `${student.cs_id}_${c.id}`;
-                        const val = grades[key] ?? "";
-                        const inheritedVal = inheritedGrades[`${student.cs_id}_${c.name}`] ?? "";
-                        const displayVal = val !== "" ? val : inheritedVal;
-                        return (
-                          <div key={c.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                            <span className="font-['DM_Sans'] font-bold text-xs uppercase tracking-wider truncate flex-1 text-slate-700">{c.name}</span>
-                            <input type="number" min="0" max={c.max_score} step="0.5" value={displayVal} 
-                              onChange={e => handleGradeChange(student.cs_id, c.id, e.target.value)} 
-                              onBlur={e => saveGrade(student.cs_id, c.id, e.target.value, c.max_score)}
-                              className="w-16 h-10 text-center font-['Outfit'] font-black text-base bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20" />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
+
+      {/* Observation Modal */}
+      {selectedStudentForObs && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-lg p-6 sm:p-8 shadow-2xl animate-in zoom-in duration-300 border border-slate-200 space-y-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                  <MessageSquareQuote className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-['Outfit'] font-black text-xl text-slate-900">Observación de Clase</h3>
+                  <p className="text-slate-500 text-xs font-medium">
+                    {selectedStudentForObs.name} · {format(new Date(session.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedStudentForObs(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick tags chips */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Etiquetas rápidas sugeridas:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "💡 Gran participación en clase",
+                  "⭐ Trabajo destacado",
+                  "🤝 Excelente compañerismo",
+                  "📋 Tarea incompleta",
+                  "⚠️ Falta de entrega / materiales",
+                  "🩺 Retiro por motivos de salud",
+                  "🎯 Superó los objetivos planteados",
+                  "🔍 Requiere apoyo y refuerzo en el tema"
+                ].map((tag, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setObsModalText(prev => prev ? `${prev}. ${tag}` : tag)}
+                    className="text-[11px] font-bold bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-200 px-2.5 py-1 rounded-xl transition-all"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Textarea */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Comentario pedagógico del docente:</label>
+              <textarea
+                rows={4}
+                value={obsModalText}
+                onChange={(e) => setObsModalText(e.target.value)}
+                placeholder="Escribí aquí observaciones cualitativas, dificultades, logros o notas para el informe del alumno..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none"
+              />
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              {observations[selectedStudentForObs.cs_id] ? (
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => deleteStudentObservation(selectedStudentForObs.cs_id)}
+                  className="text-rose-600 hover:bg-rose-50 rounded-xl h-10 px-3 text-xs font-bold gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Borrar nota
+                </Button>
+              ) : <div />}
+
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setSelectedStudentForObs(null)}
+                  className="rounded-xl h-10 px-4 text-xs font-bold"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => saveStudentObservation(selectedStudentForObs.cs_id, obsModalText)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-5 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+                >
+                  <Check className="w-4 h-4" /> Guardar Observación
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedStudentForReport && (
         <StudentReportModal
@@ -593,6 +1064,8 @@ export default function LiveSession() {
           criteria={criteria}
           grades={grades}
           attendance={attendance}
+          observation={observations[selectedStudentForReport.cs_id] || attendance[selectedStudentForReport.cs_id]?.observation || ""}
+          onSaveObservation={saveStudentObservation}
           onClose={() => setSelectedStudentForReport(null)}
         />
       )}

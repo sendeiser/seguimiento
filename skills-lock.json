@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "chrome-extensions": {
+      "source": "GoogleChrome/modern-web-guidance",
+      "sourceType": "github",
+      "computedHash": "4b7e7beb7711c75ba267dcd5e3483d56aaa49d4670db88fd8619afea970cbccc"
+    },
     "ckm:design-system": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
@@ -35,6 +40,11 @@
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
       "computedHash": "7e88897e0371184e97a82b8d9ef080323c13f21eb067b58ef71eb05173a08ac2"
+    },
+    "modern-web-guidance": {
+      "source": "GoogleChrome/modern-web-guidance",
+      "sourceType": "github",
+      "computedHash": "fee4eb58a7347f64e053c8869bb2f9777f00942083cf8a3a80ddcd6959a18cb7"
     },
     "redesign-existing-projects": {
       "source": "Leonxlnx/taste-skill",
