@@ -143,8 +143,14 @@ export default function LiveSession() {
       const aMap = {};
       const obsMap = {};
       (attRes.data || []).forEach(a => {
+        let computedStatus = "present";
+        if (a.is_present === false) {
+          computedStatus = a.status === "justified" ? "justified" : "absent";
+        } else {
+          computedStatus = a.status || "present";
+        }
         aMap[a.class_student_id] = {
-          status: a.status || (a.is_present ? "present" : "absent"),
+          status: computedStatus,
           is_present: a.is_present !== false,
           observation: a.observation || ""
         };
@@ -327,6 +333,9 @@ export default function LiveSession() {
     if (!rec) return "present";
     if (typeof rec === "string") return rec;
     if (typeof rec === "boolean") return rec ? "present" : "absent";
+    if (rec.is_present === false) {
+      return rec.status === "justified" ? "justified" : "absent";
+    }
     return rec.status || (rec.is_present ? "present" : "absent");
   };
 

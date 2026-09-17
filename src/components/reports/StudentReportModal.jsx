@@ -67,8 +67,13 @@ export default function StudentReportModal({
     attStatus = attRecord;
     isPresent = attRecord === "present" || attRecord === "late";
   } else if (typeof attRecord === "object" && attRecord !== null) {
-    attStatus = attRecord.status || (attRecord.is_present ? "present" : "absent");
-    isPresent = attRecord.is_present ?? (attStatus === "present" || attStatus === "late");
+    if (attRecord.is_present === false) {
+      attStatus = attRecord.status === "justified" ? "justified" : "absent";
+      isPresent = false;
+    } else {
+      attStatus = attRecord.status || "present";
+      isPresent = attStatus === "present" || attStatus === "late";
+    }
   } else if (attRecord === false) {
     attStatus = "absent";
     isPresent = false;

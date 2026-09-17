@@ -64,24 +64,31 @@ export default function ClassView() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // 1. Fetch core class data in parallel
+      // 1. Fetch core class data and attendance in parallel
       const [
         { data: cls }, 
         { data: sData }, 
-        { data: stData },
-        { data: rwData },
-        { data: hData }
+        { data: stData }, 
+        { data: rwData }, 
+        { data: hData },
+        { data: attData }
       ] = await Promise.all([
         supabase.from("classes").select("*").eq("id", id).single(),
-        supabase.from("sessions").select("*, attendance(*)").eq("class_id", id).order("date", { ascending: false }),
+        supabase.from("sessions").select("*").eq("class_id", id).order("date", { ascending: false }),
         supabase.from("class_students").select("id, student_id, student_name, public_token, house_id, dni, profiles(full_name)").eq("class_id", id),
         supabase.from("rewards").select("*").eq("class_id", id).order("created_at", { ascending: false }),
-        supabase.from("class_houses").select("*").eq("class_id", id).order("created_at", { ascending: false })
+        supabase.from("class_houses").select("*").eq("class_id", id).order("created_at", { ascending: false }),
+        supabase.from("attendance").select("*, sessions!inner(class_id)").eq("sessions.class_id", id)
       ]);
 
-      // Extract all attendance directly from sessions join (0 extra network queries)
-      const allAtt = (sData || []).flatMap(s => s.attendance || []);
-      setAllAttendance(allAtt);
+      // Ensure all attendance records are captured (with fallback if needed)
+      let finalAttendance = attData || [];
+      if (!finalAttendance.length && sData?.length) {
+        const sessionIds = sData.map(s => s.id);
+        const { data: fallbackAtt } = await supabase.from("attendance").select("*").in("session_id", sessionIds);
+        if (fallbackAtt?.length) finalAttendance = fallbackAtt;
+      }
+      setAllAttendance(finalAttendance);
 
       setClassData(cls);
       setSessions(sData || []);
@@ -730,7 +737,11 @@ export default function ClassView() {
             const rec = attMap[`${s.id}_${st.id}`];
             let stStatus = "present";
             if (rec) {
-              stStatus = rec.status || (rec.is_present ? "present" : "absent");
+              if (rec.is_present === false) {
+                stStatus = rec.status === "justified" ? "justified" : "absent";
+              } else {
+                stStatus = rec.status || "present";
+              }
               if (rec.observation) obsCount++;
             }
             if (stStatus === "present") pCount++;
@@ -975,7 +986,11 @@ export default function ClassView() {
                               const rec = attMap[`${s.id}_${st.id}`];
                               let status = "present";
                               if (rec) {
-                                status = rec.status || (rec.is_present ? "present" : "absent");
+                                if (rec.is_present === false) {
+                                  status = rec.status === "justified" ? "justified" : "absent";
+                                } else {
+                                  status = rec.status || "present";
+                                }
                               }
                               const hasObs = Boolean(rec?.observation);
 

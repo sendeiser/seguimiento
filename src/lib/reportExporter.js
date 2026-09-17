@@ -35,7 +35,13 @@ export function exportClassToCSV(className, students, criteria, grades, attendan
       attText = map[attRecord] || attRecord;
     } else if (typeof attRecord === "object" && attRecord !== null) {
       const map = { present: "Presente", late: "Tarde", justified: "Justificado", absent: "Ausente" };
-      attText = map[attRecord.status] || (attRecord.is_present ? "Presente" : "Ausente");
+      let stKey = "present";
+      if (attRecord.is_present === false) {
+        stKey = attRecord.status === "justified" ? "justified" : "absent";
+      } else {
+        stKey = attRecord.status || "present";
+      }
+      attText = map[stKey] || "Presente";
     } else if (attRecord === false) {
       attText = "Ausente";
     }
@@ -109,7 +115,12 @@ export function exportAttendanceMatrixToCSV(className, sessions = [], students =
       const rec = attMap[`${s.id}_${studentId}`];
       let code = "P"; // default present if session held
       if (rec) {
-        const stStatus = rec.status || (rec.is_present ? "present" : "absent");
+        let stStatus = "present";
+        if (rec.is_present === false) {
+          stStatus = rec.status === "justified" ? "justified" : "absent";
+        } else {
+          stStatus = rec.status || "present";
+        }
         if (stStatus === "present") code = "P";
         else if (stStatus === "late") code = "T";
         else if (stStatus === "justified") code = "J";
