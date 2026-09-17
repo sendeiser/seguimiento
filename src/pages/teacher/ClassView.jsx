@@ -64,29 +64,20 @@ export default function ClassView() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // Fetching all data for class in parallel
+      // 1. Fetch core class data in parallel
       const [
         { data: cls }, 
         { data: sData }, 
         { data: stData },
         { data: rwData },
-        { data: hData },
-        { data: pData },
-        { data: pData2 }
+        { data: hData }
       ] = await Promise.all([
         supabase.from("classes").select("*").eq("id", id).single(),
         supabase.from("sessions").select("*, attendance(*)").eq("class_id", id).order("date", { ascending: false }),
         supabase.from("class_students").select("id, student_id, student_name, public_token, house_id, dni, profiles(full_name)").eq("class_id", id),
         supabase.from("rewards").select("*").eq("class_id", id).order("created_at", { ascending: false }),
-        supabase.from("class_houses").select("*").eq("class_id", id).order("created_at", { ascending: false }),
-        supabase.from("student_purchases").select("*, rewards(name, icon), profiles(full_name)").order("created_at", { ascending: false }),
-        supabase.from("student_game_progress").select("*")
+        supabase.from("class_houses").select("*").eq("class_id", id).order("created_at", { ascending: false })
       ]);
-
-      // Filter progress for this class
-      const classStudentIds = (stData || []).map(s => s.id);
-      const filteredProg = (pData2 || []).filter(p => classStudentIds.includes(p.class_student_id));
-      setArenaProgress(filteredProg);
 
       // Extract all attendance directly from sessions join (0 extra network queries)
       const allAtt = (sData || []).flatMap(s => s.attendance || []);
@@ -101,13 +92,38 @@ export default function ClassView() {
       }));
       setRewards(rwData || []);
       setHouses(hData || []);
-      
+
+      // CORE CLASS DATA READY! Reveal UI to teacher immediately
+      setLoading(false);
+
+      // 2. Fetch class purchases and arena progress in background, strictly scoped to this class
       const classRewardIds = (rwData || []).map(r => r.id);
-      setPurchases((pData || []).filter(p => classRewardIds.includes(p.reward_id)));
+      const classStudentIds = (stData || []).map(s => s.id);
+
+      if (classRewardIds.length > 0) {
+        supabase
+          .from("student_purchases")
+          .select("*, rewards(name, icon), profiles(full_name)")
+          .in("reward_id", classRewardIds)
+          .order("created_at", { ascending: false })
+          .then(({ data: pData }) => setPurchases(pData || []));
+      } else {
+        setPurchases([]);
+      }
+
+      if (classStudentIds.length > 0) {
+        supabase
+          .from("student_game_progress")
+          .select("*")
+          .in("class_student_id", classStudentIds)
+          .then(({ data: pData2 }) => setArenaProgress(pData2 || []));
+      } else {
+        setArenaProgress([]);
+      }
     } catch (err) {
       console.error("Error total en fetchAll:", err);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const getStudentName = (st) => {
