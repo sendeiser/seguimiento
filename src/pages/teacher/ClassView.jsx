@@ -13,7 +13,7 @@ import {
   ShoppingCart, Flame, AlertCircle, Coins as LucideCoins, ExternalLink, UserPlus,
   Gamepad2, Binary, Brain, Zap, BarChart3, Lock, Puzzle,
   UserCheck, Clock, MessageSquareQuote, FileText, CheckSquare, ShieldAlert, Sparkles,
-  Share2, QrCode, MessageCircle, ShieldCheck
+  Share2, QrCode, MessageCircle, ShieldCheck, GraduationCap
 } from "lucide-react";
 import { exportAttendanceMatrixToCSV } from "../../lib/reportExporter";
 import { RewardIcon } from "../../lib/skinThemes";
