@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Award,
   ShieldCheck,
+  ShieldAlert,
   Calendar,
   AlertCircle,
   Printer,
@@ -20,39 +21,78 @@ import {
   X,
   Sparkles,
   TrendingUp,
-  MessageSquareQuote
+  MessageSquareQuote,
+  Lock,
+  ArrowLeft
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 
 export default function TutorPortal() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const classCodeParam = searchParams.get("c") || searchParams.get("class") || "";
   const [queryDni, setQueryDni] = useState(searchParams.get("dni") || searchParams.get("token") || "");
   const [loading, setLoading] = useState(false);
+  const [classLoading, setClassLoading] = useState(!!classCodeParam);
+  const [classInfo, setClassInfo] = useState(null);
   const [error, setError] = useState("");
   const [reportData, setReportData] = useState(null);
   const [activeTab, setActiveTab] = useState("grades"); // "grades" | "attendance"
   const [filterCuatrimestre, setFilterCuatrimestre] = useState(0); // 0 = todos, 1, 2
   const [filterAttStatus, setFilterAttStatus] = useState("all"); // "all", "present", "absent"
 
+  // Fetch Class Info if class code is provided in URL
+  useEffect(() => {
+    if (classCodeParam) {
+      fetchClassInfo(classCodeParam);
+    }
+  }, [classCodeParam]);
+
+  const fetchClassInfo = async (code) => {
+    setClassLoading(true);
+    try {
+      const { data, error: rpcErr } = await supabase.rpc("get_class_tutor_portal_info", {
+        p_code: code
+      });
+      if (!rpcErr && data && !data.error) {
+        setClassInfo(data);
+      } else {
+        console.warn("No se encontró información de la clase o código inválido:", code);
+      }
+    } catch (err) {
+      console.error("Error al consultar info de clase:", err);
+    } finally {
+      setClassLoading(false);
+    }
+  };
+
   // Auto-search if DNI or token is present in URL
   useEffect(() => {
     const initialTerm = searchParams.get("dni") || searchParams.get("token");
-    if (initialTerm && !reportData && !loading) {
+    if (initialTerm && !reportData && !loading && !classLoading) {
       executeSearch(initialTerm);
     }
-  }, []);
+  }, [classLoading]);
 
   const executeSearch = async (termToSearch) => {
     const cleanTerm = (termToSearch || "").trim();
     if (!cleanTerm) return;
 
+    // Check if class is specifically disabled
+    if (classInfo && classInfo.tutor_portal_enabled === false) {
+      setError(
+        `El acceso a las consultas de boletín para ${classInfo.name} se encuentra temporalmente deshabilitado por el docente.`
+      );
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      // Call Postgres RPC with SECURITY DEFINER to bypass RLS for public tutor queries
+      // Call Postgres RPC with SECURITY DEFINER and optional class filter
       const { data, error: rpcError } = await supabase.rpc("get_student_report_for_tutor", {
-        p_search_term: cleanTerm
+        p_search_term: cleanTerm,
+        p_class_id: classInfo?.id || classCodeParam || null
       });
 
       if (rpcError) {
@@ -62,7 +102,18 @@ export default function TutorPortal() {
 
       if (!data || data.error === "NOT_FOUND") {
         setError(
-          "No se encontró ningún estudiante registrado con ese DNI o Código. Verifique que los números ingresados sean correctos o consulte con la institución escolar."
+          classInfo
+            ? `No se encontró ningún estudiante con ese DNI registrado en el curso "${classInfo.name}". Verifique los datos o consulte con el docente.`
+            : "No se encontró ningún estudiante registrado con ese DNI o Código. Verifique que los números ingresados sean correctos o consulte con la institución escolar."
+        );
+        setReportData(null);
+        return;
+      }
+
+      if (data.error === "PORTAL_DISABLED") {
+        setError(
+          data.message ||
+            "El acceso al boletín escolar mediante DNI se encuentra actualmente deshabilitado por el docente para este curso."
         );
         setReportData(null);
         return;
@@ -75,8 +126,11 @@ export default function TutorPortal() {
       }
 
       setReportData(data);
-      // Update URL query param quietly without reload
-      setSearchParams({ dni: cleanTerm }, { replace: true });
+      // Update URL query param quietly without reload, keeping class param if present
+      const newParams = {};
+      if (classCodeParam) newParams.c = classCodeParam;
+      newParams.dni = cleanTerm;
+      setSearchParams(newParams, { replace: true });
     } catch (err) {
       console.error("Error en TutorPortal:", err);
       setError("Ocurrió un error inesperado al consultar el boletín. Por favor intente nuevamente en unos instantes.");
@@ -93,6 +147,15 @@ export default function TutorPortal() {
 
   const handleReset = () => {
     setQueryDni("");
+    setReportData(null);
+    setError("");
+    const newParams = {};
+    if (classCodeParam) newParams.c = classCodeParam;
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const handleClearClass = () => {
+    setClassInfo(null);
     setReportData(null);
     setError("");
     setSearchParams({}, { replace: true });
@@ -168,76 +231,136 @@ export default function TutorPortal() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>Acceso Seguro</span>
+        <div className="flex items-center gap-2">
+          {classInfo && (
+            <button
+              onClick={handleClearClass}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-sm transition-colors"
+              title="Cambiar a consulta general"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Ver todos los cursos</span>
+            </button>
+          )}
+          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Acceso Seguro</span>
+          </div>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="w-full max-w-5xl space-y-8">
-        {/* Search Box Card */}
-        <div className="bg-white rounded-[32px] p-6 sm:p-10 border border-slate-200/80 shadow-xl shadow-slate-900/5 no-print">
-          <div className="max-w-2xl mx-auto text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-blue-700 text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" /> Portal de Consulta Parental
+        
+        {/* IF CLASS SPECIFIED BUT DISABLED BY TEACHER */}
+        {classInfo && classInfo.tutor_portal_enabled === false && (
+          <div className="bg-white rounded-[32px] p-8 sm:p-12 border-2 border-rose-200 shadow-xl shadow-rose-900/5 text-center max-w-2xl mx-auto space-y-5 animate-in fade-in duration-300">
+            <div className="w-16 h-16 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+              <Lock className="w-8 h-8" />
             </div>
-            <h2 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-slate-900 tracking-tight">
-              Boletín Escolar y Asistencia
-            </h2>
-            <p className="text-slate-500 font-medium text-sm sm:text-base leading-relaxed">
-              Ingresá el número de <strong>DNI del estudiante</strong> (con o sin puntos) para consultar sus calificaciones
-              del 1º y 2º cuatrimestre, observaciones de clase y registro de asistencia.
-            </p>
 
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 pt-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="Ej: 52283711 o 52.283.711..."
-                  value={queryDni}
-                  onChange={(e) => setQueryDni(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-10 text-base font-bold text-slate-900 outline-none focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
-                />
-                {queryDni && (
-                  <button
-                    type="button"
-                    onClick={() => setQueryDni("")}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-              <Button
-                type="submit"
-                disabled={loading || !queryDni.trim()}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl h-13 px-8 font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all active:scale-98"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin" /> Buscando...
-                  </span>
-                ) : (
-                  "Consultar"
-                )}
-              </Button>
-            </form>
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-rose-800 bg-rose-100 px-3 py-1 rounded-full border border-rose-300">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                Acceso Pausado
+              </span>
+              <h2 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-slate-900 tracking-tight">
+                Consultas Temporalmente Deshabilitadas
+              </h2>
+              <p className="text-slate-600 font-semibold text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+                El docente de <strong>{classInfo.name}</strong> ({classInfo.teacher_name}) ha deshabilitado o pausado temporalmente las consultas del boletín escolar para este curso.
+              </p>
+            </div>
 
-            {error && (
-              <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 text-rose-800 border border-rose-200 text-sm font-semibold text-left mt-4 animate-in fade-in duration-200">
-                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold">No pudimos encontrar los datos</p>
-                  <p className="text-rose-700/90 text-xs mt-0.5">{error}</p>
-                </div>
-              </div>
-            )}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-500 font-medium max-w-md mx-auto">
+              💡 Esto suele ocurrir durante períodos de corrección de exámenes, cierre de promedios cuatrimestrales o receso escolar. Por favor consulte nuevamente más adelante.
+            </div>
+
+            <Button
+              onClick={handleClearClass}
+              variant="outline"
+              className="rounded-2xl font-bold text-xs uppercase tracking-wider px-6 h-11 border-slate-300 hover:bg-slate-50"
+            >
+              Realizar Consulta General sin Curso
+            </Button>
           </div>
-        </div>
+        )}
+
+        {/* SEARCH BOX (Visible when not disabled) */}
+        {(!classInfo || classInfo.tutor_portal_enabled !== false) && (
+          <div className="bg-white rounded-[32px] p-6 sm:p-10 border border-slate-200/80 shadow-xl shadow-slate-900/5 no-print">
+            <div className="max-w-2xl mx-auto text-center space-y-4">
+              
+              {/* Class Banner if entering via a specific class link */}
+              {classInfo ? (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-black uppercase tracking-wider animate-in fade-in">
+                  <BookOpen className="w-4 h-4 text-blue-600" />
+                  <span>{classInfo.name}</span>
+                  <span className="text-blue-400 font-normal">• Prof. {classInfo.teacher_name}</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" /> Portal de Consulta Parental
+                </div>
+              )}
+
+              <h2 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-slate-900 tracking-tight">
+                Boletín Escolar y Asistencia
+              </h2>
+              <p className="text-slate-500 font-medium text-sm sm:text-base leading-relaxed">
+                Ingresá el número de <strong>DNI del estudiante</strong> (con o sin puntos) para consultar sus calificaciones
+                del 1º y 2º cuatrimestre, observaciones de clase y registro de asistencia.
+              </p>
+
+              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 pt-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Ej: 52283711 o 52.283.711..."
+                    value={queryDni}
+                    onChange={(e) => setQueryDni(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-10 text-base font-bold text-slate-900 outline-none focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+                  />
+                  {queryDni && (
+                    <button
+                      type="button"
+                      onClick={() => setQueryDni("")}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  disabled={loading || !queryDni.trim()}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl h-13 px-8 font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all active:scale-98"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 animate-spin" /> Buscando...
+                    </span>
+                  ) : (
+                    "Consultar"
+                  )}
+                </Button>
+              </form>
+
+              {error && (
+                <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 text-rose-800 border border-rose-200 text-sm font-semibold text-left mt-4 animate-in fade-in duration-200">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">No pudimos consultar los datos</p>
+                    <p className="text-rose-700/90 text-xs mt-0.5">{error}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Results / Report View */}
         {reportData && (

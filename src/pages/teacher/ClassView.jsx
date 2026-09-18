@@ -12,10 +12,12 @@ import {
   ShoppingBag, Shield, Star, Swords, Search, CheckCircle2, 
   ShoppingCart, Flame, AlertCircle, Coins as LucideCoins, ExternalLink, UserPlus,
   Gamepad2, Binary, Brain, Zap, BarChart3, Lock, Puzzle,
-  UserCheck, Clock, MessageSquareQuote, FileText, CheckSquare, ShieldAlert, Sparkles
+  UserCheck, Clock, MessageSquareQuote, FileText, CheckSquare, ShieldAlert, Sparkles,
+  Share2, QrCode, MessageCircle, ShieldCheck
 } from "lucide-react";
 import { exportAttendanceMatrixToCSV } from "../../lib/reportExporter";
 import { RewardIcon } from "../../lib/skinThemes";
+import TutorLinkShareModal from "../../components/teacher/TutorLinkShareModal";
 
 const BASE_URL = window.location.origin;
 
@@ -42,6 +44,14 @@ export default function ClassView() {
   const [quickAttendanceModal, setQuickAttendanceModal] = useState(null); // { student, session, currentRecord }
   const [quickObsText, setQuickObsText] = useState("");
   const [savingQuickAtt, setSavingQuickAtt] = useState(false);
+
+  // Tutor Portal Share Module State
+  const [showTutorShareModal, setShowTutorShareModal] = useState(false);
+  const [tutorUpdating, setTutorUpdating] = useState(false);
+  const [tutorCopied, setTutorCopied] = useState(false);
+  const [tutorShowQR, setTutorShowQR] = useState(false);
+  const [editingDniStudentId, setEditingDniStudentId] = useState(null);
+  const [tempDniInput, setTempDniInput] = useState("");
 
   // Cuatrimestre state
   const [activeCuatrimestre, setActiveCuatrimestre] = useState(1);
@@ -172,6 +182,31 @@ export default function ClassView() {
     await supabase.from("class_students").update({ dni }).eq("id", sid);
     // Optimistic update
     setStudents(prev => prev.map(s => s.id === sid ? { ...s, dni } : s));
+  };
+
+  const handleToggleTutorPortal = async () => {
+    const currentStatus = classData?.tutor_portal_enabled !== false;
+    const newStatus = !currentStatus;
+    setTutorUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("classes")
+        .update({ tutor_portal_enabled: newStatus })
+        .eq("id", id);
+      if (error) throw error;
+      setClassData(prev => ({ ...prev, tutor_portal_enabled: newStatus }));
+      toast(
+        newStatus
+          ? "✅ Enlace de boletín HABILITADO para familias y alumnos"
+          : "⏸️ Enlace de boletín DESHABILITADO temporalmente",
+        newStatus ? "success" : "info"
+      );
+    } catch (err) {
+      console.error("Error al actualizar estado del portal:", err);
+      toast("Error al actualizar el estado del enlace", "error");
+    } finally {
+      setTutorUpdating(false);
+    }
   };
 
   const updateStudentAttendanceRecord = async (sessionId, classStudentId, newStatus, newObservation) => {
@@ -467,6 +502,28 @@ export default function ClassView() {
             </p>
           </div>
         </div>
+
+        {/* Quick Action Button for Tutor Portal */}
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setShowTutorShareModal(true)}
+            className={`rounded-2xl h-12 px-5 font-black text-xs uppercase tracking-wider flex items-center gap-2.5 border transition-all shadow-sm active:scale-95 ${
+              classData?.tutor_portal_enabled !== false
+                ? "bg-white text-blue-700 hover:bg-blue-50 border-blue-200"
+                : "bg-slate-100 text-slate-500 hover:bg-slate-200 border-slate-300"
+            }`}
+          >
+            <Share2 className="w-4 h-4 text-blue-600" />
+            <span>Boletín Familias (DNI)</span>
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                classData?.tutor_portal_enabled !== false
+                  ? "bg-emerald-500 ring-4 ring-emerald-100"
+                  : "bg-rose-500 ring-4 ring-rose-100"
+              }`}
+            />
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -477,6 +534,7 @@ export default function ClassView() {
           <button onClick={() => setActiveTab("attendance")} className={`tab-btn flex-shrink-0 ${activeTab === 'attendance' ? 'active' : ''}`}><UserCheck className="w-4 h-4" /> Asistencia</button>
           <button onClick={() => setActiveTab("gamification")} className={`tab-btn flex-shrink-0 ${activeTab === 'gamification' ? 'active' : ''}`}><Trophy className="w-4 h-4" /> Gamificación</button>
           <button onClick={() => setActiveTab("arena")} className={`tab-btn flex-shrink-0 ${activeTab === 'arena' ? 'active' : ''}`}><Gamepad2 className="w-4 h-4" /> Arena</button>
+          <button onClick={() => setActiveTab("tutor")} className={`tab-btn flex-shrink-0 ${activeTab === 'tutor' ? 'active' : ''}`}><Share2 className="w-4 h-4" /> Boletín DNI</button>
         </div>
       </div>
 
@@ -1739,6 +1797,304 @@ export default function ClassView() {
         </div>
       )}
 
+      {/* 6. TUTOR / FAMILIES PORTAL TAB */}
+      {activeTab === "tutor" && (
+        <div className="space-y-8 animate-in fade-in duration-300">
+          {/* Main Status & Control Card */}
+          <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-200/80 shadow-xl shadow-slate-900/5 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                    Portal de Familias y Tutores
+                  </span>
+                  {classData?.tutor_portal_enabled !== false ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                      <ShieldCheck className="w-3 h-3 text-emerald-600" /> Enlace Activo
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-rose-800 bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-300">
+                      <ShieldAlert className="w-3 h-3 text-rose-600" /> Enlace Deshabilitado
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-['Outfit'] tracking-tight">
+                  Consulta de Boletín Escolar con DNI
+                </h2>
+                <p className="text-sm font-medium text-slate-500 max-w-2xl">
+                  Permite a las familias y estudiantes consultar en tiempo real las calificaciones, promedios del 1º y 2º cuatrimestre, observaciones de clase y registro de asistencias ingresando únicamente su número de DNI.
+                </p>
+              </div>
+
+              {/* Enable / Disable Button Switch */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 shrink-0">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-900 block">
+                    {classData?.tutor_portal_enabled !== false ? "Enlace Habilitado" : "Enlace Deshabilitado"}
+                  </span>
+                  <span className="text-[11px] font-medium text-slate-500">
+                    {classData?.tutor_portal_enabled !== false ? "Consultas abiertas con DNI" : "Consultas pausadas"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  disabled={tutorUpdating}
+                  onClick={handleToggleTutorPortal}
+                  className={`relative inline-flex h-8 w-16 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 ${
+                    classData?.tutor_portal_enabled !== false ? "bg-emerald-600" : "bg-slate-300"
+                  }`}
+                >
+                  <span className="sr-only">Habilitar o deshabilitar enlace</span>
+                  <span
+                    className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      classData?.tutor_portal_enabled !== false ? "translate-x-8" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Share link and quick actions grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Direct Link Card */}
+              <div className="lg:col-span-2 space-y-4 bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-700 flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-blue-600" />
+                    Enlace Oficial de la Clase
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-400">
+                    Código: {classData?.short_code || classData?.id?.slice(0, 8)}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${BASE_URL}/tutor?c=${classData?.short_code || classData?.id}`}
+                    onClick={(e) => e.target.select()}
+                    className="w-full bg-white border border-slate-200 rounded-2xl py-3 px-4 text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-blue-500 select-all"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${BASE_URL}/tutor?c=${classData?.short_code || classData?.id}`);
+                      setTutorCopied(true);
+                      toast("¡Enlace copiado al portapapeles!", "success");
+                      setTimeout(() => setTutorCopied(false), 2000);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-11 px-5 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-blue-500/20 shrink-0"
+                  >
+                    {tutorCopied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                    <span>{tutorCopied ? "¡Copiado!" : "Copiar"}</span>
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const shareLink = `${BASE_URL}/tutor?c=${classData?.short_code || classData?.id}`;
+                      const msg = `Estimadas familias y estudiantes de ${classData?.name}:\n\nLes compartimos el enlace oficial para consultar el boletín de calificaciones, notas del cuatrimestre y asistencias escolares. Solo deben ingresar el número de DNI del estudiante:\n\n🔗 ${shareLink}`;
+                      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-11 px-5 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md shadow-emerald-600/20"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Compartir por WhatsApp</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setTutorShowQR(!tutorShowQR)}
+                    className="rounded-2xl h-11 px-4 border-slate-300 hover:bg-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 text-slate-700"
+                  >
+                    <QrCode className="w-4 h-4 text-slate-600" />
+                    <span>{tutorShowQR ? "Ocultar QR" : "Mostrar Código QR"}</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.open(`${BASE_URL}/tutor?c=${classData?.short_code || classData?.id}`, "_blank")}
+                    className="rounded-2xl h-11 px-4 border-slate-300 hover:bg-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 text-slate-700"
+                  >
+                    <ExternalLink className="w-4 h-4 text-slate-600" />
+                    <span>Probar Vista Tutor</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* DNI Coverage Mini-Card */}
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 flex flex-col justify-between space-y-4">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500 block">
+                    Cobertura de DNI
+                  </span>
+                  <div className="flex items-baseline gap-2 mt-2">
+                    <span className="font-['Outfit'] font-black text-3xl text-slate-900">
+                      {students.filter(s => s.dni && String(s.dni).trim()).length}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">
+                      de {students.length} estudiantes
+                    </span>
+                  </div>
+                  <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden mt-3">
+                    <div
+                      className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${students.length > 0 ? (students.filter(s => s.dni && String(s.dni).trim()).length / students.length) * 100 : 0}%`
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs font-medium text-slate-500">
+                  {students.filter(s => !s.dni || !String(s.dni).trim()).length === 0 ? (
+                    <span className="text-emerald-700 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      Todos los alumnos tienen DNI cargado.
+                    </span>
+                  ) : (
+                    <span className="text-amber-700 font-bold flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                      {students.filter(s => !s.dni || !String(s.dni).trim()).length} alumno(s) sin DNI cargado.
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Optional QR View */}
+            {tutorShowQR && (
+              <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 text-center space-y-4 animate-in fade-in duration-200">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">
+                  Código QR del Curso: {classData?.name}
+                </span>
+                <div className="inline-block bg-white p-4 rounded-3xl border border-slate-200 shadow-md">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(
+                      `${BASE_URL}/tutor?c=${classData?.short_code || classData?.id}`
+                    )}&margin=10`}
+                    alt={`Código QR de ${classData?.name}`}
+                    className="w-56 h-56 mx-auto rounded-2xl"
+                    loading="lazy"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+                  Escaneando este código con la cámara de cualquier teléfono, las familias ingresan directamente al portal de este curso y solo deben tipear el número de DNI.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* DNI Audit & Quick Edit Table */}
+          <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-200/80 shadow-xl shadow-slate-900/5 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-['Outfit'] font-black text-xl text-slate-900">
+                  Nómina de Estudiantes y Verificación de DNI
+                </h3>
+                <p className="text-xs font-medium text-slate-500 mt-0.5">
+                  Verificá y cargá los números de DNI para asegurar que todas las familias puedan consultar el boletín.
+                </p>
+              </div>
+              <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-xl bg-slate-100 text-slate-700">
+                {students.length} Alumnos
+              </span>
+            </div>
+
+            <div className="divide-y divide-slate-100 overflow-x-auto">
+              {students.map((st) => {
+                const isEditing = editingDniStudentId === st.id;
+                const hasDni = Boolean(st.dni && String(st.dni).trim());
+                return (
+                  <div key={st.id} className="py-3.5 flex items-center justify-between gap-4 min-w-[500px]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 font-['Outfit'] font-black flex items-center justify-center text-sm">
+                        {getStudentName(st)[0]}
+                      </div>
+                      <div>
+                        <span className="font-['Outfit'] font-bold text-sm text-slate-900 block">
+                          {getStudentName(st)}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-semibold">
+                          ID Alumno: {st.public_token?.slice(0, 8) || "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            autoFocus
+                            placeholder="Número de DNI..."
+                            value={tempDniInput}
+                            onChange={(e) => setTempDniInput(e.target.value)}
+                            className="w-36 h-9 px-3 bg-slate-50 border border-blue-500 rounded-xl text-xs font-bold outline-none ring-2 ring-blue-500/20"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              await updateStudentDni(st.id, tempDniInput.trim());
+                              setEditingDniStudentId(null);
+                              toast("DNI actualizado correctamente", "success");
+                            }}
+                            className="h-9 px-3 rounded-xl bg-blue-600 text-white font-bold text-xs"
+                          >
+                            Guardar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingDniStudentId(null)}
+                            className="h-9 px-2 rounded-xl text-slate-400 text-xs"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {hasDni ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              DNI: {st.dni}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200">
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                              Sin DNI cargado
+                            </span>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingDniStudentId(st.id);
+                              setTempDniInput(st.dni || "");
+                            }}
+                            className="h-8 px-2.5 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 font-bold text-xs flex items-center gap-1"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>{hasDni ? "Editar" : "Cargar DNI"}</span>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* QUICK ATTENDANCE & OBSERVATION MODAL */}
       {quickAttendanceModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
@@ -1931,6 +2287,15 @@ export default function ClassView() {
           </div>
         </div>
       )}
+      {/* TUTOR LINK SHARE MODAL */}
+      <TutorLinkShareModal
+        isOpen={showTutorShareModal}
+        onClose={() => setShowTutorShareModal(false)}
+        classData={classData}
+        students={students}
+        onUpdateClass={(updated) => setClassData(updated)}
+      />
+
       <style>{`
         .tab-btn {
           display: flex;
