@@ -329,34 +329,184 @@ export const SkinPattern = ({ pattern, colors: rawColors, isHovered }) => {
           }} />
         </div>
       );
-    // Legacy skins use old ones
-    case 'cosmic':
-      return (
-        <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          {[...Array(12)].map((_, i) => (
-            <div key={i} className="absolute rounded-full" style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: Math.random() * 2 + 1,
-              height: Math.random() * 2 + 1,
-              background: i % 3 === 0 ? colors.frame : colors.accent,
-              opacity: isHovered ? 0.8 : 0.3
-            }} />
-          ))}
-        </div>
-      );
+    // Enhanced themes with specialized patterns
+    case 'minimalist-dark':
     case 'dark':
       return (
-        <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-30" style={{ background: colors.frame, filter: 'blur(40px)' }} />
-          <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full opacity-20" style={{ background: colors.accent, filter: 'blur(30px)' }} />
+        <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none">
+          {/* Architectural micro-grid */}
+          <div 
+            className="absolute inset-0 opacity-25"
+            style={{
+              backgroundImage: `linear-gradient(to right, ${colors.frame} 1px, transparent 1px), linear-gradient(to bottom, ${colors.frame} 1px, transparent 1px)`,
+              backgroundSize: '24px 24px',
+              maskImage: 'radial-gradient(ellipse at center, black 40%, transparent 80%)',
+              WebkitMaskImage: 'radial-gradient(ellipse at center, black 40%, transparent 80%)'
+            }} 
+          />
+          {/* Sleek diagonal titanium light streak */}
+          <div 
+            className="absolute -inset-full opacity-35 transform -rotate-45"
+            style={{
+              background: `linear-gradient(90deg, transparent 0%, ${colors.accent} 50%, transparent 100%)`,
+              animation: isHovered ? 'shimmer 3s ease-in-out infinite' : 'none'
+            }} 
+          />
+          {/* Subtle platinum corner tech accents */}
+          <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 opacity-50 rounded-tl" style={{ borderColor: colors.accent }} />
+          <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 opacity-50 rounded-tr" style={{ borderColor: colors.accent }} />
+          <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 opacity-50 rounded-bl" style={{ borderColor: colors.accent }} />
+          <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 opacity-50 rounded-br" style={{ borderColor: colors.accent }} />
         </div>
       );
+
+    case 'galaxy-nebula':
+    case 'cosmic':
+      return (
+        <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none">
+          {/* Multi-layered cosmic nebula gradients */}
+          <div 
+            className="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-60 blur-2xl"
+            style={{ background: colors.primary }} 
+          />
+          <div 
+            className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full opacity-50 blur-2xl"
+            style={{ background: colors.secondary }} 
+          />
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full opacity-30 blur-3xl"
+            style={{ background: colors.accent }} 
+          />
+          {/* Fixed deterministic glittering stars */}
+          {[
+            { x: 15, y: 20, size: 2, delay: '0s', opacity: 0.9 },
+            { x: 80, y: 15, size: 3, delay: '1s', opacity: 0.8 },
+            { x: 45, y: 35, size: 1.5, delay: '0.5s', opacity: 0.7 },
+            { x: 70, y: 65, size: 2.5, delay: '1.5s', opacity: 0.9 },
+            { x: 25, y: 75, size: 2, delay: '0.8s', opacity: 0.75 },
+            { x: 90, y: 80, size: 1.5, delay: '1.2s', opacity: 0.6 },
+            { x: 10, y: 50, size: 2, delay: '2s', opacity: 0.8 },
+            { x: 60, y: 90, size: 2, delay: '0.3s', opacity: 0.85 },
+            { x: 35, y: 10, size: 2.5, delay: '1.8s', opacity: 0.7 },
+            { x: 85, y: 45, size: 1.5, delay: '2.2s', opacity: 0.9 }
+          ].map((star, idx) => (
+            <div 
+              key={idx}
+              className="absolute rounded-full"
+              style={{
+                left: `${star.x}%`,
+                top: `${star.y}%`,
+                width: star.size,
+                height: star.size,
+                backgroundColor: idx % 3 === 0 ? colors.accent : '#ffffff',
+                boxShadow: `0 0 6px ${colors.accent}`,
+                opacity: star.opacity,
+                animation: `pulse-eye ${2 + (idx % 3)}s ease-in-out infinite ${star.delay}`
+              }}
+            />
+          ))}
+          {/* Cosmic shooting star streak */}
+          <div 
+            className="absolute top-6 -left-20 w-32 h-[1px] opacity-70 transform -rotate-45"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${colors.accent}, #ffffff)`,
+              animation: 'shimmer 4s ease-in-out infinite'
+            }}
+          />
+        </div>
+      );
+
+    case 'holographic-gold':
     case 'royal':
       return (
-        <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
-          <div className="absolute top-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, ${colors.frame}, ${colors.accent}, ${colors.frame})` }} />
-          <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, ${colors.frame}, ${colors.accent}, ${colors.frame})` }} />
+        <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none">
+          {/* Radial golden warmth center */}
+          <div 
+            className="absolute inset-0 opacity-45"
+            style={{
+              background: `radial-gradient(circle at 50% 30%, ${colors.accent} 0%, transparent 65%)`
+            }}
+          />
+          {/* Fine golden diamond mesh overlay */}
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `linear-gradient(45deg, ${colors.frame} 25%, transparent 25%), linear-gradient(-45deg, ${colors.frame} 25%, transparent 25%), linear-gradient(45deg, transparent 75%, ${colors.frame} 75%), linear-gradient(-45deg, transparent 75%, ${colors.frame} 75%)`,
+              backgroundSize: '20px 20px',
+              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+            }}
+          />
+          {/* Animated iridescent prismatic beam sweep */}
+          <div 
+            className="absolute inset-0 opacity-35 mix-blend-color-dodge"
+            style={{
+              background: 'linear-gradient(115deg, transparent 20%, rgba(255, 230, 150, 0.9) 35%, rgba(255, 255, 255, 1) 40%, rgba(180, 240, 255, 0.8) 45%, rgba(255, 180, 240, 0.8) 50%, transparent 65%)',
+              backgroundSize: '200% 200%',
+              animation: 'holo-gradient 5s ease infinite'
+            }}
+          />
+          {/* 24K Top and bottom ornamental luxury bars */}
+          <div 
+            className="absolute top-0 left-4 right-4 h-[2px] opacity-80"
+            style={{ background: `linear-gradient(90deg, transparent, ${colors.frame}, ${colors.accent}, ${colors.frame}, transparent)` }}
+          />
+          <div 
+            className="absolute bottom-0 left-4 right-4 h-[2px] opacity-80"
+            style={{ background: `linear-gradient(90deg, transparent, ${colors.frame}, ${colors.accent}, ${colors.frame}, transparent)` }}
+          />
+        </div>
+      );
+
+    case 'cyberpunk-neon':
+      return (
+        <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none">
+          {/* Cyber scanline texture */}
+          <div 
+            className="absolute inset-0 opacity-25"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.6) 50%)',
+              backgroundSize: '100% 4px'
+            }}
+          />
+          {/* Perspective 3D neon grid floor at bottom */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 h-32 opacity-35"
+            style={{
+              perspective: '120px',
+              overflow: 'hidden'
+            }}
+          >
+            <div 
+              className="w-full h-full transform"
+              style={{
+                transform: 'rotateX(60deg) scale(1.4)',
+                transformOrigin: 'bottom',
+                backgroundImage: `linear-gradient(${colors.secondary} 1px, transparent 1px), linear-gradient(90deg, ${colors.secondary} 1px, transparent 1px)`,
+                backgroundSize: '20px 20px',
+                animation: 'pan-bg 6s linear infinite'
+              }}
+            />
+          </div>
+          {/* Overdrive neon laser pulses */}
+          {[20, 48, 72].map((topPos, i) => (
+            <div 
+              key={i}
+              className="absolute left-0 right-0 h-[1.5px] opacity-75"
+              style={{
+                top: `${topPos}%`,
+                background: `linear-gradient(90deg, transparent, ${colors.frame}, ${colors.secondary}, ${colors.primary}, transparent)`,
+                animation: `electric-pulse ${1.2 + i * 0.4}s ease-in-out infinite alternate ${i * 0.3}s`,
+                boxShadow: `0 0 8px ${colors.frame}`
+              }}
+            />
+          ))}
+          {/* Cyber HUD brackets */}
+          <div className="absolute top-2.5 left-3 text-[9px] font-mono font-black tracking-widest opacity-60" style={{ color: colors.secondary }}>
+            [CYBER//01]
+          </div>
+          <div className="absolute bottom-2.5 right-3 text-[9px] font-mono font-black tracking-widest opacity-60" style={{ color: colors.frame }}>
+            [SYS_OK]
+          </div>
         </div>
       );
     default:
@@ -365,50 +515,78 @@ export const SkinPattern = ({ pattern, colors: rawColors, isHovered }) => {
 };
 
 export const SKIN_THEMES = {
-  // --- LEGACY SKINS ---
+  // --- LEGACY SKINS (REMASTERED) ---
   "Cyberpunk Neon": {
     name: "Cyberpunk Neon",
-    frameClass: "bg-gradient-to-br from-purple-600 via-fuchsia-500 to-cyan-500 border-fuchsia-500",
-    bgClass: "bg-[#0c0f14] bg-[url('https://www.transparenttextures.com/patterns/microfab.png')]",
-    textClass: "text-fuchsia-400",
-    colors: { primary: "300 100% 50%", secondary: "320 100% 50%", accent: "180 100% 50%", frame: "#d946ef", glow: "rgba(217,70,239,0.6)" },
-    bg: { light: "#000", dark: "#000" },
+    frameClass: "border-fuchsia-500",
+    bgClass: "bg-gradient-to-br from-[#180324] via-[#0d071d] to-[#040817]",
+    textClass: "text-fuchsia-300",
+    colors: { 
+      primary: "315 100% 55%", 
+      secondary: "185 100% 48%", 
+      accent: "275 100% 65%", 
+      frame: "#ec4899", 
+      glow: "rgba(236,72,153,0.8)" 
+    },
+    bg: { light: "#fdf2f8", dark: "#0f051d" },
     holo: true,
     icon: Zap,
-    pattern: "electric"
+    pattern: "cyberpunk-neon",
+    description: "Estética retrofuturista con cuadrículas cian de alta tensión y pulsos láser magenta neón."
   },
   "Oro Holográfico": {
     name: "Oro Holográfico",
-    frameClass: "bg-gradient-to-br from-yellow-300 via-amber-100 to-yellow-500 border-yellow-400",
-    bgClass: "bg-gradient-to-b from-[#1a1805] to-[#000000] bg-[url('https://www.transparenttextures.com/patterns/gold-tips.png')]",
-    textClass: "text-yellow-400",
-    colors: { primary: "45 100% 50%", secondary: "50 100% 50%", accent: "60 100% 50%", frame: "#eab308", glow: "rgba(234,179,8,0.6)" },
-    bg: { light: "#1a1805", dark: "#1a1805" },
+    frameClass: "border-amber-400",
+    bgClass: "bg-gradient-to-b from-[#2a1e06] via-[#1a1304] to-[#0c0902]",
+    textClass: "text-amber-400",
+    colors: { 
+      primary: "45 98% 52%", 
+      secondary: "36 92% 42%", 
+      accent: "54 100% 75%", 
+      frame: "#f59e0b", 
+      glow: "rgba(245,158,11,0.8)" 
+    },
+    bg: { light: "#fefce8", dark: "#181203" },
     holo: true,
     icon: Sparkles,
-    pattern: "royal"
+    pattern: "holographic-gold",
+    description: "Bañado en oro puro de 24 quilates con un prisma holográfico e iridiscencia deslumbrante."
   },
   "Galaxia": {
     name: "Galaxia",
-    frameClass: "bg-gradient-to-br from-blue-900 via-indigo-600 to-purple-900 border-indigo-500",
-    bgClass: "bg-gradient-to-br from-[#0b0e21] via-[#161b44] to-[#0b0e21] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]",
-    textClass: "text-indigo-200",
-    colors: { primary: "240 100% 30%", secondary: "260 100% 40%", accent: "280 100% 50%", frame: "#6366f1", glow: "rgba(99,102,241,0.6)" },
-    bg: { light: "#0b0e21", dark: "#0b0e21" },
+    frameClass: "border-indigo-400",
+    bgClass: "bg-gradient-to-br from-[#0c0e2a] via-[#141844] to-[#070919]",
+    textClass: "text-indigo-300",
+    colors: { 
+      primary: "255 85% 50%", 
+      secondary: "225 80% 35%", 
+      accent: "290 95% 72%", 
+      frame: "#818cf8", 
+      glow: "rgba(129,140,248,0.8)" 
+    },
+    bg: { light: "#f0f4ff", dark: "#070919" },
     holo: true,
     icon: Star,
-    pattern: "cosmic"
+    pattern: "galaxy-nebula",
+    description: "Fondo cósmico estelar con nebulosas púrpuras, polvo astral y constelaciones brillantes."
   },
   "Minimalista Oscuro": {
     name: "Minimalista Oscuro",
-    frameClass: "bg-gradient-to-br from-slate-800 via-slate-900 to-black border-slate-700",
-    bgClass: "bg-neutral-900 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]",
+    frameClass: "border-slate-500",
+    bgClass: "bg-gradient-to-b from-[#111827] via-[#0b0f19] to-[#030712]",
     textClass: "text-slate-300",
-    colors: { primary: "0 0% 10%", secondary: "0 0% 5%", accent: "0 0% 30%", frame: "#1e293b", glow: "rgba(30,41,59,0.6)" },
-    bg: { light: "#171717", dark: "#171717" },
+    colors: { 
+      primary: "220 20% 22%", 
+      secondary: "220 25% 10%", 
+      accent: "210 25% 85%", 
+      frame: "#64748b", 
+      glow: "rgba(148,163,184,0.5)" 
+    },
+    bg: { light: "#f1f5f9", dark: "#0b0f17" },
     holo: false,
     icon: Shield,
-    pattern: "dark"
+    pattern: "minimalist-dark",
+    description: "Diseño stealth ultra refinado en titanio mate y grafito con detalles en platino pulido."
   },
 
   // --- LEGENDARY SKINS (MARKETPLACE) ---
@@ -573,11 +751,22 @@ export const getSkinByName = (name) => {
   // Try direct match
   let skin = SKIN_THEMES[name];
   
-  // Try normalized match (remove accents, lowercase, trim)
+  // Try normalized match (remove accents, lowercase, whitespace variations)
   if (!skin) {
-    const normalize = (str) => String(str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    const target = normalize(name);
-    skin = Object.values(SKIN_THEMES).find(s => normalize(s.name) === target) || null;
+    const clean = (str) => String(str || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+    const compact = (str) => clean(str).replace(/[\s\-_]+/g, "");
+
+    const targetClean = clean(name);
+    const targetCompact = compact(name);
+
+    skin = Object.values(SKIN_THEMES).find(s => {
+      const sClean = clean(s.name);
+      return sClean === targetClean || compact(s.name) === targetCompact;
+    }) || null;
   }
 
   if (!skin) return null;

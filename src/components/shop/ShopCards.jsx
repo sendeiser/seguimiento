@@ -47,6 +47,13 @@ export function ShopCard({
   const IconComponent = skin?.icon || Sparkles;
   const pattern = skin?.pattern;
 
+  // Determine if card background is visually dark
+  const isCardDark = isDark || (bgColor && typeof bgColor === 'string' && (
+    bgColor.startsWith('#0') || 
+    bgColor.startsWith('#1') || 
+    bgColor.startsWith('#2')
+  ));
+
   return (
     <div 
       className="group relative p-6 sm:p-7 rounded-[2.5rem] transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 flex flex-col h-full min-w-0 overflow-hidden shadow-lg"
@@ -59,12 +66,12 @@ export function ShopCard({
           ? `2.5px solid ${colors.frame}` 
           : isHovered 
             ? `2px solid ${colors.frame}` 
-            : isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+            : isCardDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
         boxShadow: isEquipped 
           ? `0 20px 40px -10px ${colors.glow}, 0 0 35px -5px ${colors.glow}`
           : isHovered 
             ? `0 25px 45px -12px ${colors.glow}, 0 0 25px -5px ${colors.glow}`
-            : isDark ? '0 10px 30px rgba(0,0,0,0.4)' : '0 10px 30px rgba(0,0,0,0.04)',
+            : isCardDark ? '0 10px 30px rgba(0,0,0,0.4)' : '0 10px 30px rgba(0,0,0,0.04)',
       }}
     >
       {/* Background Animated Particle Theme Pattern */}
@@ -140,7 +147,7 @@ export function ShopCard({
         <h3 
           className="font-['Outfit'] font-black text-xl tracking-tight leading-snug truncate" 
           style={{ 
-            color: isDark ? '#f8fafc' : '#0f172a',
+            color: isCardDark ? '#f8fafc' : '#0f172a',
             textShadow: isHovered ? `0 0 25px ${colors.glow}` : 'none'
           }}
           title={reward.name}
@@ -153,7 +160,7 @@ export function ShopCard({
       <div 
         className="relative flex-1 mb-6 p-4 rounded-2xl overflow-hidden border transition-colors duration-300" 
         style={{ 
-          background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)', 
+          background: isCardDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.75)', 
           borderColor: `${colors.frame}25` 
         }}
       >
@@ -165,7 +172,7 @@ export function ShopCard({
         </div>
         <p 
           className="font-['DM_Sans'] font-medium text-xs leading-relaxed relative z-10 line-clamp-3" 
-          style={{ color: isDark ? '#94a3b8' : '#475569' }}
+          style={{ color: isCardDark ? '#cbd5e1' : '#334155' }}
         >
           {skin?.description || reward.description}
         </p>

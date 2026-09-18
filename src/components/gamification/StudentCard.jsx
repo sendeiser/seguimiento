@@ -155,49 +155,60 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
     const IconComponent = skinIcon;
     return (
       <div 
-        className={`w-full h-full rounded-[12px] flex flex-col ${finalBgClass} overflow-hidden relative z-10 p-3 ${layoutType === 'full-art' ? 'bg-opacity-95' : ''}`}
-        style={skinBg ? { background: skinBg } : {}}
+        className={`w-full h-full rounded-[12px] flex flex-col ${skin ? '' : finalBgClass} overflow-hidden relative z-10 p-3 ${layoutType === 'full-art' ? 'bg-opacity-95' : ''}`}
+        style={skin ? { 
+          background: `linear-gradient(165deg, ${skin.bg.dark} 0%, ${skinColors?.secondary40 || skin.bg.dark} 55%, ${skin.bg.dark} 100%)` 
+        } : (skinBg ? { background: skinBg } : {})}
       >
-        <div className={`absolute inset-0 pointer-events-none z-0 ${rankTheme.overlay}`} />
+        {!skin && <div className={`absolute inset-0 pointer-events-none z-0 ${rankTheme.overlay}`} />}
         <SkinPattern pattern={skin?.pattern} colors={skin?.colors} isHovered={isHovered} />
       
-      <div className="flex justify-between items-start mb-2 gap-1 min-w-0">
+      <div className="flex justify-between items-start mb-2 gap-1 min-w-0 relative z-10">
         <div className="min-w-0 flex-1">
           <h3 className="font-black text-sm md:text-base truncate tracking-tighter uppercase leading-none" style={{ color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>{name}</h3>
-          <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 text-white shadow-[0_1px_2px_rgba(0,0,0,1)] truncate block">
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-75 text-white shadow-[0_1px_2px_rgba(0,0,0,1)] truncate block">
             {equipped_skin ? "SKIN EQUIPADA" : `${rankTheme.rankLabel} • ${perfTheme.typeLabel}`}
           </span>
         </div>
-        <div className="flex items-center gap-1 font-black text-red-500 text-xs shrink-0">
-          <span className="opacity-60">HP</span>{gami?.hp || 100}
+        <div className="flex items-center gap-1 font-black text-red-400 text-xs shrink-0 drop-shadow-sm">
+          <span className="opacity-70">HP</span>{gami?.hp || 100}
         </div>
       </div>
 
-      <div className={`relative w-full ${layoutType === 'basic' ? 'aspect-video' : 'flex-1'} rounded-lg overflow-hidden border border-black/5 shadow-inner mb-2 bg-slate-900/05 flex items-center justify-center group-hover:scale-[1.03] transition-transform duration-500`}>
+      <div className={`relative w-full ${layoutType === 'basic' ? 'aspect-video' : 'flex-1'} rounded-lg overflow-hidden border border-white/10 shadow-inner mb-2 bg-slate-950/40 flex items-center justify-center group-hover:scale-[1.03] transition-transform duration-500`}>
         {student.avatar_url ? (
           <img src={student.avatar_url} alt={name} className="absolute inset-0 w-full h-full object-cover z-0" />
         ) : (
           <div className="text-6xl font-black text-white opacity-20 select-none shadow-[0_2px_6px_rgba(0,0,0,1)]">{name.charAt(0).toUpperCase()}</div>
         )}
         
-        <div className={`absolute top-2 left-2 z-30 ${skinColors ? '' : rankTheme.iconColor}`} style={skinColors ? { color: skinColors.frame } : {}}>
+        <div 
+          className={`absolute top-2 left-2 z-30 ${skinColors ? '' : rankTheme.iconColor}`} 
+          style={skinColors ? { color: skinColors.frame, filter: `drop-shadow(0 0 6px ${skinColors.glow})` } : {}}
+        >
           {IconComponent ? <IconComponent className="w-4 h-4" /> : RANK_ICONS[rank]}
         </div>
         
         <div className="absolute bottom-2 left-2 right-2 z-10">
-          <div className="flex justify-between items-end text-[8px] font-black opacity-40 uppercase mb-1">
+          <div className="flex justify-between items-end text-[8px] font-black opacity-60 text-white uppercase mb-1">
             <span>Nivel {gami?.currentLevel || 1}</span>
             <span>{Math.round(xpPct)}% XP</span>
           </div>
-          <div className="h-1 w-full rounded-full overflow-hidden" style={{backgroundColor: 'hsla(220, 25%, 6%, 0.1)'}}>
-            <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${xpPct}%` }}></div>
+          <div className="h-1.5 w-full rounded-full overflow-hidden bg-black/40 backdrop-blur-sm">
+            <div 
+              className="h-full transition-all duration-1000" 
+              style={{ 
+                width: `${xpPct}%`,
+                background: skinColors ? `linear-gradient(90deg, ${skinColors.frame}, ${skinColors.accent})` : '#6366f1' 
+              }}
+            ></div>
           </div>
         </div>
       </div>
 
-      <div className="space-y-2 mt-auto">
-        <div className={`flex justify-between items-center rounded-lg px-2 py-1.5`} style={{backgroundColor: 'hsla(220, 25%, 6%, 0.05)'}}>
-          <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Rendimiento</span>
+      <div className="space-y-2 mt-auto relative z-10">
+        <div className={`flex justify-between items-center rounded-lg px-2 py-1.5 bg-black/30 backdrop-blur-sm border border-white/5`}>
+          <span className="text-[9px] font-black uppercase tracking-widest text-white/70">Rendimiento</span>
           <span className="text-sm font-black text-white">{pct !== null ? `${Math.round(pct * 100)}%` : '—'}</span>
         </div>
         <div className="flex gap-1.5">
@@ -207,9 +218,9 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
           })}
           {gami?.streak >= 3 && <div className="ml-auto flex items-center gap-1 bg-orange-100 text-orange-600 px-1.5 rounded text-[10px] font-black">🔥 {gami.streak}</div>}
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-white/60 font-black">
+        <div className="flex items-center gap-2 text-[10px] text-white/70 font-black">
           <span className="uppercase tracking-wider">Logros</span>
-          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="flex-1 h-1.5 bg-white/15 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400" style={{ width: `${((gami?.unlockedBadges || []).filter(b => b.unlocked).length / Object.keys(BADGE_DEFS).length) * 100}%` }}></div>
           </div>
           <span>{(gami?.unlockedBadges || []).filter(b => b.unlocked).length}/{Object.keys(BADGE_DEFS).length}</span>
@@ -235,9 +246,11 @@ export default function StudentCard({ student, isPinned, isTop3, rankIndex, onCl
           transform: isHovered ? `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)` : "rotateX(0) rotateY(0) scale(1)",
           transformStyle: "preserve-3d",
           ...(skinColors ? {
-            background: `linear-gradient(135deg, ${skinColors.primary}, ${skinColors.secondary}, ${skinColors.primary})`,
+            background: `linear-gradient(135deg, ${skinColors.primary}, ${skinColors.secondary}, ${skinColors.accent || skinColors.primary})`,
             border: `2px solid ${skinColors.frame}`,
-            boxShadow: isHovered ? `0 0 30px ${skinColors.glow}` : 'none'
+            boxShadow: isHovered 
+              ? `0 0 35px ${skinColors.glow}, 0 10px 25px -5px rgba(0,0,0,0.6)` 
+              : `0 0 16px ${skinColors.glow}80, 0 4px 10px -2px rgba(0,0,0,0.3)`
           } : {})
         }}
       >
