@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Sparkles, Star, Zap, Snowflake, Trees, Eye, Shield, Flame, 
   CloudRain, Rainbow, Hexagon, Crown, Heart, Anchor, Sun, 
-  Moon, Skull, Cpu, Gem, Coins, CheckCircle2, Check, Lock
+  Moon, Skull, Cpu, Gem, Coins, CheckCircle2, Check, Lock,
+  Pencil, X, Loader2
 } from "lucide-react";
 import { getSkinByName, SkinPattern, RewardIcon, DragonIcon } from "../../lib/skinThemes";
 
@@ -17,10 +18,19 @@ export function ShopCard({
   onPurchase, 
   onEquip, 
   onPreview, 
+  onEditPrice,
+  isTeacher = false,
   isDark = false,
   isLoading = false 
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isEditingPrice, setIsEditingPrice] = useState(false);
+  const [priceDraft, setPriceDraft] = useState(reward.cost_coins);
+  const [isSavingPrice, setIsSavingPrice] = useState(false);
+
+  useEffect(() => {
+    setPriceDraft(reward.cost_coins);
+  }, [reward.cost_coins]);
 
   // Normalise purchase and equipped states
   const isBought = explicitIsBought !== undefined ? explicitIsBought : !!purchase;
@@ -180,73 +190,160 @@ export function ShopCard({
       
       {/* Price & Action Area */}
       <div className="space-y-3 mt-auto relative z-10">
-        {!isBought && (
-          <div className="flex items-center justify-between px-1">
-            <span className="font-['Outfit'] font-extrabold text-[10px] uppercase tracking-widest text-slate-400">
-              Inversión
-            </span>
-            <div className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20">
-              <Coins className="w-3.5 h-3.5 text-amber-500" />
-              <span className="font-['Outfit'] font-black text-sm text-amber-600 dark:text-amber-400">
-                {reward.cost_coins} <span className="text-[10px] font-bold">Coins</span>
+        {isTeacher ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="font-['Outfit'] font-extrabold text-[10px] uppercase tracking-widest text-slate-400">
+                Precio Docente
               </span>
+              <div className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20">
+                <Coins className="w-3.5 h-3.5 text-amber-500" />
+                <span className="font-['Outfit'] font-black text-sm text-amber-600 dark:text-amber-400">
+                  {reward.cost_coins} <span className="text-[10px] font-bold">Coins</span>
+                </span>
+              </div>
             </div>
-          </div>
-        )}
-        
-        {isEquipped ? (
-          <div 
-            className="w-full h-14 rounded-2xl font-['Outfit'] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 border-2 transition-all shadow-inner"
-            style={{ 
-              background: `${colors.frame}15`,
-              color: colors.frame,
-              borderColor: `${colors.frame}40`
-            }}
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Tema Equipado</span>
-          </div>
-        ) : isBought ? (
-          <button 
-            type="button"
-            onClick={() => onEquip?.(reward)}
-            disabled={isLoading}
-            className="w-full h-14 rounded-2xl font-['Outfit'] font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] text-white flex items-center justify-center gap-2 shadow-lg"
-            style={{
-              background: `linear-gradient(135deg, ${colors.frame}, ${colors.secondary})`,
-              boxShadow: `0 8px 25px ${colors.glow}`
-            }}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Equipar Tema</span>
-          </button>
-        ) : (
-          <button 
-            type="button"
-            onClick={() => handleActionClick?.(reward)}
-            disabled={!canAfford || isLoading}
-            className={`w-full h-14 rounded-2xl font-['Outfit'] font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${
-              canAfford 
-                ? 'text-white hover:scale-[1.02] active:scale-[0.98] shadow-lg cursor-pointer' 
-                : 'cursor-not-allowed bg-slate-100 text-slate-400 border border-slate-200'
-            }`}
-            style={canAfford ? {
-              background: `linear-gradient(135deg, ${colors.frame}, ${colors.secondary})`,
-              boxShadow: `0 8px 25px ${colors.glow}`
-            } : {}}
-          >
-            {canAfford ? (
-              <>
-                <Coins className="w-4 h-4" />
-                <span>Desbloquear ({reward.cost_coins})</span>
-              </>
+
+            {isEditingPrice ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      value={priceDraft}
+                      onChange={(e) => setPriceDraft(e.target.value)}
+                      className="w-full h-11 px-3 text-center font-['Outfit'] font-black text-sm rounded-xl border-2 border-amber-400 focus:outline-none bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm"
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isSavingPrice}
+                    onClick={async () => {
+                      if (onEditPrice) {
+                        setIsSavingPrice(true);
+                        await onEditPrice(reward, Math.max(0, parseInt(priceDraft) || 0));
+                        setIsSavingPrice(false);
+                        setIsEditingPrice(false);
+                      }
+                    }}
+                    className="h-11 px-3.5 rounded-xl font-['Outfit'] font-black text-xs uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-1 shadow-md transition-transform hover:scale-105 active:scale-95"
+                  >
+                    {isSavingPrice ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    <span>Guardar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPriceDraft(reward.cost_coins);
+                      setIsEditingPrice(false);
+                    }}
+                    className="h-11 px-3 rounded-xl font-bold text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 pt-1">
+                  {[-100, -50, +50, +100].map(delta => (
+                    <button
+                      key={delta}
+                      type="button"
+                      onClick={() => setPriceDraft(prev => Math.max(0, (parseInt(prev) || 0) + delta))}
+                      className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-amber-100 hover:text-amber-800 border border-slate-200 dark:border-slate-700 transition-colors"
+                    >
+                      {delta > 0 ? `+${delta}` : delta}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : (
-              <>
-                <Lock className="w-4 h-4 text-slate-400" />
-                <span>Faltan {Math.max(0, reward.cost_coins - (notyxCoins || 0))} Coins</span>
-              </>
+              <button
+                type="button"
+                onClick={() => setIsEditingPrice(true)}
+                className="w-full h-12 rounded-2xl font-['Outfit'] font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] text-white flex items-center justify-center gap-2 shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${colors.frame}, ${colors.secondary})`,
+                  boxShadow: `0 8px 25px ${colors.glow}`
+                }}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Modificar Precio</span>
+              </button>
             )}
-          </button>
+          </div>
+        ) : (
+          <>
+            {!isBought && (
+              <div className="flex items-center justify-between px-1">
+                <span className="font-['Outfit'] font-extrabold text-[10px] uppercase tracking-widest text-slate-400">
+                  Inversión
+                </span>
+                <div className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20">
+                  <Coins className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="font-['Outfit'] font-black text-sm text-amber-600 dark:text-amber-400">
+                    {reward.cost_coins} <span className="text-[10px] font-bold">Coins</span>
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {isEquipped ? (
+              <div 
+                className="w-full h-14 rounded-2xl font-['Outfit'] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 border-2 transition-all shadow-inner"
+                style={{ 
+                  background: `${colors.frame}15`,
+                  color: colors.frame,
+                  borderColor: `${colors.frame}40`
+                }}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Tema Equipado</span>
+              </div>
+            ) : isBought ? (
+              <button 
+                type="button"
+                onClick={() => onEquip?.(reward)}
+                disabled={isLoading}
+                className="w-full h-14 rounded-2xl font-['Outfit'] font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] text-white flex items-center justify-center gap-2 shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${colors.frame}, ${colors.secondary})`,
+                  boxShadow: `0 8px 25px ${colors.glow}`
+                }}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Equipar Tema</span>
+              </button>
+            ) : (
+              <button 
+                type="button"
+                onClick={() => handleActionClick?.(reward)}
+                disabled={!canAfford || isLoading}
+                className={`w-full h-14 rounded-2xl font-['Outfit'] font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${
+                  canAfford 
+                    ? 'text-white hover:scale-[1.02] active:scale-[0.98] shadow-lg cursor-pointer' 
+                    : 'cursor-not-allowed bg-slate-100 text-slate-400 border border-slate-200'
+                }`}
+                style={canAfford ? {
+                  background: `linear-gradient(135deg, ${colors.frame}, ${colors.secondary})`,
+                  boxShadow: `0 8px 25px ${colors.glow}`
+                } : {}}
+              >
+                {canAfford ? (
+                  <>
+                    <Coins className="w-4 h-4" />
+                    <span>Desbloquear ({reward.cost_coins})</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-slate-400" />
+                    <span>Faltan {Math.max(0, reward.cost_coins - (notyxCoins || 0))} Coins</span>
+                  </>
+                )}
+              </button>
+            )}
+          </>
         )}
       </div>
 

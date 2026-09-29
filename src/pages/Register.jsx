@@ -3,13 +3,14 @@ import { supabase } from "../lib/supabase";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { UserPlus, Mail, Lock, ArrowRight, Loader2, ArrowLeft, Sun, Moon } from "lucide-react";
+import { UserPlus, Mail, Lock, ArrowRight, Loader2, ArrowLeft } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 import { useToast } from "../providers/ToastProvider";
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -17,6 +18,12 @@ export default function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast("Las contraseñas no coinciden.", "error");
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -29,7 +36,7 @@ export default function Register() {
     });
     if (error) toast("Error: " + error.message, "error");
     else {
-      toast("¡Registro exitoso! Revisá tu correo para confirmar la cuenta.", "success");
+      toast("¡Cuenta creada exitosamente! Bienvenido.", "success");
       navigate("/home");
     }
     setLoading(false);
@@ -89,11 +96,37 @@ export default function Register() {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <label className="label">Repetir Contraseña</label>
+                  <div className={`input-wrapper group ${confirmPassword && password !== confirmPassword ? "ring-2 ring-rose-400 rounded-2xl" : ""}`}>
+                    <Lock className={`input-icon w-5 h-5 ${confirmPassword && password !== confirmPassword ? "text-rose-500" : ""}`} />
+                    <input
+                      type="password"
+                      placeholder="Repetí la contraseña"
+                      required
+                      minLength={6}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="input input-with-icon"
+                    />
+                  </div>
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-xs font-bold text-rose-500 mt-1">
+                      Las contraseñas no coinciden
+                    </p>
+                  )}
+                  {confirmPassword && password === confirmPassword && (
+                    <p className="text-xs font-bold text-emerald-600 mt-1">
+                      Las contraseñas coinciden
+                    </p>
+                  )}
+                </div>
               </div>
 
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (confirmPassword.length > 0 && password !== confirmPassword)}
                 className="w-full h-14 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-700 shadow-xl shadow-purple-600/20 font-black text-lg gap-3"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Registrarme"}

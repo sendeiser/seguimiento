@@ -62,7 +62,8 @@ export default function DashboardLayout() {
 
   const teacherNav = [
     { label: "Principal", items: [
-      { to: "/home", icon: LayoutDashboard, text: "Mis Clases" }
+      { to: "/home", icon: LayoutDashboard, text: "Mis Clases" },
+      { to: "/shop", icon: ShoppingBag, text: "Bazar / Tienda" }
     ]},
   ];
 
@@ -77,6 +78,7 @@ export default function DashboardLayout() {
   const mobileNav = isTeacher
     ? [
         { to: "/home", icon: LayoutDashboard, label: "Clases" },
+        { to: "/shop", icon: ShoppingBag, label: "Bazar" },
       ]
     : [
         { to: "/home", icon: LayoutDashboard, label: "Inicio" },

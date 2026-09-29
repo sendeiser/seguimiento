@@ -143,15 +143,26 @@ export default function LiveSession() {
       const aMap = {};
       const obsMap = {};
       (attRes.data || []).forEach(a => {
-        let computedStatus = "present";
-        if (a.is_present === false) {
-          computedStatus = a.status === "justified" ? "justified" : "absent";
+        // Normalize status: determine canonical status from both fields
+        let computedStatus;
+        if (a.is_present === false || a.is_present === 0) {
+          // Explicitly absent
+          computedStatus = (a.status === "justified") ? "justified" : "absent";
+        } else if (a.status === "late") {
+          computedStatus = "late";
+        } else if (a.status === "absent") {
+          // Edge case: status says absent but is_present is true — trust status
+          computedStatus = "absent";
+        } else if (a.status === "justified") {
+          computedStatus = "justified";
         } else {
-          computedStatus = a.status || "present";
+          // Default: present (covers null, undefined, "present")
+          computedStatus = "present";
         }
+
         aMap[a.class_student_id] = {
           status: computedStatus,
-          is_present: a.is_present !== false,
+          is_present: computedStatus === "present" || computedStatus === "late",
           observation: a.observation || ""
         };
         if (a.observation) {
@@ -330,13 +341,15 @@ export default function LiveSession() {
 
   const getAttendanceStatus = (csId) => {
     const rec = attendance[csId];
+    // No record means we haven't set attendance yet — default to present visually
     if (!rec) return "present";
+    // Normalized objects always have .status set correctly
+    if (rec.status) return rec.status;
+    // Fallback for any legacy string values
     if (typeof rec === "string") return rec;
-    if (typeof rec === "boolean") return rec ? "present" : "absent";
-    if (rec.is_present === false) {
-      return rec.status === "justified" ? "justified" : "absent";
-    }
-    return rec.status || (rec.is_present ? "present" : "absent");
+    // Fallback: derive from is_present
+    if (rec.is_present === false) return "absent";
+    return "present";
   };
 
   const isStudentPresent = (csId) => {

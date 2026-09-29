@@ -13,10 +13,12 @@ import {
   ShoppingCart, Flame, AlertCircle, Coins as LucideCoins, ExternalLink, UserPlus,
   Gamepad2, Binary, Brain, Zap, BarChart3, Lock, Puzzle,
   UserCheck, Clock, MessageSquareQuote, FileText, CheckSquare, ShieldAlert, Sparkles,
-  Share2, QrCode, MessageCircle, ShieldCheck, GraduationCap
+  Share2, QrCode, MessageCircle, ShieldCheck, GraduationCap,
+  Eye, Save, Filter, ArrowUpDown, Loader2
 } from "lucide-react";
 import { exportAttendanceMatrixToCSV } from "../../lib/reportExporter";
-import { RewardIcon } from "../../lib/skinThemes";
+import { RewardIcon, getSkinByName } from "../../lib/skinThemes";
+import StudentCard from "../../components/gamification/StudentCard";
 import TutorLinkShareModal from "../../components/teacher/TutorLinkShareModal";
 
 const BASE_URL = window.location.origin;
@@ -41,6 +43,7 @@ export default function ClassView() {
   const [allAttendance, setAllAttendance] = useState([]);
   const [attendanceRiskFilter, setAttendanceRiskFilter] = useState("all"); // "all" | "risk"
   const [attendanceSearch, setAttendanceSearch] = useState("");
+  const [attendanceSessionFilter, setAttendanceSessionFilter] = useState("all"); // "all" | session.id
   const [quickAttendanceModal, setQuickAttendanceModal] = useState(null); // { student, session, currentRecord }
   const [quickObsText, setQuickObsText] = useState("");
   const [savingQuickAtt, setSavingQuickAtt] = useState(false);
@@ -73,26 +76,38 @@ export default function ClassView() {
   const [newStudentName, setNewStudentName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Skin Themes / Prices State
+  const [skinRewards, setSkinRewards] = useState([]);
+  const [skinPriceDrafts, setSkinPriceDrafts] = useState({});
+  const [savingSkinId, setSavingSkinId] = useState(null);
+  const [savingAllSkins, setSavingAllSkins] = useState(false);
+  const [skinSearchTerm, setSkinSearchTerm] = useState("");
+  const [skinSortFilter, setSkinSortFilter] = useState("all"); // "all" | "cheapest" | "expensive" | "modified"
+  const [gamificationSubTab, setGamificationSubTab] = useState("items"); // "items" | "skins"
+  const [previewSkin, setPreviewSkin] = useState(null);
+
   useEffect(() => { fetchAll(); }, [id]);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // 1. Fetch core class data and attendance in parallel
+      // 1. Fetch core class data, attendance, and cosmetic skins in parallel
       const [
         { data: cls }, 
         { data: sData }, 
         { data: stData }, 
         { data: rwData }, 
         { data: hData },
-        { data: attData }
+        { data: attData },
+        { data: skinData }
       ] = await Promise.all([
         supabase.from("classes").select("*").eq("id", id).single(),
         supabase.from("sessions").select("*").eq("class_id", id).order("date", { ascending: false }),
         supabase.from("class_students").select("id, student_id, student_name, public_token, house_id, dni, profiles(full_name)").eq("class_id", id),
         supabase.from("rewards").select("*").eq("class_id", id).order("created_at", { ascending: false }),
         supabase.from("class_houses").select("*").eq("class_id", id).order("created_at", { ascending: false }),
-        supabase.from("attendance").select("*, sessions!inner(class_id)").eq("sessions.class_id", id)
+        supabase.from("attendance").select("*, sessions!inner(class_id)").eq("sessions.class_id", id),
+        supabase.from("rewards").select("*").eq("category", "cosmetic").order("cost_coins", { ascending: true })
       ]);
 
       // Ensure all attendance records are captured (with fallback if needed)
@@ -113,6 +128,15 @@ export default function ClassView() {
       }));
       setRewards(rwData || []);
       setHouses(hData || []);
+
+      // Skins and drafts setup
+      const validSkins = skinData || [];
+      setSkinRewards(validSkins);
+      const drafts = {};
+      validSkins.forEach(s => {
+        drafts[s.id] = s.cost_coins;
+      });
+      setSkinPriceDrafts(drafts);
 
       // CORE CLASS DATA READY! Reveal UI to teacher immediately
       setLoading(false);
@@ -503,6 +527,50 @@ export default function ClassView() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // --- SKIN PRICE MANAGEMENT ---
+  const handleUpdateSkinPrice = async (skinId) => {
+    const newPrice = parseInt(skinPriceDrafts[skinId], 10);
+    if (isNaN(newPrice) || newPrice < 0) {
+      toast("El precio debe ser un número válido mayor o igual a 0", "error");
+      return;
+    }
+    setSavingSkinId(skinId);
+    const { error } = await supabase
+      .from("rewards")
+      .update({ cost_coins: newPrice })
+      .eq("id", skinId);
+    setSavingSkinId(null);
+    if (error) {
+      toast("Error al actualizar el precio: " + error.message, "error");
+    } else {
+      toast("✅ Precio actualizado correctamente", "success");
+      setSkinRewards(prev => prev.map(s => s.id === skinId ? { ...s, cost_coins: newPrice } : s));
+    }
+  };
+
+  const handleSaveAllSkinPrices = async () => {
+    const modified = skinRewards.filter(s => skinPriceDrafts[s.id] !== undefined && parseInt(skinPriceDrafts[s.id], 10) !== s.cost_coins);
+    if (modified.length === 0) {
+      toast("No hay cambios pendientes", "info");
+      return;
+    }
+    setSavingAllSkins(true);
+    try {
+      await Promise.all(
+        modified.map(s =>
+          supabase.from("rewards").update({ cost_coins: parseInt(skinPriceDrafts[s.id], 10) }).eq("id", s.id)
+        )
+      );
+      setSkinRewards(prev =>
+        prev.map(s => ({ ...s, cost_coins: parseInt(skinPriceDrafts[s.id] ?? s.cost_coins, 10) }))
+      );
+      toast(`✅ ${modified.length} precio(s) actualizado(s)`, "success");
+    } catch (err) {
+      toast("Error al guardar precios: " + err.message, "error");
+    }
+    setSavingAllSkins(false);
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
@@ -629,10 +697,10 @@ export default function ClassView() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div onClick={createSession} className="border-2 border-dashed border-slate-200 rounded-[40px] p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all bg-white group">
-               <div className="w-16 h-16 rounded-[24px] bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Plus className="w-8 h-8" /></div>
-               <h4 className="font-black text-slate-800 text-lg">Nueva Sesión</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div onClick={createSession} className="border-2 border-dashed border-slate-200 rounded-[28px] p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all bg-white group min-h-[160px]">
+               <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><Plus className="w-6 h-6" /></div>
+               <h4 className="font-black text-slate-800 text-base">Nueva Sesión</h4>
                <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 mt-1">
                  ({(sessionForm.cuatrimestre || activeCuatrimestre) === 2 ? "2º Cuatrimestre" : "1º Cuatrimestre"})
                </span>
@@ -643,22 +711,45 @@ export default function ClassView() {
               return sCuatrimestre === Number(cuatrimestreFilter);
             }).map(s => {
               const sCuatrimestre = s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1);
+              // Calculate attendance stats for this session
+              const sessionAtt = allAttendance.filter(a => a.session_id === s.id);
+              const presentCount = sessionAtt.filter(a => {
+                if (a.is_present === false) return false;
+                return (a.status || "present") === "present" || a.status === "late";
+              }).length;
+              const totalForSession = students.length;
+              const attPct = totalForSession > 0 ? Math.round((presentCount / totalForSession) * 100) : null;
               return (
-                <div key={s.id} className="bg-white rounded-[40px] border border-slate-100 p-8 flex flex-col hover:shadow-2xl transition-all group/card relative overflow-hidden">
-                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-all">
-                    <Button onClick={() => handleEditSession(s)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 shadow-sm"><Pencil className="w-3.5 h-3.5 text-slate-500" /></Button>
-                    <Button onClick={() => handleDeleteSession(s.id)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-red-50 hover:bg-white border border-red-100 shadow-sm"><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
+                <div key={s.id} className="bg-white rounded-[28px] border border-slate-100 p-5 flex flex-col hover:shadow-xl hover:-translate-y-0.5 transition-all group/card relative overflow-hidden">
+                  <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
+                    <Button onClick={() => handleEditSession(s)} variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 shadow-sm"><Pencil className="w-3 h-3 text-slate-500" /></Button>
+                    <Button onClick={() => handleDeleteSession(s.id)} variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-red-50 hover:bg-white border border-red-100 shadow-sm"><Trash2 className="w-3 h-3 text-red-500" /></Button>
                   </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
                       sCuatrimestre === 2 ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
                     }`}>
-                      {sCuatrimestre}º Cuatrimestre
+                      {sCuatrimestre}º C
                     </span>
+                    {attPct !== null && (
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ml-auto ${
+                        attPct >= 75 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                      }`}>
+                        {attPct}% pres.
+                      </span>
+                    )}
                   </div>
-                  <h4 className="font-black text-slate-900 text-xl capitalize">{format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}</h4>
-                  <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-1">{format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}</p>
-                  <Link to={`/session/${s.id}`} className="mt-8"><Button className="w-full rounded-2xl h-12 font-black uppercase text-[10px]">Ingresar Notas</Button></Link>
+                  <h4 className="font-black text-slate-900 text-lg capitalize leading-tight">{format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}</h4>
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-0.5">{format(new Date(s.date + "T12:00:00"), "MMM yyyy", { locale: es })}</p>
+                  {sessionAtt.length > 0 && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${attPct}%` }} />
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 shrink-0">{presentCount}/{totalForSession}</span>
+                    </div>
+                  )}
+                  <Link to={`/session/${s.id}`} className="mt-4"><Button className="w-full rounded-xl h-10 font-black uppercase text-[10px]">Ingresar Notas</Button></Link>
                 </div>
               );
             })}
@@ -807,12 +898,19 @@ export default function ClassView() {
 
       {/* 2.5 ATTENDANCE TAB */}
       {activeTab === "attendance" && (() => {
-        // Filter sessions by cuatrimestre
-        const relevantSessions = sessions.filter(s => {
+        // Reset session filter when switching cuatrimestre
+        // (handled imperatively)
+        // Filter sessions by cuatrimestre first
+        const cuatrimestreSessions = sessions.filter(s => {
           if (cuatrimestreFilter === "all") return true;
           const sCuatri = s.cuatrimestre || (new Date(s.date).getMonth() >= 6 ? 2 : 1);
           return sCuatri === Number(cuatrimestreFilter);
         }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        // Then filter by specific session date if selected
+        const relevantSessions = attendanceSessionFilter === "all"
+          ? cuatrimestreSessions
+          : cuatrimestreSessions.filter(s => s.id === attendanceSessionFilter);
 
         // Fast lookup map: `${session_id}_${class_student_id}` -> attendance record
         const attMap = {};
@@ -959,48 +1057,90 @@ export default function ClassView() {
             </div>
 
             {/* Controls Bar */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-[28px] border border-slate-100 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Buscar alumno o DNI..."
-                    value={attendanceSearch}
-                    onChange={(e) => setAttendanceSearch(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:bg-white transition-all"
-                  />
+            <div className="flex flex-col gap-4 bg-white p-4 sm:p-5 rounded-[28px] border border-slate-100 shadow-sm">
+              {/* Row 1: Search + Risk Filter + Export */}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Buscar alumno o DNI..."
+                      value={attendanceSearch}
+                      onChange={(e) => setAttendanceSearch(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:bg-white transition-all"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
+                    <button
+                      onClick={() => setAttendanceRiskFilter("all")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                        attendanceRiskFilter === "all" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      Todos ({students.length})
+                    </button>
+                    <button
+                      onClick={() => setAttendanceRiskFilter("risk")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${
+                        attendanceRiskFilter === "risk" 
+                          ? "bg-rose-600 text-white shadow-xs" 
+                          : "text-slate-500 hover:text-rose-600"
+                      }`}
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" /> En Riesgo ({atRiskCount})
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
-                  <button
-                    onClick={() => setAttendanceRiskFilter("all")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                      attendanceRiskFilter === "all" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
-                    }`}
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <Button
+                    onClick={() => exportAttendanceMatrixToCSV(classData?.name || "Clase", relevantSessions, students, allAttendance, cuatrimestreFilter)}
+                    className="rounded-2xl h-11 px-5 font-black text-xs uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 flex items-center gap-2"
                   >
-                    Todos ({students.length})
-                  </button>
-                  <button
-                    onClick={() => setAttendanceRiskFilter("risk")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${
-                      attendanceRiskFilter === "risk" 
-                        ? "bg-rose-600 text-white shadow-xs" 
-                        : "text-slate-500 hover:text-rose-600"
-                    }`}
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5" /> En Riesgo ({atRiskCount})
-                  </button>
+                    <Download className="w-4 h-4 text-emerald-600" /> Exportar (CSV)
+                  </Button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <Button
-                  onClick={() => exportAttendanceMatrixToCSV(classData?.name || "Clase", relevantSessions, students, allAttendance, cuatrimestreFilter)}
-                  className="rounded-2xl h-11 px-5 font-black text-xs uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4 text-emerald-600" /> Exportar Planilla (CSV)
-                </Button>
+              {/* Row 2: Session date filter */}
+              <div className="border-t border-slate-100 pt-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0 flex items-center gap-1">
+                    <Filter className="w-3 h-3" /> Filtrar por clase:
+                  </span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                    <button
+                      onClick={() => setAttendanceSessionFilter("all")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 border ${
+                        attendanceSessionFilter === "all"
+                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      Todas ({cuatrimestreSessions.length})
+                    </button>
+                    {cuatrimestreSessions.map(s => {
+                      const dObj = new Date(s.date + "T12:00:00");
+                      const isActive = attendanceSessionFilter === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setAttendanceSessionFilter(isActive ? "all" : s.id)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 border ${
+                            isActive
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                          }`}
+                          title={format(dObj, "EEEE d 'de' MMMM", { locale: es })}
+                        >
+                          {format(dObj, "EEE d/M", { locale: es })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1017,38 +1157,52 @@ export default function ClassView() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200/80">
-                        <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-500 sticky left-0 bg-slate-50 z-20 w-64 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                        <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-500 sticky left-0 bg-slate-50 z-20 w-64 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                           Estudiante
                         </th>
                         {relevantSessions.map(s => {
                           const dateObj = new Date(s.date + "T12:00:00");
+                          // Count attendance for this session header
+                          const sAtt = allAttendance.filter(a => a.session_id === s.id);
+                          const sPresent = sAtt.filter(a => {
+                            if (a.is_present === false) return false;
+                            return (a.status || "present") !== "absent" && (a.status || "present") !== "justified";
+                          }).length;
                           return (
-                            <th key={s.id} className="px-3 py-3 text-center border-l border-slate-200/60 min-w-[72px]">
-                              <Link to={`/session/${s.id}`} className="group block hover:text-blue-600 transition-colors" title="Abrir sesión en vivo">
-                                <span className="block font-['Outfit'] font-black text-xs text-slate-800 group-hover:text-blue-600">
-                                  {format(dateObj, "d MMM", { locale: es })}
-                                </span>
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mt-0.5">
+                            <th key={s.id} className="px-2 py-3 text-center border-l border-slate-200/60 min-w-[80px]">
+                              <Link to={`/session/${s.id}`} className="group block hover:text-blue-600 transition-colors" title={format(dateObj, "EEEE d 'de' MMMM yyyy", { locale: es })}>
+                                <span className="block font-['Outfit'] font-black text-xs text-slate-900 group-hover:text-blue-600 capitalize">
                                   {format(dateObj, "EEE", { locale: es })}
                                 </span>
+                                <span className="text-[10px] font-bold text-slate-500 block mt-0.5">
+                                  {format(dateObj, "d/M", { locale: es })}
+                                </span>
+                                {sAtt.length > 0 && (
+                                  <span className={`text-[9px] font-black block mt-0.5 ${
+                                    students.length > 0 && sPresent / students.length >= 0.75
+                                      ? "text-emerald-600" : "text-rose-500"
+                                  }`}>
+                                    {sPresent}/{students.length}
+                                  </span>
+                                )}
                               </Link>
                             </th>
                           );
                         })}
-                        <th className="px-3 py-4 text-center font-black text-[10px] uppercase tracking-widest text-emerald-700 bg-emerald-50/50 border-l border-slate-200/80 w-12" title="Presentes">
-                          P
+                        <th className="px-2 py-4 text-center font-black text-[10px] uppercase tracking-widest text-emerald-700 bg-emerald-50/50 border-l border-slate-200/80 w-10" title="Presentes">
+                          ✓
                         </th>
-                        <th className="px-3 py-4 text-center font-black text-[10px] uppercase tracking-widest text-amber-700 bg-amber-50/50 border-l border-slate-200/80 w-12" title="Tardes">
+                        <th className="px-2 py-4 text-center font-black text-[10px] uppercase tracking-widest text-amber-700 bg-amber-50/50 border-l border-slate-200/80 w-10" title="Tardes">
                           T
                         </th>
-                        <th className="px-3 py-4 text-center font-black text-[10px] uppercase tracking-widest text-purple-700 bg-purple-50/50 border-l border-slate-200/80 w-12" title="Justificadas">
+                        <th className="px-2 py-4 text-center font-black text-[10px] uppercase tracking-widest text-purple-700 bg-purple-50/50 border-l border-slate-200/80 w-10" title="Justificadas">
                           J
                         </th>
-                        <th className="px-3 py-4 text-center font-black text-[10px] uppercase tracking-widest text-rose-700 bg-rose-50/50 border-l border-slate-200/80 w-12" title="Ausentes">
-                          A
+                        <th className="px-2 py-4 text-center font-black text-[10px] uppercase tracking-widest text-rose-700 bg-rose-50/50 border-l border-slate-200/80 w-10" title="Ausentes">
+                          ✗
                         </th>
-                        <th className="px-5 py-4 text-center font-black text-[10px] uppercase tracking-widest text-slate-700 border-l border-slate-200/80 w-24">
-                          % Final
+                        <th className="px-4 py-4 text-center font-black text-[10px] uppercase tracking-widest text-slate-700 border-l border-slate-200/80 w-20">
+                          %
                         </th>
                       </tr>
                     </thead>
@@ -1089,12 +1243,15 @@ export default function ClassView() {
                               }
                               const hasObs = Boolean(rec?.observation);
 
-                              const statusBadge = {
-                                present: { code: "P", full: "Presente", bg: "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200" },
-                                late: { code: "T", full: "Tarde", bg: "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200" },
-                                justified: { code: "J", full: "Justificado", bg: "bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200" },
-                                absent: { code: "A", full: "Ausente", bg: "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200" }
-                              }[status] || { code: "P", full: "Presente", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+                              const statusMap = {
+                                present: { code: "P", full: "Presente", bg: "bg-emerald-500 text-white border-emerald-500", inactive: "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200" },
+                                late: { code: "T", full: "Tarde", bg: "bg-amber-500 text-white border-amber-500", inactive: "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200" },
+                                justified: { code: "J", full: "Justificado", bg: "bg-purple-500 text-white border-purple-500", inactive: "bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200" },
+                                absent: { code: "A", full: "Ausente", bg: "bg-rose-500 text-white border-rose-500", inactive: "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200" }
+                              };
+                              const statusBadge = statusMap[status] || statusMap.present;
+                              // Determine if this is the "no record" case (default to present)
+                              const isDefaultPresent = !rec;
 
                               return (
                                 <td key={s.id} className="px-2 py-3 text-center border-l border-slate-100">
@@ -1109,12 +1266,16 @@ export default function ClassView() {
                                       });
                                       setQuickObsText(rec?.observation || "");
                                     }}
-                                    title={`${statusBadge.full} · ${s.date}${hasObs ? ` · "${rec.observation}"` : ""}`}
-                                    className={`relative inline-flex items-center justify-center w-8 h-8 rounded-xl font-black text-xs border transition-all ${statusBadge.bg}`}
+                                    title={`${statusBadge.full} · ${format(new Date(s.date + "T12:00:00"), "d MMM yyyy", { locale: es })}${hasObs ? ` · "${rec.observation}"` : ""}`}
+                                    className={`relative inline-flex items-center justify-center w-9 h-9 rounded-xl font-black text-[11px] border-2 transition-all ${
+                                      isDefaultPresent
+                                        ? "bg-emerald-50 text-emerald-600 border-emerald-200 opacity-50 hover:opacity-100"
+                                        : statusBadge.bg
+                                    }`}
                                   >
                                     {statusBadge.code}
                                     {hasObs && (
-                                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-2 ring-white" />
+                                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-2 ring-white" />
                                     )}
                                   </button>
                                 </td>
@@ -1157,102 +1318,337 @@ export default function ClassView() {
 
       {/* 3. GAMIFICATION TAB */}
       {activeTab === "gamification" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-           {/* Rewards Management */}
-           <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tienda Notyx</h3>
-                <Button onClick={() => { setEditingItem(null); setModalForm({ name: "", description: "", cost_coins: 100, icon: "🎁", category: "item", game_name: "Sudoku", duration_minutes: 60 }); setShowRewardModal(true); }} className="rounded-2xl bg-orange-500 hover:bg-orange-600 h-10 px-5 gap-2 font-black text-[10px] uppercase tracking-widest"><Plus className="w-4 h-4" /> Crear Premio</Button>
-              </div>
-              <div className="grid gap-4">
-                 {rewards.map(r => (
-                   <div key={r.id} className="bg-white rounded-3xl p-5 border border-slate-100 flex items-center justify-between hover:shadow-lg transition-all group">
-                      <div className="flex items-center gap-5">
-                         <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
-                           <RewardIcon reward={r} name={r.name} icon={r.icon} className="w-7 h-7 text-slate-700" textClassName="text-3xl" />
-                         </div>
-                         <div>
-                            <h4 className="font-black text-slate-800 leading-none mb-1">{r.name}</h4>
-                            <p className="text-xs text-slate-400 font-medium">{r.description || 'Sin descripción'}</p>
-                            <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mt-2 flex items-center gap-1"><LucideCoins className="w-3 h-3" /> {r.cost_coins} Coins</p>
-                         </div>
+        <div className="space-y-8">
+
+          {/* Sub-tab Switcher */}
+          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit border border-slate-200/50">
+            <button
+              onClick={() => setGamificationSubTab("items")}
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-black tracking-tight transition-all ${
+                gamificationSubTab === "items"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4" /> Items & Casas
+            </button>
+            <button
+              onClick={() => setGamificationSubTab("skins")}
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-black tracking-tight transition-all ${
+                gamificationSubTab === "skins"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Sparkles className="w-4 h-4" /> Skins de Tarjetas
+              {skinRewards.some(s => skinPriceDrafts[s.id] !== undefined && parseInt(skinPriceDrafts[s.id], 10) !== s.cost_coins) && (
+                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+              )}
+            </button>
+          </div>
+
+          {/* ---- SUB-TAB: ITEMS & CASAS ---- */}
+          {gamificationSubTab === "items" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              {/* Rewards Management */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tienda Notyx</h3>
+                  <Button onClick={() => { setEditingItem(null); setModalForm({ name: "", description: "", cost_coins: 100, icon: "🎁", category: "item", game_name: "Sudoku", duration_minutes: 60 }); setShowRewardModal(true); }} className="rounded-2xl bg-orange-500 hover:bg-orange-600 h-10 px-5 gap-2 font-black text-[10px] uppercase tracking-widest"><Plus className="w-4 h-4" /> Crear Premio</Button>
+                </div>
+                <div className="grid gap-3">
+                  {rewards.map(r => (
+                    <div key={r.id} className={`bg-white rounded-3xl p-5 border flex items-center justify-between hover:shadow-lg transition-all group ${
+                      r.category === 'game_pass'
+                        ? 'border-emerald-200 bg-gradient-to-r from-emerald-50/50 to-white'
+                        : 'border-slate-100'
+                    }`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+                          r.category === 'game_pass'
+                            ? 'bg-emerald-50 border-emerald-200'
+                            : 'bg-slate-50 border-slate-100'
+                        }`}>
+                          <RewardIcon reward={r} name={r.name} icon={r.icon} className="w-6 h-6 text-slate-700" textClassName="text-2xl" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h4 className="font-black text-slate-800 leading-none">{r.name}</h4>
+                            {r.category === 'game_pass' && (
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                🎮 Pase de Juego
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 font-medium">
+                            {r.category === 'game_pass' && r.metadata?.game_name
+                              ? `${r.metadata.game_name} · ${r.metadata.duration_minutes || 60} min`
+                              : r.description || 'Sin descripción'}
+                          </p>
+                          <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mt-1.5 flex items-center gap-1"><LucideCoins className="w-3 h-3" /> {r.cost_coins} Coins</p>
+                        </div>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                         <Button onClick={() => { setEditingItem(r); setModalForm(r); setShowRewardModal(true); }} variant="ghost" size="icon" className="rounded-xl"><Pencil className="w-4 h-4" /></Button>
-                         <Button onClick={() => handleDeleteReward(r.id)} variant="ghost" size="icon" className="rounded-xl text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                        <Button onClick={() => { setEditingItem(r); setModalForm({ ...r, game_name: r.metadata?.game_name || 'Sudoku', duration_minutes: r.metadata?.duration_minutes || 60 }); setShowRewardModal(true); }} variant="ghost" size="icon" className="rounded-xl"><Pencil className="w-4 h-4" /></Button>
+                        <Button onClick={() => handleDeleteReward(r.id)} variant="ghost" size="icon" className="rounded-xl text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
                       </div>
-                   </div>
-                 ))}
-                 {rewards.length === 0 && <p className="text-center py-10 text-slate-400 font-bold italic">No hay premios creados.</p>}
-              </div>
+                    </div>
+                  ))}
+                  {rewards.length === 0 && <p className="text-center py-10 text-slate-400 font-bold italic">No hay premios creados.</p>}
+                </div>
 
-              {/* Pending Purchases Section */}
-              <div className="pt-10 space-y-6">
-                 <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                {/* Pending Purchases Section */}
+                <div className="pt-10 space-y-6">
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                     <ShoppingCart className="w-6 h-6 text-emerald-500" />
                     Compras Pendientes
-                 </h3>
-                 <div className="space-y-3">
+                  </h3>
+                  <div className="space-y-3">
                     {purchases.filter(p => p.status === 'pending').map(p => (
                       <div key={p.id} className="bg-emerald-50 rounded-3xl p-5 border border-emerald-100 flex items-center justify-between animate-in zoom-in duration-300">
-                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-emerald-200">
-                              <RewardIcon reward={p.rewards} name={p.rewards?.name} icon={p.rewards?.icon} className="w-5 h-5 text-emerald-600" textClassName="text-xl" />
-                            </div>
-                            <div>
-                               <h4 className="font-black text-slate-800 leading-none mb-1">{p.profiles?.full_name}</h4>
-                               <p className="text-xs text-emerald-700 font-medium">Compró: <span className="font-black uppercase tracking-tight">{p.rewards?.name}</span></p>
-                            </div>
-                         </div>
-                         <div className="flex gap-2">
-                            <Button onClick={() => handleUpdatePurchaseStatus(p.id, 'delivered')} className="bg-emerald-600 hover:bg-emerald-700 rounded-xl h-10 px-4 font-black text-[10px] uppercase tracking-widest flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Entregar</Button>
-                            <Button onClick={() => handleUpdatePurchaseStatus(p.id, 'cancelled')} variant="ghost" className="text-red-500 hover:bg-red-100 rounded-xl h-10 font-black text-[10px] uppercase tracking-widest">Rechazar</Button>
-                         </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-emerald-200">
+                            <RewardIcon reward={p.rewards} name={p.rewards?.name} icon={p.rewards?.icon} className="w-5 h-5 text-emerald-600" textClassName="text-xl" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-slate-800 leading-none mb-1">{p.profiles?.full_name}</h4>
+                            <p className="text-xs text-emerald-700 font-medium">Compró: <span className="font-black uppercase tracking-tight">{p.rewards?.name}</span></p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={() => handleUpdatePurchaseStatus(p.id, 'delivered')} className="bg-emerald-600 hover:bg-emerald-700 rounded-xl h-10 px-4 font-black text-[10px] uppercase tracking-widest flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Entregar</Button>
+                          <Button onClick={() => handleUpdatePurchaseStatus(p.id, 'cancelled')} variant="ghost" className="text-red-500 hover:bg-red-100 rounded-xl h-10 font-black text-[10px] uppercase tracking-widest">Rechazar</Button>
+                        </div>
                       </div>
                     ))}
                     {purchases.filter(p => p.status === 'pending').length === 0 && (
                       <div className="bg-slate-50 rounded-3xl p-8 text-center border border-dashed border-slate-200">
-                         <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                         <p className="text-slate-400 font-bold italic text-sm">No hay compras por entregar.</p>
+                        <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                        <p className="text-slate-400 font-bold italic text-sm">No hay compras por entregar.</p>
                       </div>
                     )}
-                 </div>
+                  </div>
+                </div>
               </div>
-           </div>
 
-           {/* House Management */}
-           <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Casas y Escudos</h3>
-                 <Button onClick={() => { setEditingItem(null); setModalForm({ name: "", icon: "🏠", color: "#3b82f6" }); setShowHouseModal(true); }} className="rounded-2xl bg-blue-600 hover:bg-blue-700 h-10 px-5 gap-2 font-black text-[10px] uppercase tracking-widest"><Plus className="w-4 h-4" /> Nueva Casa</Button>
-              </div>
-              <div className="grid gap-6">
-                 {houses.map(h => (
-                   <div key={h.id} className="bg-white rounded-[40px] p-8 border border-slate-100 hover:shadow-2xl transition-all relative group overflow-hidden">
+              {/* House Management */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Casas y Escudos</h3>
+                  <Button onClick={() => { setEditingItem(null); setModalForm({ name: "", icon: "🏠", color: "#3b82f6" }); setShowHouseModal(true); }} className="rounded-2xl bg-blue-600 hover:bg-blue-700 h-10 px-5 gap-2 font-black text-[10px] uppercase tracking-widest"><Plus className="w-4 h-4" /> Nueva Casa</Button>
+                </div>
+                <div className="grid gap-6">
+                  {houses.map(h => (
+                    <div key={h.id} className="bg-white rounded-[40px] p-8 border border-slate-100 hover:shadow-2xl transition-all relative group overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: h.color }} />
                       <div className="flex items-center justify-between relative z-10">
-                         <div className="flex items-center gap-6">
-                            <div className="text-4xl w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center border-2 border-slate-100 shadow-inner group-hover:scale-110 transition-transform">
-                              {h.icon}
+                        <div className="flex items-center gap-6">
+                          <div className="text-4xl w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center border-2 border-slate-100 shadow-inner group-hover:scale-110 transition-transform">
+                            {h.icon}
+                          </div>
+                          <div>
+                            <h4 className="font-black text-2xl text-slate-800">{h.name}</h4>
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: h.color }} />
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificador de Casa</span>
                             </div>
-                            <div>
-                               <h4 className="font-black text-2xl text-slate-800">{h.name}</h4>
-                               <div className="flex items-center gap-2 mt-2">
-                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: h.color }} />
-                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificador de Casa</span>
-                               </div>
-                            </div>
-                         </div>
-                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                            <Button onClick={() => { setEditingItem(h); setModalForm(h); setShowHouseModal(true); }} variant="outline" size="icon" className="rounded-xl"><Pencil className="w-4 h-4" /></Button>
-                            <Button onClick={() => handleDeleteHouse(h.id)} variant="outline" size="icon" className="rounded-xl text-red-400 hover:text-red-600 border-red-100"><Trash2 className="w-4 h-4" /></Button>
-                         </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                          <Button onClick={() => { setEditingItem(h); setModalForm(h); setShowHouseModal(true); }} variant="outline" size="icon" className="rounded-xl"><Pencil className="w-4 h-4" /></Button>
+                          <Button onClick={() => handleDeleteHouse(h.id)} variant="outline" size="icon" className="rounded-xl text-red-400 hover:text-red-600 border-red-100"><Trash2 className="w-4 h-4" /></Button>
+                        </div>
                       </div>
-                   </div>
-                 ))}
-                 {houses.length === 0 && <p className="text-center py-10 text-slate-400 font-bold italic">No hay casas registradas.</p>}
+                    </div>
+                  ))}
+                  {houses.length === 0 && <p className="text-center py-10 text-slate-400 font-bold italic">No hay casas registradas.</p>}
+                </div>
               </div>
-           </div>
+            </div>
+          )}
+
+          {/* ---- SUB-TAB: SKINS DE TARJETAS ---- */}
+          {gamificationSubTab === "skins" && (() => {
+            const modifiedCount = skinRewards.filter(
+              s => skinPriceDrafts[s.id] !== undefined && parseInt(skinPriceDrafts[s.id], 10) !== s.cost_coins
+            ).length;
+
+            const filteredSkins = skinRewards
+              .filter(s => s.name.toLowerCase().includes(skinSearchTerm.toLowerCase()))
+              .sort((a, b) => {
+                if (skinSortFilter === "cheapest") return a.cost_coins - b.cost_coins;
+                if (skinSortFilter === "expensive") return b.cost_coins - a.cost_coins;
+                if (skinSortFilter === "modified") {
+                  const aM = parseInt(skinPriceDrafts[a.id], 10) !== a.cost_coins;
+                  const bM = parseInt(skinPriceDrafts[b.id], 10) !== b.cost_coins;
+                  return (bM ? 1 : 0) - (aM ? 1 : 0);
+                }
+                return a.name.localeCompare(b.name);
+              });
+
+            return (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                {/* Header Banner */}
+                <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                      <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm">
+                        <Sparkles className="w-8 h-8 text-white" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-violet-200 bg-white/10 px-3 py-0.5 rounded-full">Bazar Global</span>
+                        <h2 className="text-2xl font-black tracking-tight mt-1">Precios de Skins</h2>
+                        <p className="text-violet-200 text-sm font-medium mt-0.5">{skinRewards.length} skins disponibles · {modifiedCount > 0 ? `${modifiedCount} cambios pendientes` : "Sin cambios pendientes"}</p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleSaveAllSkinPrices}
+                      disabled={savingAllSkins || modifiedCount === 0}
+                      className="bg-white text-violet-700 hover:bg-violet-50 rounded-2xl h-12 px-6 font-black text-xs uppercase tracking-wider flex items-center gap-2 disabled:opacity-40 shadow-lg"
+                    >
+                      {savingAllSkins ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Guardar Todo ({modifiedCount})
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar skin..."
+                      value={skinSearchTerm}
+                      onChange={e => setSkinSearchTerm(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
+                    {[
+                      { id: "all", label: "Todas" },
+                      { id: "cheapest", label: "Más baratas" },
+                      { id: "expensive", label: "Más caras" },
+                      { id: "modified", label: "Modificadas" },
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setSkinSortFilter(opt.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black tracking-tight transition-all ${
+                          skinSortFilter === opt.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Skin Grid */}
+                {filteredSkins.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400 font-bold italic">
+                    No se encontraron skins.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filteredSkins.map(skin => {
+                      const currentDraft = skinPriceDrafts[skin.id] ?? skin.cost_coins;
+                      const isDirty = parseInt(currentDraft, 10) !== skin.cost_coins;
+                      const isSaving = savingSkinId === skin.id;
+                      const skinTheme = getSkinByName(skin.name);
+
+                      return (
+                        <div
+                          key={skin.id}
+                          className={`bg-white rounded-3xl border overflow-hidden transition-all hover:shadow-xl group ${
+                            isDirty ? "border-violet-300 shadow-violet-100 shadow-md" : "border-slate-100"
+                          }`}
+                        >
+                          {/* Skin Preview */}
+                          <div
+                            className="h-28 relative flex items-center justify-center overflow-hidden"
+                            style={{
+                              background: skinTheme
+                                ? `linear-gradient(135deg, ${skinTheme.bg?.dark || "#1e1b4b"}, ${skinTheme.bg?.light || "#3b1f6e"})`
+                                : "linear-gradient(135deg, #1e293b, #334155)",
+                            }}
+                          >
+                            <div className="absolute inset-0 opacity-10">
+                              {[...Array(6)].map((_, i) => (
+                                <div
+                                  key={i}
+                                  className="absolute rounded-full"
+                                  style={{
+                                    width: `${20 + i * 15}px`,
+                                    height: `${20 + i * 15}px`,
+                                    background: skinTheme?.accent || "rgba(255,255,255,0.3)",
+                                    top: `${(i * 37) % 100}%`,
+                                    left: `${(i * 53) % 100}%`,
+                                    transform: "translate(-50%,-50%)",
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <div className="relative z-10 text-center">
+                              <p className="text-white font-black text-sm tracking-tight drop-shadow">{skin.name}</p>
+                              {skinTheme?.icon && (
+                                <skinTheme.icon className="w-6 h-6 mx-auto mt-1 opacity-70" style={{ color: skinTheme.accent || "#fff" }} />
+                              )}
+                            </div>
+                            {isDirty && (
+                              <div className="absolute top-2 right-2 bg-violet-500 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                                Editado
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Price Editor */}
+                          <div className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio actual</span>
+                              <span className="text-xs font-black text-slate-600 flex items-center gap-1">
+                                <LucideCoins className="w-3 h-3 text-amber-500" /> {skin.cost_coins}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <LucideCoins className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-amber-500" />
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={currentDraft}
+                                  onChange={e => setSkinPriceDrafts(prev => ({ ...prev, [skin.id]: e.target.value }))}
+                                  className={`w-full pl-8 pr-2 py-2 rounded-xl border text-sm font-black text-slate-800 focus:outline-none focus:ring-2 transition-all ${
+                                    isDirty
+                                      ? "border-violet-300 bg-violet-50 focus:ring-violet-300"
+                                      : "border-slate-200 bg-slate-50 focus:ring-violet-200"
+                                  }`}
+                                />
+                              </div>
+                              <Button
+                                onClick={() => handleUpdateSkinPrice(skin.id)}
+                                disabled={!isDirty || isSaving}
+                                size="icon"
+                                className={`rounded-xl w-9 h-9 flex-shrink-0 transition-all ${
+                                  isDirty
+                                    ? "bg-violet-600 hover:bg-violet-700 text-white shadow-md"
+                                    : "bg-slate-100 text-slate-300"
+                                }`}
+                              >
+                                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
         </div>
       )}
 
@@ -1696,17 +2092,25 @@ export default function ClassView() {
                          </select>
                       </div>
                       {modalForm.category === 'game_pass' && (
-                        <div className="grid grid-cols-2 gap-4 animate-in slide-up">
-                           <div>
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Juego a Desbloquear</label>
-                              <select className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.game_name} onChange={e => setModalForm({...modalForm, game_name: e.target.value})}>
-                                 <option value="Sudoku">Sudoku</option>
-                                 <option value="Pyramid">Pirámide Numérica</option>
-                              </select>
+                        <div className="space-y-4 animate-in fade-in duration-200">
+                           <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
+                             <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">🎮 Pase de Juego Temporal</p>
+                             <p className="text-xs text-emerald-600 font-medium mt-0.5">El alumno podrá jugar durante el tiempo indicado</p>
                            </div>
-                           <div>
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Duración (minutos)</label>
-                              <input type="number" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.duration_minutes} onChange={e => setModalForm({...modalForm, duration_minutes: e.target.value})} />
+                           <div className="grid grid-cols-2 gap-4">
+                            <div>
+                               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Juego a Desbloquear</label>
+                               <select className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.game_name || 'Sudoku'} onChange={e => setModalForm({...modalForm, game_name: e.target.value})}>
+                                  <option value="Sudoku">🧩 Sudoku</option>
+                                  <option value="Pyramid">🔺 Pirámide Numérica</option>
+                                  <option value="Memory Match">🃏 Memory Match</option>
+                                  <option value="Math Blitz">⚡ Math Blitz</option>
+                               </select>
+                            </div>
+                            <div>
+                               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Duración (minutos)</label>
+                               <input type="number" min="5" max="120" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none" value={modalForm.duration_minutes || 60} onChange={e => setModalForm({...modalForm, duration_minutes: e.target.value})} />
+                            </div>
                            </div>
                         </div>
                       )}

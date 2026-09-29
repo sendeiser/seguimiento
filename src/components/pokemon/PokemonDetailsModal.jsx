@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Shield, Zap, Heart, Sword, FastForward, Activity, Volume2, Sparkles, MapPin, ChevronRight } from "lucide-react";
 import { getEvolutionChain } from "../../lib/pokemonService";
+import { useTheme } from "../../providers/ThemeProvider";
 
 const statIcons = {
   hp: <Heart className="w-4 h-4" />,
@@ -42,6 +43,8 @@ const typeColors = {
 };
 
 export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [isShiny, setIsShiny] = useState(false);
   const [evolutionChain, setEvolutionChain] = useState([]);
   const [isPlayingCry, setIsPlayingCry] = useState(false);
@@ -69,9 +72,6 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
       audio.volume = 0.5;
       audio.onplay = () => setIsPlayingCry(true);
       audio.onended = () => setIsPlayingCry(false);
-      audio.onerror = () => setIsPlayingCry(false);
-      
-      // Play and handle browser autoplay restrictions
       audio.play().catch(err => {
         // Autoplay prevented or audio error
         setIsPlayingCry(false);
@@ -83,10 +83,12 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div 
         onClick={onClose}
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer"
+        className="absolute inset-0 bg-slate-950/70 backdrop-blur-md cursor-pointer"
       />
       
-      <div className="relative w-full max-w-3xl bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div className={`relative w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border max-h-[90vh] overflow-y-auto ${
+        isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-800'
+      }`}>
         {/* Header / Banner */}
         <div className={`h-48 relative ${typeColors[pokemon.types[0]] || 'bg-slate-400'} opacity-90 transition-all duration-700`}>
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
@@ -95,14 +97,14 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
              <div className="flex gap-2">
                 <button 
                   onClick={() => playCry()}
-                  className={`p-3 rounded-2xl backdrop-blur-md transition-all ${isPlayingCry ? 'bg-white text-indigo-600 scale-110 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                  className={`p-3 rounded-2xl backdrop-blur-md transition-all cursor-pointer ${isPlayingCry ? 'bg-white text-indigo-600 scale-110 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`}
                   title="Reproducir Grito"
                 >
                   <Volume2 className={`w-5 h-5 ${isPlayingCry ? 'animate-pulse' : ''}`} />
                 </button>
                 <button 
                   onClick={() => setIsShiny(!isShiny)}
-                  className={`p-3 rounded-2xl backdrop-blur-md transition-all ${isShiny ? 'bg-yellow-400 text-yellow-900 scale-110 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                  className={`p-3 rounded-2xl backdrop-blur-md transition-all cursor-pointer ${isShiny ? 'bg-yellow-400 text-yellow-900 scale-110 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`}
                   title="Ver Shiny"
                 >
                   <Sparkles className="w-5 h-5" />
@@ -110,7 +112,7 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
              </div>
              <button 
                onClick={onClose}
-               className="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl text-white transition-all"
+               className="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl text-white transition-all cursor-pointer"
              >
                <X className="w-6 h-6" />
              </button>
@@ -120,7 +122,7 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
             <img 
               src={isShiny ? pokemon.shinySprite : pokemon.sprite} 
               alt={pokemon.name} 
-              className="w-full h-full object-contain drop-shadow-[0_25px_35px_rgba(0,0,0,0.25)] hover:scale-110 transition-transform duration-500"
+              className="w-full h-full object-contain drop-shadow-[0_25px_35px_rgba(0,0,0,0.35)] hover:scale-110 transition-transform duration-500"
             />
           </div>
         </div>
@@ -132,18 +134,20 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
                <span className="text-slate-400 font-black text-xs tracking-widest uppercase">
                   #{String(pokemon.id).padStart(3, '0')}
                </span>
-               <div className="h-1 w-1 rounded-full bg-slate-300" />
-               <span className="flex items-center gap-1 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  <MapPin className="w-3 h-3 text-indigo-500" />
+               <div className={`h-1 w-1 rounded-full ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+               <span className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <MapPin className="w-3 h-3 text-indigo-400" />
                   {translations.habitats[pokemon.habitat] || pokemon.habitat}
                </span>
             </div>
-            <h2 className="text-5xl font-black text-slate-800 capitalize tracking-tight mb-6">
-              {pokemon.name} {isShiny && <span className="text-yellow-500 text-2xl">✨</span>}
+            <h2 className={`text-4xl md:text-5xl font-black capitalize tracking-tight mb-6 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              {pokemon.name} {isShiny && <span className="text-yellow-400 text-2xl">✨</span>}
             </h2>
 
             {pokemon.level && (
-              <div className="flex flex-col items-center gap-3 mb-8 bg-indigo-50/30 p-6 rounded-[2.5rem] border border-indigo-100/50 max-w-sm mx-auto">
+              <div className={`flex flex-col items-center gap-3 mb-8 p-6 rounded-[2.5rem] border max-w-sm mx-auto ${
+                isDark ? 'bg-indigo-950/40 border-indigo-900/50' : 'bg-indigo-50/30 border-indigo-100/50'
+              }`}>
                 <div className="bg-indigo-600 text-white px-8 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20">
                   Nivel {pokemon.level}
                 </div>
@@ -152,7 +156,9 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
                     <span>Progreso XP</span>
                     <span>{pokemon.experience} / {pokemon.level * 100}</span>
                   </div>
-                  <div className="h-2.5 bg-white rounded-full overflow-hidden shadow-inner border border-indigo-100/50 p-0.5">
+                  <div className={`h-2.5 rounded-full overflow-hidden shadow-inner border p-0.5 ${
+                    isDark ? 'bg-slate-800 border-indigo-900/40' : 'bg-white border-indigo-100/50'
+                  }`}>
                     <div 
                       className="h-full bg-indigo-500 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(79,70,229,0.4)]"
                       style={{ width: `${(pokemon.experience / (pokemon.level * 100)) * 100}%` }}
@@ -162,7 +168,9 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
               </div>
             )}
 
-            <p className="text-slate-500 max-w-lg mx-auto font-medium leading-relaxed italic">
+            <p className={`max-w-lg mx-auto font-medium leading-relaxed italic text-sm md:text-base ${
+              isDark ? 'text-slate-400' : 'text-slate-500'
+            }`}>
                "{pokemon.description}"
             </p>
           </div>
@@ -170,8 +178,8 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
           <div className="grid md:grid-cols-2 gap-12">
             {/* Stats */}
             <div className="space-y-6">
-              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-indigo-500" /> Estadísticas
+              <h3 className={`text-lg font-black flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                <Activity className="w-5 h-5 text-indigo-400" /> Estadísticas
               </h3>
               <div className="space-y-4">
                 {pokemon.stats.map(stat => (
@@ -181,9 +189,9 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
                         {statIcons[stat.name] || <Activity className="w-3 h-3" />}
                         {translations.stats[stat.name] || stat.name}
                       </span>
-                      <span className="text-slate-700">{stat.value}</span>
+                      <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>{stat.value}</span>
                     </div>
-                    <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-2.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
                       <div 
                         className={`h-full transition-all duration-1000 ease-out ${typeColors[pokemon.types[0]] || 'bg-indigo-500'}`}
                         style={{ width: `${Math.min(100, (stat.value / 255) * 100)}%` }}
@@ -197,33 +205,49 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
             {/* Info and Evolutions */}
             <div className="space-y-10">
                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 shadow-sm">
+                  <div className={`p-5 rounded-[2rem] border shadow-sm ${
+                    isDark ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-50 border-slate-100'
+                  }`}>
                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Peso</span>
-                     <span className="text-2xl font-black text-slate-800">{(pokemon.weight / 10).toFixed(1)} <small className="text-slate-400 text-xs">kg</small></span>
+                     <span className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                       {(pokemon.weight / 10).toFixed(1)} <small className="text-slate-400 text-xs">kg</small>
+                     </span>
                   </div>
-                  <div className="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 shadow-sm">
+                  <div className={`p-5 rounded-[2rem] border shadow-sm ${
+                    isDark ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-50 border-slate-100'
+                  }`}>
                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Altura</span>
-                     <span className="text-2xl font-black text-slate-800">{(pokemon.height / 10).toFixed(1)} <small className="text-slate-400 text-xs">m</small></span>
+                     <span className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                       {(pokemon.height / 10).toFixed(1)} <small className="text-slate-400 text-xs">m</small>
+                     </span>
                   </div>
                </div>
 
                {/* Evolution Chain */}
                {evolutionChain.length > 1 && (
                  <div className="space-y-4">
-                   <h3 className="text-lg font-black text-slate-800">Línea Evolutiva</h3>
-                   <div className="flex items-center justify-between bg-slate-50/50 p-4 rounded-[2rem] border border-slate-100">
+                   <h3 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>Línea Evolutiva</h3>
+                   <div className={`flex items-center justify-between p-4 rounded-[2rem] border ${
+                     isDark ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50/50 border-slate-100'
+                   }`}>
                      {evolutionChain.map((evo, idx) => (
                        <React.Fragment key={evo.id}>
                          <div className="flex flex-col items-center gap-1">
-                           <div className={`w-16 h-16 rounded-2xl p-2 transition-all ${evo.id == pokemon.id ? 'bg-white shadow-md border-2 border-indigo-200' : 'opacity-40 hover:opacity-100'}`}>
+                           <div className={`w-16 h-16 rounded-2xl p-2 transition-all ${
+                             evo.id == pokemon.id 
+                               ? (isDark ? 'bg-slate-800 shadow-md border-2 border-indigo-500' : 'bg-white shadow-md border-2 border-indigo-200')
+                               : 'opacity-40 hover:opacity-100'
+                           }`}>
                               <img src={evo.sprite} alt={evo.name} className="w-full h-full object-contain" />
                            </div>
-                           <span className={`text-[8px] font-black uppercase tracking-tighter ${evo.id == pokemon.id ? 'text-indigo-600' : 'text-slate-400'}`}>
+                           <span className={`text-[8px] font-black uppercase tracking-tighter ${
+                             evo.id == pokemon.id ? 'text-indigo-400' : 'text-slate-400'
+                           }`}>
                               {evo.name}
                            </span>
                          </div>
                          {idx < evolutionChain.length - 1 && (
-                           <ChevronRight className="w-4 h-4 text-slate-300" />
+                           <ChevronRight className={`w-4 h-4 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
                          )}
                        </React.Fragment>
                      ))}
@@ -232,10 +256,17 @@ export default function PokemonDetailsModal({ pokemon, isOpen, onClose }) {
                )}
 
                <div className="space-y-4">
-                 <h3 className="text-lg font-black text-slate-800">Habilidades</h3>
+                 <h3 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>Habilidades</h3>
                  <div className="flex flex-wrap gap-2">
                    {pokemon.abilities.map(ability => (
-                     <span key={ability} className="bg-white text-slate-600 border border-slate-200 px-5 py-2.5 rounded-2xl text-xs font-bold capitalize shadow-sm hover:border-indigo-200 transition-colors">
+                     <span 
+                       key={ability} 
+                       className={`px-5 py-2.5 rounded-2xl text-xs font-bold capitalize shadow-sm transition-colors border ${
+                         isDark 
+                           ? 'bg-slate-800/80 text-slate-200 border-slate-700/70 hover:border-indigo-400' 
+                           : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'
+                       }`}
+                     >
                        {ability.replace('-', ' ')}
                      </span>
                    ))}
