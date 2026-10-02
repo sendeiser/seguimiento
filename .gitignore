@@ -55,3 +55,11 @@ dist-ssr
 .zencoder/
 skills/
 
+# Android builds & temporary files
+*.apk
+*.aab
+android-app/.gradle/
+android-app/**/build/
+android-app/.idea/
+android-app/.kotlin/
+android-app/local.properties

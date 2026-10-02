@@ -1,17 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "../../lib/supabase";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, Trophy, Medal, ShoppingBag, ShoppingCart, Swords, Heart, Sparkles, Flame, Crown, Flag, ShieldCheck, Star, Gamepad2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Trophy, Medal, ShoppingBag, ShoppingCart, Swords, Heart, Sparkles, Flame, Crown, Flag, ShieldCheck, Star, Gamepad2, Loader2 } from "lucide-react";
 import { useAuth } from "../../providers/AuthProvider";
 import { useToast } from "../../providers/ToastProvider";
-import { SkillsRadar } from "../../components/ui/SkillsRadar";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import { RewardIcon } from "../../lib/skinThemes";
-import ArenaHub from "../../components/arena/ArenaHub";
+
+// Vercel bundle-dynamic-imports: Lazy load heavy components (recharts & arena)
+const SkillsRadar = lazy(() => import("../../components/ui/SkillsRadar").then(m => ({ default: m.SkillsRadar })));
+const ArenaHub = lazy(() => import("../../components/arena/ArenaHub"));
 
 export default function StudentClassView() {
   const { id } = useParams(); // class id
@@ -58,23 +60,23 @@ export default function StudentClassView() {
   const fetchData = async () => {
     if (!user) return;
 
-    const { data: c } = await supabase.from("classes").select("*").eq("id", id).single();
-    if (c) setClassData(c);
-
-    // Fetch sessions, grades, attendance, houses, rewards, and purchases in parallel
+    // Vercel async-parallel: Fetch core class data in a single unified Promise.all (zero waterfalls)
     const [
+      { data: c },
       { data: sData },
       { data: stData },
       { data: housesData },
       { data: allPurchases },
       { data: rwData }
     ] = await Promise.all([
+      supabase.from("classes").select("*").eq("id", id).single(),
       supabase.from("sessions").select("id, date, cuatrimestre, session_criteria(id, name, max_score)").eq("class_id", id).order("date", { ascending: false }),
       supabase.from("class_students").select("id, house_id, student_id, student_name, avatar_url, profiles(id, full_name)").eq("class_id", id),
       supabase.from("class_houses").select("*").eq("class_id", id),
       supabase.from("student_purchases").select("*, rewards(cost_coins)").eq("student_id", user.id).neq("status", "cancelled"),
       supabase.from("rewards").select("*").eq("class_id", id)
     ]);
+    if (c) setClassData(c);
 
     // Get criteria IDs for fetching grades
     const criteriaIds = [];
@@ -104,11 +106,26 @@ export default function StudentClassView() {
       }
       setClassmates(stData);
 
+      // Vercel js-index-maps: Build O(1) lookup dictionaries for instant access instead of nested O(N*M) filters
+      const gradesByStudent = {};
+      (allGData || []).forEach(g => {
+        if (!gradesByStudent[g.student_id]) gradesByStudent[g.student_id] = {};
+        gradesByStudent[g.student_id][g.criteria_id] = g.score;
+      });
+
+      const attByStudent = {};
+      (attData || []).forEach(a => {
+        if (!attByStudent[a.student_id]) attByStudent[a.student_id] = {};
+        attByStudent[a.student_id][a.session_id] = a.is_present;
+      });
+
+      const housesMap = new Map((housesData || []).map(h => [h.id, h]));
+
       const lb = stData.map(st => {
           const p = st.profiles;
           if (!p) return null;
-          const userGrades = allGData?.filter(g => g.student_id === p.id).reduce((acc, curr) => { acc[curr.criteria_id] = curr.score; return acc; }, {}) || {};
-          const userAtt = attData?.filter(a => a.student_id === p.id).reduce((acc, curr) => { acc[curr.session_id] = curr.is_present; return acc; }, {}) || {};
+          const userGrades = gradesByStudent[p.id] || {};
+          const userAtt = attByStudent[p.id] || {};
           
           // Rebuild sessions array for gamification engine
           const baseSessions = sData.map(s => ({
@@ -123,7 +140,7 @@ export default function StudentClassView() {
              setMyGami(gami);
           }
           
-          const house = housesData?.find(h => h.id === st.house_id) || null;
+          const house = housesMap.get(st.house_id) || null;
           
           return { id: p.id, name: p.full_name, xp: gami.currentXP, level: gami.currentLevel, rank: gami.rank, house };
       }).filter(Boolean).sort((a, b) => b.xp - a.xp);
@@ -131,8 +148,8 @@ export default function StudentClassView() {
       setLeaderboard(lb);
     }
 
-    // Update sessions data with my grades for UI
-    const myGradesMap = allGData?.filter(g => g.student_id === user.id).reduce((acc, curr) => { acc[curr.criteria_id] = curr.score; return acc; }, {}) || {};
+    // Update sessions data with my grades for UI using O(1) lookup map
+    const myGradesMap = (allGData || []).filter(g => g.student_id === user.id).reduce((acc, curr) => { acc[curr.criteria_id] = curr.score; return acc; }, {});
     const enhancedSessions = (sData || []).map(sess => ({
       ...sess,
       criteriaWithGrades: (sess.session_criteria || []).map(crit => ({
@@ -266,14 +283,23 @@ export default function StudentClassView() {
       </div>
 
       {activeMainTab === 'arena' ? (
-        <ArenaHub
-          classStudentId={myCsId}
-          classId={id}
-          studentName={user?.user_metadata?.full_name || 'Estudiante'}
-          notyxCoins={notyxCoins}
-          studentsList={classmates}
-          onRewardEarned={fetchData}
-        />
+        <Suspense fallback={
+          <div className="min-h-[300px] flex items-center justify-center bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cargando Arena...</p>
+            </div>
+          </div>
+        }>
+          <ArenaHub
+            classStudentId={myCsId}
+            classId={id}
+            studentName={user?.user_metadata?.full_name || 'Estudiante'}
+            notyxCoins={notyxCoins}
+            studentsList={classmates}
+            onRewardEarned={fetchData}
+          />
+        </Suspense>
       ) : (
         <>
           {/* Main RPG Card */}
@@ -438,7 +464,15 @@ export default function StudentClassView() {
       </div>
 
       <div className="space-y-8">
-        {filteredSessionsData.length > 0 && <SkillsRadar sessions={filteredSessionsData.map(s => ({...s, criteria: s.criteriaWithGrades}))} />}
+        {filteredSessionsData.length > 0 && (
+          <Suspense fallback={
+            <div className="h-64 flex items-center justify-center bg-white rounded-[40px] border border-slate-100 p-8 text-slate-400">
+              <Loader2 className="w-6 h-6 text-blue-500 animate-spin mr-2" /> Cargando estadísticas...
+            </div>
+          }>
+            <SkillsRadar sessions={filteredSessionsData.map(s => ({...s, criteria: s.criteriaWithGrades}))} />
+          </Suspense>
+        )}
         {filteredSessionsData.map(session => {
           const sessionGami = myGami?.sessionScores?.find(s => s.id === session.id);
           return (

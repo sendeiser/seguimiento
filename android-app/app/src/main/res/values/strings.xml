@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Notyx Edu</string>
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="dashboard_title">Mi Resumen</string>
+    <string name="ranking_title">Ranking Global</string>
+    <string name="shop_title">Bazar Estudiantil</string>
+    <string name="profile_title">Mi Perfil</string>
+</resources>

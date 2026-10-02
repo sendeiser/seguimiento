@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Notyx Edu — Guion de Grabación Paso a Paso Desde Cero</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm 10mm 10mm 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #0F172A;
+      background: #FFFFFF;
+      line-height: 1.45;
+      font-size: 12px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #312E81 100%);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      border: 1px solid #3730A3;
+    }
+
+    .badge-top {
+      display: inline-block;
+      background: #4F46E5;
+      color: #FFFFFF;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 3px;
+      line-height: 1.15;
+    }
+
+    .subtitle {
+      font-size: 11.5px;
+      color: #C7D2FE;
+      margin-bottom: 10px;
+    }
+
+    .meta-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pill strong {
+      color: #A5B4FC;
+    }
+
+    .scene-card {
+      background: #F8FAFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 9px;
+      page-break-inside: avoid;
+    }
+
+    .scene-card.featured {
+      background: #FAF5FF;
+      border-color: #D8B4FE;
+      box-shadow: 0 4px 10px rgba(147, 51, 234, 0.04);
+    }
+
+    .scene-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #E2E8F0;
+      padding-bottom: 5px;
+    }
+
+    .scene-card.featured .scene-header {
+      border-bottom-color: #E9D5FF;
+    }
+
+    .scene-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .scene-number {
+      background: #3B82F6;
+      color: white;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      letter-spacing: 0.04em;
+    }
+
+    .scene-card.featured .scene-number {
+      background: #9333EA;
+    }
+
+    .scene-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .scene-time {
+      font-family: 'Outfit', sans-serif;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #475569;
+      background: #E2E8F0;
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+
+    .scene-card.featured .scene-time {
+      background: #F3E8FF;
+      color: #7E22CE;
+    }
+
+    .grid-content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .action-box {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-left: 3px solid #0EA5E9;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 11px;
+      color: #334155;
+      line-height: 1.4;
+    }
+
+    .action-title {
+      font-weight: 800;
+      color: #0284C7;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .action-box ul {
+      margin-left: 14px;
+      margin-top: 2px;
+    }
+
+    .action-box li {
+      margin-bottom: 2px;
+    }
+
+    .action-box code {
+      background: #F1F5F9;
+      color: #0F172A;
+      font-family: Consolas, monospace;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      border: 1px solid #E2E8F0;
+    }
+
+    .voiceover-box {
+      background: #FFFFFF;
+      border-left: 3px solid #6366F1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .scene-card.featured .voiceover-box {
+      border-left-color: #9333EA;
+      background: #FFFFFF;
+    }
+
+    .voiceover-title {
+      font-weight: 800;
+      color: #4F46E5;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .scene-card.featured .voiceover-title {
+      color: #9333EA;
+    }
+
+    .voiceover-text {
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: #1E293B;
+      font-style: italic;
+    }
+
+    .voiceover-text strong {
+      color: #0F172A;
+      font-style: normal;
+      font-weight: 800;
+    }
+
+    .tip-box {
+      background: #FEF3C7;
+      border: 1px solid #FCD34D;
+      color: #78350F;
+      border-radius: 5px;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .footer-checklist {
+      margin-top: 10px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 10.5px;
+      page-break-inside: avoid;
+    }
+
+    .footer-checklist h4 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      color: #0F172A;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .checklist-items {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3px 10px;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Encabezado Principal -->
+  <div class="header-banner">
+    <div class="badge-top">Guion de Producción Completo Desde Cero</div>
+    <h1>NOTYX EDU — TUTORIAL PASO A PASO EN PANTALLA</h1>
+    <div class="subtitle">Guion completo con los 5 pilares: <strong>Crear Cuenta ➔ Crear Clases ➔ Cargar Alumnos ➔ Tomar Asistencia ➔ Poner Notas</strong></div>
+    <div class="meta-pills">
+      <div class="pill">⏱️ <strong>Duración:</strong> ~3:30 min</div>
+      <div class="pill">🌐 <strong>Inicio:</strong> https://notyx.netlify.app</div>
+      <div class="pill">🖥️ <strong>Modo:</strong> Pantalla Completa (F11)</div>
+      <div class="pill">🎙️ <strong>Tono:</strong> Claro, Seguro y Didáctico</div>
+    </div>
+  </div>
+
+  <!-- Paso 1 -->
+  <div class="scene-card">
+    <div class="scene-header">
+      <div class="scene-title-wrap">
+        <span class="scene-number">PASO 1</span>
+        <span class="scene-title">Crear la Cuenta Docente desde Cero</span>
+      </div>
+      <span class="scene-time">0:00 - 0:40</span>
+    </div>
+    <div class="grid-content">
+      <div class="action-box">
+        <div class="action-title">🖥️ Pasos Exactos en Pantalla</div>
+        <ul>
+          <li>Entra a <code>https://notyx.netlify.app</code> y haz clic en el botón azul inferior <strong>"Docentes"</strong>.</li>
+          <li>En la pantalla de Login, haz clic en el enlace inferior <strong>"¿No tenés una cuenta? Registrate"</strong> (te lleva a <code>/register</code>).</li>
+          <li>Completa los campos:
+            <ul>
+              <li><strong>Correo Electrónico:</strong> Escribe tu correo (ej. <code>profesor@ejemplo.com</code> o el tuyo institucional).</li>
+              <li><strong>Contraseña:</strong> Escribe una contraseña de al menos 6 caracteres.</li>
+              <li><strong>Confirmar Contraseña:</strong> Repite la misma contraseña.</li>
+            </ul>
+          </li>
+          <li>Haz clic en el botón gradiente <strong>"Crear Cuenta Docente"</strong>. <em>(O inicia sesión directo con martingt010@gmail.com mostrando este paso)</em>.</li>
+        </ul>
+      </div>
+      <div class="voiceover-box">
+        <div class="voiceover-title">🎙️ Locución Exacta (Léelo tal cual)</div>
+        <div class="voiceover-text">
+          "¡Hola a todos! Bienvenidos. Hoy vamos a ver desde cero cómo empezar a usar <strong>Notyx Edu</strong> para transformar la gestión de tus clases. Lo primero que hacemos al ingresar a <strong>notyx.netlify.app</strong> es ir al acceso de Docentes y hacer clic en <strong>Registrate</strong>. Solo completamos nuestro correo electrónico y una contraseña segura, y al presionar <strong>Crear Cuenta</strong> ya tenemos nuestro usuario de profesor listo para empezar a trabajar."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paso 2 -->
+  <div class="scene-card">
+    <div class="scene-header">
+      <div class="scene-title-wrap">
+        <span class="scene-number">PASO 2</span>
+        <span class="scene-title">Crear tu Primera Clase / Materia</span>
+      </div>
+      <span class="scene-time">0:40 - 1:15</span>
+    </div>
+    <div class="grid-content">
+      <div class="action-box">
+        <div class="action-title">🖥️ Pasos Exactos en Pantalla</div>
+        <ul>
+          <li>Una vez en el Dashboard principal (<code>/home</code>), observa la cabecera <strong>"Mis Clases"</strong>.</li>
+          <li>Haz clic en el botón azul superior con icono de suma <strong>"+ Nueva Clase"</strong>.</li>
+          <li>En la ventana emergente <em>"Nueva Clase"</em>, haz clic en el campo <strong>"Nombre de la Clase"</strong> y escribe: <code>Matemática 1ro ETA</code> (o el nombre de tu materia).</li>
+          <li>Presiona el botón azul <strong>"Crear Clase"</strong>.</li>
+          <li>Observa cómo la tarjeta del curso aparece inmediatamente en la grilla con su icono de birrete.</li>
+          <li><strong>Haz clic sobre la tarjeta del curso recién creado</strong> para entrar a su panel de gestión.</li>
+        </ul>
+      </div>
+      <div class="voiceover-box">
+        <div class="voiceover-title">🎙️ Locución Exacta</div>
+        <div class="voiceover-text">
+          "Al ingresar llegamos a nuestro panel principal. Crear un curso toma literalmente tres segundos: hacemos clic en <strong>Nueva Clase</strong>, ingresamos el nombre de la materia o división —en este caso <strong>Matemática 1ro ETA</strong>— y presionamos <strong>Crear Clase</strong>. La materia aparece al instante en nuestra grilla y hacemos clic sobre ella para entrar a gestionarla."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paso 3 -->
+  <div class="scene-card">
+    <div class="scene-header">
+      <div class="scene-title-wrap">
+        <span class="scene-number">PASO 3</span>
+        <span class="scene-title">Ingresar y Cargar a los Alumnos</span>
+      </div>
+      <span class="scene-time">1:15 - 1:55</span>
+    </div>
+    <div class="grid-content">
+      <div class="action-box">
+        <div class="action-title">🖥️ Pasos Exactos en Pantalla</div>
+        <ul>
+          <li>En el menú superior de la clase, haz clic en la pestaña <strong>"Alumnos"</strong> (segunda pestaña junto a <em>Sesiones</em>).</li>
+          <li><strong>Carga manual rápida:</strong>
+            <ul>
+              <li>Haz clic en el campo que dice <code>"Nombre del alumno..."</code>.</li>
+              <li>Escribe el nombre: ej. <code>Abigail González</code>.</li>
+              <li>Haz clic en el botón azul <strong>"Agregar"</strong>. Verás cómo aparece automáticamente en la lista.</li>
+              <li>En la columna <em>"DNI / Validación"</em> puedes escribir directamente su número de documento para vincularlo.</li>
+            </ul>
+          </li>
+          <li><strong>Autocarga por los alumnos:</strong> Señala arriba el <strong>"Código de Clase"</strong> (ej. <code>NX-4821</code>) para explicar que los chicos también pueden unirse solos ingresando ese código desde sus celulares.</li>
+        </ul>
+      </div>
+      <div class="voiceover-box">
+        <div class="voiceover-title">🎙️ Locución Exacta</div>
+        <div class="voiceover-text">
+          "Ahora incorporamos a nuestros estudiantes. Vamos a la pestaña <strong>Alumnos</strong>. Acá tenemos dos opciones súper prácticas: podemos agregarlos manualmente escribiendo su nombre y apellido en el campo superior y tocando <strong>Agregar</strong>, asignándoles su DNI en la tabla; o bien compartirles el <strong>Código de Clase</strong> que aparece arriba para que ellos mismos se sumen desde sus celulares en el primer día de clase."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paso 4 (Destacado) -->
+  <div class="scene-card featured">
+    <div class="scene-header">
+      <div class="scene-title-wrap">
+        <span class="scene-number">PASO 4</span>
+        <span class="scene-title">Tomar Asistencia con 1 Clic en Sesión en Vivo</span>
+      </div>
+      <span class="scene-time">1:55 - 2:35</span>
+    </div>
+    <div class="grid-content">
+      <div class="action-box">
+        <div class="action-title">🖥️ Pasos Exactos en Pantalla</div>
+        <ul>
+          <li>Haz clic en el botón azul destacado <strong>"Iniciar Sesión en Vivo"</strong> arriba a la derecha.</li>
+          <li>Toca el botón con icono de cuadrícula (<strong>LayoutGrid</strong>) para activar el modo de tarjetas para proyector.</li>
+          <li><strong>Toma la asistencia frente al grupo:</strong>
+            <ul>
+              <li>Haz un clic sobre el estado del primer alumno para marcarlo en <strong>Verde (Presente)</strong>.</li>
+              <li>Haz clic en el segundo para marcarlo en <strong>Amarillo (Tarde)</strong>.</li>
+              <li>Haz clic en el tercero si faltó para dejarlo en <strong>Rojo (Ausente)</strong>.</li>
+            </ul>
+          </li>
+          <li>Muestra cómo el porcentaje general de asistencia de la clase se calcula y actualiza solo en tiempo real.</li>
+        </ul>
+      </div>
+      <div class="voiceover-box">
+        <div class="voiceover-title">🎙️ Locución Exacta</div>
+        <div class="voiceover-text">
+          "Cuando arranca la hora de clase, iniciamos la <strong>Sesión en Vivo</strong>, que podemos proyectar en el aula o llevar en el celular. La toma de asistencia es instantánea: con un solo toque marcamos <strong>Presente</strong> en verde, <strong>Tarde</strong> en amarillo o <strong>Ausente</strong> en rojo. En menos de un minuto toda la asistencia del día queda registrada en la nube y calculada dentro del porcentaje del trimestre."
+        </div>
+      </div>
+      <div class="tip-box">
+        💡 <strong>Tip Pro:</strong> Haz las 3 marcas de asistencia despacio y con un ritmo natural para que se entienda el clic y el cambio de color.
+      </div>
+    </div>
+  </div>
+
+  <!-- Paso 5 (Destacado) -->
+  <div class="scene-card featured">
+    <div class="scene-header">
+      <div class="scene-title-wrap">
+        <span class="scene-number">PASO 5</span>
+        <span class="scene-title">Poner Notas en Vivo, Criterios y Otorgar XP</span>
+      </div>
+      <span class="scene-time">2:35 - 3:05</span>
+    </div>
+    <div class="grid-content">
+      <div class="action-box">
+        <div class="action-title">🖥️ Pasos Exactos en Pantalla</div>
+        <ul>
+          <li>En la misma pantalla en vivo, haz clic sobre la tarjeta de un estudiante (ej. <em>Abigail</em>).</li>
+          <li>Se abre el menú rápido de calificación y observación:
+            <ul>
+              <li>Ingresa la calificación numérica: ej. <strong>Nota 10</strong>.</li>
+              <li>Selecciona una etiqueta de mérito: ej. <strong>"Trabajo destacado"</strong> o <em>"Participación activa"</em>.</li>
+              <li>Haz clic en el botón <strong>"Guardar"</strong>.</li>
+            </ul>
+          </li>
+          <li>Muestra la animación en pantalla: la nota se fija, la barra de experiencia (XP) del alumno sube y suma monedas para la tienda.</li>
+        </ul>
+      </div>
+      <div class="voiceover-box">
+        <div class="voiceover-title">🎙️ Locución Exacta</div>
+        <div class="voiceover-text">
+          "Y lo mejor de todo: la evaluación en el momento. Cuando un estudiante pasa al pizarrón o resuelve una consigna, tocamos su tarjeta, <strong>le asignamos su nota —un 10 en este caso— y guardamos la observación de 'Trabajo destacado'</strong>. Al instante el proyector muestra su avance y el alumno recibe puntos de experiencia y monedas para la tienda escolar. El aula se vuelve dinámica y participativa."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paso 6 -->
+  <div class="scene-card">
+    <div class="scene-header">
+      <div class="scene-title-wrap">
+        <span class="scene-number">PASO 6</span>
+        <span class="scene-title">El Ecosistema: Ranking, Tienda y Portal para Familias</span>
+      </div>
+      <span class="scene-time">3:05 - 3:30</span>
+    </div>
+    <div class="grid-content">
+      <div class="action-box">
+        <div class="action-title">🖥️ Pasos Exactos en Pantalla</div>
+        <ul>
+          <li>Haz clic arriba en <strong>"Ranking"</strong> (🏆) para mostrar el podio con coronas y trofeos.</li>
+          <li>Haz clic en <strong>"Bazar / Tienda"</strong> (🛍️) para mostrar las skins y cartas Pokémon que los chicos compran con sus notas.</li>
+          <li>Abre la vista pública del alumno (<code>/live/:token</code>) mostrando cómo los padres ven notas y asistencia en su celular sin contraseñas.</li>
+          <li>Regresa a la portada para despedir el video.</li>
+        </ul>
+      </div>
+      <div class="voiceover-box">
+        <div class="voiceover-title">🎙️ Locución Exacta</div>
+        <div class="voiceover-text">
+          "Ese esfuerzo se premia en el <strong>Ranking Global</strong> y en la <strong>Tienda</strong> de aspectos y cartas coleccionables. Y lo más importante: <strong>las familias cuentan con un enlace público en tiempo real</strong> donde ven notas y asistencia desde su celular sin contraseñas ni demoras. Notyx Edu une la practicidad docente con la verdadera motivación estudiantil. ¡Los invito a probarlo en <strong>notyx.netlify.app</strong>! Muchas gracias."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checklist Final -->
+  <div class="footer-checklist">
+    <h4>📋 Checklist Rápido de Grabación</h4>
+    <div class="checklist-items">
+      <div>✅ Navegador en pantalla completa (<code>F11</code>)</div>
+      <div>✅ Ocultar barra de marcadores (<code>Ctrl + Shift + B</code>)</div>
+      <div>✅ Credenciales a mano: <code>martingt010@gmail.com</code> / <code>m14537188656</code></div>
+      <div>✅ Pausa de 1 segundo tras cada clic para que el espectador asimile la acción</div>
+    </div>
+  </div>
+
+</body>
+</html>

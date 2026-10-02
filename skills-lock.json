@@ -21,6 +21,11 @@
       "sourceType": "github",
       "computedHash": "ac3fc5b4e206488ffc408a2806f829bb2e5eaf518fded09be34790685c2b3a0d"
     },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
+    },
     "gpt-taste": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
@@ -50,6 +55,27 @@
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
       "computedHash": "47eced3e960a2c961d3cbee11fa1216264f589344b586a5cbd03967cd6b9c54b"
+    },
+    "technical-documentation": {
+      "source": "registry:openclaw/technical-documentation",
+      "commit_sha": "77c6671cd5ecda401dd312411d21f928ba6aefe3",
+      "digest": "sha256:ee615fc2237a095258013f6ce0599c55c0b38a61d01dac436730d230d29a14dd",
+      "agents": [
+        "antigravity"
+      ],
+      "mode": {
+        "antigravity": "junction"
+      }
+    },
+    "ui-demo": {
+      "source": "affaan-m/ecc",
+      "sourceType": "github",
+      "computedHash": "ef1ef19b86f1d5c88d395cd43200b0613a71102065c7ff8370201143b18a5ee6"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
     }
   }
 }

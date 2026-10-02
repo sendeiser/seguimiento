@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { supabase } from "../../lib/supabase";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
@@ -10,13 +10,13 @@ import {
   Printer, Wifi, WifiOff, MessageSquareQuote, Clock, AlertCircle, Check, 
   FileText, CheckSquare, ShieldAlert, Sparkle
 } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useToast } from "../../providers/ToastProvider";
 import { addXPToAllStudentPokemon } from "../../lib/pokemonStore";
 import { exportClassToCSV } from "../../lib/reportExporter";
-import StudentReportModal from "../../components/reports/StudentReportModal";
 import { queueOfflineUpdate, setupOfflineSyncListeners, getOfflineQueue } from "../../lib/offlineSync";
+
+const StudentReportModal = lazy(() => import("../../components/reports/StudentReportModal"));
 
 export default function LiveSession() {
   const { id } = useParams();
@@ -1135,16 +1135,18 @@ export default function LiveSession() {
       )}
 
       {selectedStudentForReport && (
-        <StudentReportModal
-          student={selectedStudentForReport}
-          className={className}
-          criteria={criteria}
-          grades={grades}
-          attendance={attendance}
-          observation={observations[selectedStudentForReport.cs_id] || attendance[selectedStudentForReport.cs_id]?.observation || ""}
-          onSaveObservation={saveStudentObservation}
-          onClose={() => setSelectedStudentForReport(null)}
-        />
+        <Suspense fallback={null}>
+          <StudentReportModal
+            student={selectedStudentForReport}
+            className={className}
+            criteria={criteria}
+            grades={grades}
+            attendance={attendance}
+            observation={observations[selectedStudentForReport.cs_id] || attendance[selectedStudentForReport.cs_id]?.observation || ""}
+            onSaveObservation={saveStudentObservation}
+            onClose={() => setSelectedStudentForReport(null)}
+          />
+        </Suspense>
       )}
 
       <style>{`
