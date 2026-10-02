@@ -8,13 +8,15 @@ import {
   CheckCircle2, X, Users, XCircle, ChevronLeft, ChevronRight, LayoutGrid, 
   ArrowLeft, PlusCircle, Sparkles, Trash2, TrendingUp, Pencil, Download, 
   Printer, Wifi, WifiOff, MessageSquareQuote, Clock, AlertCircle, Check, 
-  FileText, CheckSquare, ShieldAlert, Sparkle
+  FileText, CheckSquare, ShieldAlert, Sparkle, Mic, MicOff
 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useToast } from "../../providers/ToastProvider";
 import { addXPToAllStudentPokemon } from "../../lib/pokemonStore";
 import { exportClassToCSV } from "../../lib/reportExporter";
 import { queueOfflineUpdate, setupOfflineSyncListeners, getOfflineQueue } from "../../lib/offlineSync";
+import { useSpeechToText } from "../../hooks/useSpeechToText";
+import { generatePedagogicalFeedback } from "../../lib/pedagogicalReportEngine";
 
 const StudentReportModal = lazy(() => import("../../components/reports/StudentReportModal"));
 
@@ -45,6 +47,40 @@ export default function LiveSession() {
   const [selectedStudentForReport, setSelectedStudentForReport] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingQueueCount, setPendingQueueCount] = useState(getOfflineQueue().length);
+
+  const baseObsModalRef = useRef("");
+  const { isListening: isListeningObs, isSupported: isSpeechSupported, toggleListening: toggleListeningObs } = useSpeechToText({
+    lang: "es-AR",
+    onTranscript: (spokenText) => {
+      setObsModalText(() => {
+        const base = baseObsModalRef.current ? baseObsModalRef.current.trim() : "";
+        return base ? `${base} ${spokenText}` : spokenText;
+      });
+    },
+  });
+
+  const handleToggleObsVoice = () => {
+    baseObsModalRef.current = obsModalText || "";
+    toggleListeningObs();
+  };
+
+  const handleAutoPedagogicalFeedback = () => {
+    if (!selectedStudentForObs) return;
+    const csId = selectedStudentForObs.cs_id;
+    const studentGrades = (criteria || []).map((c) => ({
+      ...c,
+      score: grades[`${csId}_${c.id}`] !== undefined ? parseFloat(grades[`${csId}_${c.id}`]) : null,
+    }));
+    const attRecord = attendance[csId];
+    const isAttPresent = attRecord?.is_present !== false && attRecord !== "absent";
+    const feedback = generatePedagogicalFeedback({
+      studentName: selectedStudentForObs.name || "El estudiante",
+      criteriaScores: studentGrades,
+      attendanceRate: isAttPresent ? 100 : 50,
+      className: className || "la materia",
+    });
+    setObsModalText(feedback);
+  };
 
   const inputRefs = useRef({});
   const { theme } = useTheme();
@@ -1089,15 +1125,62 @@ export default function LiveSession() {
               </div>
             </div>
 
-            {/* Textarea */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Comentario pedagógico del docente:</label>
+            {/* Textarea & Smart Pedagogical Tools */}
+            <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+                  Comentario pedagógico del docente:
+                </label>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleAutoPedagogicalFeedback}
+                    className="text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                    title="Genera automáticamente una redacción pedagógica basada en los criterios y asistencia de este alumno"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+                    <span>Autocompletar Pedagógico</span>
+                  </button>
+                  {isSpeechSupported && (
+                    <button
+                      type="button"
+                      onClick={handleToggleObsVoice}
+                      className={`text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1.5 transition-all border shadow-2xs cursor-pointer ${
+                        isListeningObs
+                          ? "bg-rose-600 text-white border-rose-600 ring-2 ring-rose-400/30 animate-pulse"
+                          : "bg-slate-50 hover:bg-rose-50 hover:text-rose-600 text-slate-700 border-slate-200"
+                      }`}
+                      title="Dictar por voz con el micrófono"
+                    >
+                      {isListeningObs ? (
+                        <>
+                          <MicOff className="w-3.5 h-3.5" />
+                          <span>Detener mic</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-3.5 h-3.5 text-rose-500" />
+                          <span>Dictar por voz</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {isListeningObs && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-200 text-rose-700 text-xs font-medium animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping shrink-0" />
+                  <span>Escuchando... dictá tu comentario en voz alta.</span>
+                </div>
+              )}
+
               <textarea
                 rows={4}
                 value={obsModalText}
                 onChange={(e) => setObsModalText(e.target.value)}
                 placeholder="Escribí aquí observaciones cualitativas, dificultades, logros o notas para el informe del alumno..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none shadow-xs"
               />
             </div>
 
@@ -1107,7 +1190,10 @@ export default function LiveSession() {
                 <Button
                   variant="ghost"
                   type="button"
-                  onClick={() => deleteStudentObservation(selectedStudentForObs.cs_id)}
+                  onClick={() => {
+                    if (isListeningObs) toggleListeningObs();
+                    deleteStudentObservation(selectedStudentForObs.cs_id);
+                  }}
                   className="text-rose-600 hover:bg-rose-50 rounded-xl h-10 px-3 text-xs font-bold gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Borrar nota
@@ -1117,14 +1203,20 @@ export default function LiveSession() {
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
-                  onClick={() => setSelectedStudentForObs(null)}
+                  onClick={() => {
+                    if (isListeningObs) toggleListeningObs();
+                    setSelectedStudentForObs(null);
+                  }}
                   className="rounded-xl h-10 px-4 text-xs font-bold"
                 >
                   Cancelar
                 </Button>
                 <Button
-                  onClick={() => saveStudentObservation(selectedStudentForObs.cs_id, obsModalText)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-5 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+                  onClick={() => {
+                    if (isListeningObs) toggleListeningObs();
+                    saveStudentObservation(selectedStudentForObs.cs_id, obsModalText);
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-5 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 cursor-pointer"
                 >
                   <Check className="w-4 h-4" /> Guardar Observación
                 </Button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -8,8 +8,11 @@ import {
   ShieldAlert,
   MessageSquareQuote,
   Check,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import { Button } from "../../ui/button";
+import { useSpeechToText } from "../../../hooks/useSpeechToText";
 
 export default function QuickAttendanceModal({
   modalData,
@@ -20,6 +23,22 @@ export default function QuickAttendanceModal({
 }) {
   const [currentStatus, setCurrentStatus] = useState("present");
   const [obsText, setObsText] = useState("");
+  const baseObsRef = useRef("");
+
+  const { isListening, isSupported, toggleListening } = useSpeechToText({
+    lang: "es-AR",
+    onTranscript: (spokenText) => {
+      setObsText(() => {
+        const base = baseObsRef.current ? baseObsRef.current.trim() : "";
+        return base ? `${base} ${spokenText}` : spokenText;
+      });
+    },
+  });
+
+  const handleToggleVoice = () => {
+    baseObsRef.current = obsText || "";
+    toggleListening();
+  };
 
   useEffect(() => {
     if (modalData) {
@@ -149,19 +168,52 @@ export default function QuickAttendanceModal({
               <MessageSquareQuote className="w-3.5 h-3.5 text-indigo-500" />
               Observación Pedagógica (Opcional)
             </label>
-            {obsText && (
-              <button
-                type="button"
-                onClick={() => setObsText("")}
-                className="text-[10px] font-bold text-slate-400 hover:text-rose-600"
-              >
-                Borrar nota
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {isSupported && (
+                <button
+                  type="button"
+                  onClick={handleToggleVoice}
+                  className={`text-[11px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition-all border cursor-pointer ${
+                    isListening
+                      ? "bg-rose-600 text-white border-rose-600 ring-2 ring-rose-400/30 animate-pulse"
+                      : "bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 border-slate-200"
+                  }`}
+                  title="Dictar nota por voz con tu micrófono"
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff className="w-3 h-3" />
+                      <span>Detener mic</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-3 h-3 text-rose-500" />
+                      <span>Dictar</span>
+                    </>
+                  )}
+                </button>
+              )}
+              {obsText && (
+                <button
+                  type="button"
+                  onClick={() => setObsText("")}
+                  className="text-[10px] font-bold text-slate-400 hover:text-rose-600 cursor-pointer"
+                >
+                  Borrar nota
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-xs text-slate-500 font-medium">
             Esta observación aparecerá en el informe descargable/imprimible del alumno para esta fecha:
           </p>
+
+          {isListening && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-200 text-rose-700 text-xs font-medium animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping shrink-0" />
+              <span>Escuchando... dictá tu observación en voz alta.</span>
+            </div>
+          )}
 
           {/* Quick Preset Tags */}
           <div className="flex flex-wrap gap-1.5">
@@ -179,7 +231,7 @@ export default function QuickAttendanceModal({
                 key={idx}
                 type="button"
                 onClick={() => setObsText((prev) => (prev ? `${prev}. ${tag}` : tag))}
-                className="text-[11px] font-bold bg-indigo-50/60 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 px-2.5 py-1 rounded-xl transition-all"
+                className="text-[11px] font-bold bg-indigo-50/60 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 px-2.5 py-1 rounded-xl transition-all cursor-pointer"
               >
                 {tag}
               </button>
@@ -190,8 +242,8 @@ export default function QuickAttendanceModal({
             rows={3}
             value={obsText}
             onChange={(e) => setObsText(e.target.value)}
-            placeholder="Escribe notas sobre participación, conducta, tareas o motivos de inasistencia..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none"
+            placeholder="Escribe o dicta notas sobre participación, conducta, tareas o motivos de inasistencia..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none shadow-xs"
           />
         </div>
 

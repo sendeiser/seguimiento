@@ -12,12 +12,14 @@ import {
   Share2,
   Shield,
   ArrowLeft,
+  GraduationCap,
 } from "lucide-react";
 
 import TutorLinkShareModal from "../../components/teacher/TutorLinkShareModal";
 import ClassSessionsTab from "../../components/teacher/class-tabs/ClassSessionsTab";
 import ClassStudentsTab from "../../components/teacher/class-tabs/ClassStudentsTab";
 import ClassAttendanceTab from "../../components/teacher/class-tabs/ClassAttendanceTab";
+import ClassGradesClosingTab from "../../components/teacher/class-tabs/ClassGradesClosingTab";
 import ClassTutorTab from "../../components/teacher/class-tabs/ClassTutorTab";
 import SessionModal from "../../components/teacher/class-modals/SessionModal";
 import RewardHouseModal from "../../components/teacher/class-modals/RewardHouseModal";
@@ -663,6 +665,13 @@ export default function ClassView() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab("closing")}
+            className={`tab-btn flex-shrink-0 ${activeTab === "closing" ? "active" : ""}`}
+          >
+            <GraduationCap className="w-4 h-4" /> Cierre de Notas
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("gamification")}
             className={`tab-btn flex-shrink-0 ${activeTab === "gamification" ? "active" : ""}`}
           >
@@ -725,6 +734,16 @@ export default function ClassView() {
           cuatrimestreFilter={cuatrimestreFilter}
           getStudentName={getStudentName}
           onOpenQuickAttendance={(data) => setQuickAttendanceModal(data)}
+        />
+      )}
+
+      {activeTab === "closing" && (
+        <ClassGradesClosingTab
+          classData={classData}
+          sessions={sessions}
+          students={students}
+          allAttendance={allAttendance}
+          getStudentName={getStudentName}
         />
       )}
 

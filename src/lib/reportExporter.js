@@ -147,6 +147,45 @@ export function exportAttendanceMatrixToCSV(className, sessions = [], students =
   downloadCSV(rows, `Asistencia_${className.replace(/\s+/g, "_")}_${cuatrimestreFilter === "all" ? "AñoCompleto" : `${cuatrimestreFilter}Cuatrimestre`}.csv`);
 }
 
+/**
+ * Export official academic closing and summary sheet to CSV
+ */
+export function exportAcademicClosingToCSV(className, studentClosingData = []) {
+  if (!studentClosingData || studentClosingData.length === 0) return;
+
+  const headers = [
+    "DNI",
+    "Estudiante",
+    "Promedio 1ºC",
+    "Asistencia 1ºC",
+    "Promedio 2ºC",
+    "Asistencia 2ºC",
+    "Promedio Final",
+    "Asistencia Total",
+    "Condición Final"
+  ];
+
+  const rows = [];
+  rows.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(","));
+
+  studentClosingData.forEach(item => {
+    const row = [
+      item.dni || "—",
+      item.name || "Sin nombre",
+      item.avg1 !== null && item.avg1 !== undefined ? item.avg1.toFixed(1) : "—",
+      `${item.att1Pct ?? 0}%`,
+      item.avg2 !== null && item.avg2 !== undefined ? item.avg2.toFixed(1) : "—",
+      `${item.att2Pct ?? 0}%`,
+      item.finalAvg !== null && item.finalAvg !== undefined ? item.finalAvg.toFixed(1) : "—",
+      `${item.finalAttPct ?? 0}%`,
+      item.statusObj?.label || item.status || "Regular"
+    ];
+    rows.push(row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","));
+  });
+
+  downloadCSV(rows, `Cierre_Academico_${(className || "Clase").replace(/\s+/g, "_")}.csv`);
+}
+
 function downloadCSV(rows, fileName) {
   const csvContent = "\uFEFF" + rows.join("\r\n"); // \uFEFF ensures UTF-8 BOM for Excel
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
