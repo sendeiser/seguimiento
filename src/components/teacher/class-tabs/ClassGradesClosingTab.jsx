@@ -19,10 +19,23 @@ import {
   UserCheck,
   Eye,
   X,
-  FileText
+  FileText,
+  Calendar,
+  Layers,
+  SlidersHorizontal,
+  MessageSquare,
 } from "lucide-react";
-import { calculateAcademicStatus, generatePedagogicalFeedback } from "../../../lib/pedagogicalReportEngine";
-import { exportAcademicClosingToCSV } from "../../../lib/reportExporter";
+import {
+  calculateAcademicStatus,
+  generatePedagogicalFeedback,
+  getCriteriaType,
+  getCriteriaCleanName,
+  getCriteriaTypeMeta,
+} from "../../../lib/pedagogicalReportEngine";
+import {
+  exportAcademicClosingToCSV,
+  exportDetailedGradesMatrixToCSV,
+} from "../../../lib/reportExporter";
 import StudentReportModal from "../../reports/StudentReportModal";
 
 export default function ClassGradesClosingTab({
@@ -40,6 +53,12 @@ export default function ClassGradesClosingTab({
   const [viewScope, setViewScope] = useState("annual"); // annual | c1 | c2
   const [selectedStudentDetail, setSelectedStudentDetail] = useState(null);
   const [activeReportStudent, setActiveReportStudent] = useState(null);
+
+  // Alternating view: "closing" (Resumen de Cierre) | "matrix" (Sábana Detallada de Notas)
+  const [viewMode, setViewMode] = useState("closing");
+  // Filters for the detailed matrix
+  const [matrixTypeFilter, setMatrixTypeFilter] = useState("all"); // all | exam | assignment | class
+  const [matrixCuatriFilter, setMatrixCuatriFilter] = useState("all"); // all | 1 | 2
 
   // Fetch all criteria and grades for all sessions in this class
   useEffect(() => {
@@ -137,6 +156,63 @@ export default function ClassGradesClosingTab({
     });
     return { sessionsC1: c1, sessionsC2: c2 };
   }, [sessions]);
+
+  // Enriched criteria with session date, cuatrimestre, evaluation category, clean name and meta
+  const enrichedCriteria = useMemo(() => {
+    return criteria.map((c) => {
+      const session = sessionById[c.session_id];
+      const sessionDate = session?.date || "—";
+      const cuatri = session?.cuatrimestre || (session?.date && new Date(session.date).getMonth() >= 6 ? 2 : 1);
+      const type = getCriteriaType(c.name);
+      const cleanName = getCriteriaCleanName(c.name) || c.name;
+      const meta = getCriteriaTypeMeta(type);
+      return {
+        ...c,
+        session,
+        date: sessionDate,
+        cuatrimestre: cuatri,
+        type,
+        cleanName,
+        meta,
+      };
+    }).sort((a, b) => {
+      const dateA = a.date !== "—" ? new Date(a.date).getTime() : 0;
+      const dateB = b.date !== "—" ? new Date(b.date).getTime() : 0;
+      if (dateA !== dateB) return dateA - dateB;
+      return (a.id || "").localeCompare(b.id || "");
+    });
+  }, [criteria, sessionById]);
+
+  // Criteria counts by type for pill badges
+  const criteriaCounts = useMemo(() => {
+    let exam = 0;
+    let assignment = 0;
+    let classCount = 0;
+    enrichedCriteria.forEach((c) => {
+      if (c.type === "exam") exam++;
+      else if (c.type === "assignment") assignment++;
+      else classCount++;
+    });
+    return {
+      all: enrichedCriteria.length,
+      exam,
+      assignment,
+      class: classCount,
+    };
+  }, [enrichedCriteria]);
+
+  // Filtered criteria based on matrix filters
+  const filteredMatrixCriteria = useMemo(() => {
+    return enrichedCriteria.filter((c) => {
+      if (matrixCuatriFilter !== "all" && String(c.cuatrimestre) !== String(matrixCuatriFilter)) {
+        return false;
+      }
+      if (matrixTypeFilter !== "all" && c.type !== matrixTypeFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [enrichedCriteria, matrixCuatriFilter, matrixTypeFilter]);
 
   // Calculate academic stats per student
   const studentClosingList = useMemo(() => {
@@ -236,7 +312,57 @@ export default function ClassGradesClosingTab({
     });
   }, [students, sessions, criteria, grades, sessionsC1, sessionsC2, attLookup, gradeLookup, getStudentName]);
 
-  // Filtered students according to search, status and cuatrimestre view
+  // Compute student stats for the detailed matrix (Class average vs Exam/TP average)
+  const matrixStudents = useMemo(() => {
+    return studentClosingList.map((st) => {
+      const csId = st.csId;
+
+      let classScoreSum = 0;
+      let classMaxSum = 0;
+      let examScoreSum = 0;
+      let examMaxSum = 0;
+      let filteredScoreSum = 0;
+      let filteredMaxSum = 0;
+
+      enrichedCriteria.forEach((c) => {
+        const g = gradeLookup[`${csId}_${c.id}`];
+        if (g && g.score !== null && g.score !== undefined && g.score !== "") {
+          const num = parseFloat(g.score);
+          if (!isNaN(num)) {
+            const max = Number(c.max_score || 10);
+            if (c.type === "class") {
+              classScoreSum += num;
+              classMaxSum += max;
+            } else {
+              // exam or assignment
+              examScoreSum += num;
+              examMaxSum += max;
+            }
+
+            const matchesCuatri = matrixCuatriFilter === "all" || String(c.cuatrimestre) === String(matrixCuatriFilter);
+            const matchesType = matrixTypeFilter === "all" || c.type === matrixTypeFilter;
+            if (matchesCuatri && matchesType) {
+              filteredScoreSum += num;
+              filteredMaxSum += max;
+            }
+          }
+        }
+      });
+
+      const classAvg = classMaxSum > 0 ? (classScoreSum / classMaxSum) * 10 : null;
+      const examAvg = examMaxSum > 0 ? (examScoreSum / examMaxSum) * 10 : null;
+      const matrixTotalAvg = filteredMaxSum > 0 ? (filteredScoreSum / filteredMaxSum) * 10 : null;
+
+      return {
+        ...st,
+        classAvg,
+        examAvg,
+        matrixTotalAvg,
+      };
+    });
+  }, [studentClosingList, enrichedCriteria, gradeLookup, matrixCuatriFilter, matrixTypeFilter]);
+
+  // Filtered students for closing view
   const filteredStudents = useMemo(() => {
     return studentClosingList.filter((item) => {
       const matchesSearch =
@@ -251,6 +377,22 @@ export default function ClassGradesClosingTab({
       return matchesSearch && matchesStatus;
     });
   }, [studentClosingList, searchTerm, statusFilter]);
+
+  // Filtered students for matrix view
+  const filteredMatrixStudents = useMemo(() => {
+    return matrixStudents.filter((item) => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.dni.includes(searchTerm);
+
+      let matchesStatus = true;
+      if (statusFilter !== "all") {
+        matchesStatus = item.status === statusFilter;
+      }
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [matrixStudents, searchTerm, statusFilter]);
 
   // Overall Cohort Metrics
   const summaryMetrics = useMemo(() => {
@@ -289,11 +431,32 @@ export default function ClassGradesClosingTab({
   }, [studentClosingList]);
 
   const handleExportCSV = () => {
-    exportAcademicClosingToCSV(classData?.name, filteredStudents);
+    if (viewMode === "matrix") {
+      exportDetailedGradesMatrixToCSV(classData?.name, filteredMatrixStudents, filteredMatrixCriteria, gradeLookup);
+    } else {
+      exportAcademicClosingToCSV(classData?.name, filteredStudents);
+    }
   };
 
   const handlePrint = () => {
     window.print();
+  };
+
+  // Helper date formatter: "2024-03-24" -> "24 Mar"
+  const formatDateLabel = (dateStr) => {
+    if (!dateStr || dateStr === "—") return "—";
+    try {
+      const parts = String(dateStr).split("-");
+      if (parts.length === 3) {
+        const day = parts[2];
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        return `${day} ${months[monthIdx] || ""}`;
+      }
+      return dateStr;
+    } catch (e) {
+      return dateStr;
+    }
   };
 
   return (
@@ -302,23 +465,29 @@ export default function ClassGradesClosingTab({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-            <GraduationCap className="w-6 h-6" />
+            {viewMode === "closing" ? (
+              <GraduationCap className="w-6 h-6" />
+            ) : (
+              <FileSpreadsheet className="w-6 h-6" />
+            )}
           </div>
           <div>
             <h2 className="text-xl font-['Outfit'] font-black text-slate-900 tracking-tight flex items-center gap-2">
-              Sábana Académica y Cierre de Notas
+              {viewMode === "closing" ? "Sábana Académica y Cierre de Notas" : "Sábana Detallada de Notas"}
               <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
                 Oficial Notyx
               </span>
             </h2>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Cálculo automático de promedios cuatrimestrales, porcentaje de asistencia y dictamen final de aprobación.
+              {viewMode === "closing"
+                ? "Cálculo automático de promedios cuatrimestrales, porcentaje de asistencia y dictamen final de aprobación."
+                : "Planilla integral con desglose de cada evaluación individual dividida entre clases, prácticos y exámenes."}
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 print:hidden">
+        <div className="flex flex-wrap items-center gap-2.5 print:hidden">
           <Button
             type="button"
             variant="outline"
@@ -326,7 +495,7 @@ export default function ClassGradesClosingTab({
             className="rounded-2xl h-11 px-4 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-2 shadow-2xs cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-500" />
-            <span>Imprimir Acta</span>
+            <span>Imprimir {viewMode === "closing" ? "Acta" : "Planilla"}</span>
           </Button>
 
           <Button
@@ -335,320 +504,603 @@ export default function ClassGradesClosingTab({
             className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-11 px-5 text-xs font-['Outfit'] font-black uppercase tracking-wider shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
           >
             <Download className="w-4 h-4" />
-            <span>Exportar CSV / Excel</span>
+            <span>Exportar {viewMode === "closing" ? "Cierre" : "Sábana"} CSV</span>
           </Button>
         </div>
       </div>
 
-      {/* Cohort Performance Overview Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Promedio General */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Promedio General
+      {/* Apple-style Segmented View Switcher */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-3xl border border-slate-200/80 shadow-xs">
+        <div className="inline-flex p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/60 gap-1 self-start sm:self-auto w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setViewMode("closing")}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-['Outfit'] font-black uppercase tracking-wider transition-all cursor-pointer ${
+              viewMode === "closing"
+                ? "bg-white text-indigo-700 shadow-sm border border-slate-200/80"
+                : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
+            }`}
+          >
+            <GraduationCap className="w-4 h-4 text-indigo-600" />
+            <span>Resumen de Cierre</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode("matrix")}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-['Outfit'] font-black uppercase tracking-wider transition-all cursor-pointer ${
+              viewMode === "matrix"
+                ? "bg-white text-indigo-700 shadow-sm border border-slate-200/80"
+                : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
+            }`}
+          >
+            <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
+            <span>Sábana Detallada</span>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/70">
+              {enrichedCriteria.length} evals.
             </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-['Outfit'] font-black text-slate-900 tracking-tight">
-              {summaryMetrics.avgGrade}
-            </span>
-            <span className="text-xs font-bold text-slate-400">/ 10</span>
-          </div>
-          <p className="text-[11px] font-medium text-slate-500 mt-1">
-            Asistencia promedio: <strong className="text-slate-800">{summaryMetrics.avgAtt}%</strong>
-          </p>
+          </button>
         </div>
 
-        {/* Card 2: Promocionados */}
-        <div className="bg-white p-5 rounded-3xl border border-emerald-200/70 shadow-xs relative overflow-hidden bg-gradient-to-br from-emerald-50/20 to-transparent">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
-              Promocionados
+        <div className="text-xs text-slate-500 font-medium px-2 flex items-center gap-2">
+          {viewMode === "closing" ? (
+            <span>Vista ejecutiva para cierre de actas y dictamen</span>
+          ) : (
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span className="w-2 h-2 rounded-full bg-purple-500" />
+              <span className="font-bold text-slate-700">🎯 Exámenes</span>
+              <span className="text-slate-300">•</span>
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <span className="font-bold text-slate-700">📄 TPs</span>
+              <span className="text-slate-300">•</span>
+              <span className="w-2 h-2 rounded-full bg-slate-400" />
+              <span className="font-bold text-slate-700">📝 Clases</span>
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-['Outfit'] font-black text-emerald-900 tracking-tight">
-              {summaryMetrics.promoCount}
-            </span>
-            <span className="text-xs font-black text-emerald-700">({summaryMetrics.promoPct}%)</span>
-          </div>
-          <p className="text-[11px] font-medium text-emerald-600 mt-1">
-            Promedio ≥ 7.0 y Asist. ≥ 75%
-          </p>
-        </div>
-
-        {/* Card 3: Regulares */}
-        <div className="bg-white p-5 rounded-3xl border border-amber-200/70 shadow-xs relative overflow-hidden bg-gradient-to-br from-amber-50/20 to-transparent">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
-              Regulares / Aprobados
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center">
-              <AlertCircle className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-['Outfit'] font-black text-amber-900 tracking-tight">
-              {summaryMetrics.regulCount}
-            </span>
-            <span className="text-xs font-black text-amber-700">({summaryMetrics.regulPct}%)</span>
-          </div>
-          <p className="text-[11px] font-medium text-amber-600 mt-1">
-            Promedio 4.0 - 6.9 y Asist. ≥ 60%
-          </p>
-        </div>
-
-        {/* Card 4: Recuperatorio */}
-        <div className="bg-white p-5 rounded-3xl border border-rose-200/70 shadow-xs relative overflow-hidden bg-gradient-to-br from-rose-50/20 to-transparent">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-rose-700">
-              Recuperatorio
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-100/70 text-rose-700 flex items-center justify-center">
-              <XCircle className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-['Outfit'] font-black text-rose-900 tracking-tight">
-              {summaryMetrics.recupCount}
-            </span>
-            <span className="text-xs font-black text-rose-700">({summaryMetrics.recupPct}%)</span>
-          </div>
-          <p className="text-[11px] font-medium text-rose-600 mt-1">
-            Promedio &lt; 4.0 o baja asistencia
-          </p>
+          )}
         </div>
       </div>
 
-      {/* Toolbar: Filters & Scope */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs print:hidden">
-        {/* Search Input */}
-        <div className="relative flex-1 max-w-sm">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Buscar por alumno o DNI..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-2xs"
-          />
-        </div>
+      {/* VIEW MODE 1: RESUMEN DE CIERRE */}
+      {viewMode === "closing" && (
+        <div className="space-y-6">
+          {/* Cohort Performance Overview Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Promedio General */}
+            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Promedio General
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-['Outfit'] font-black text-slate-900 tracking-tight">
+                  {summaryMetrics.avgGrade}
+                </span>
+                <span className="text-xs font-bold text-slate-400">/ 10</span>
+              </div>
+              <p className="text-[11px] font-medium text-slate-500 mt-1">
+                Asistencia promedio: <strong className="text-slate-800">{summaryMetrics.avgAtt}%</strong>
+              </p>
+            </div>
 
-        {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">
-            Estado:
-          </span>
-          {[
-            { key: "all", label: "Todos" },
-            { key: "promocionado", label: "Promocionados (🟢)" },
-            { key: "aprobado", label: "Regulares (🟡)" },
-            { key: "recuperatorio", label: "Recuperatorio (🔴)" },
-          ].map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setStatusFilter(f.key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                statusFilter === f.key
-                  ? "bg-slate-900 text-white shadow-xs"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
+            {/* Card 2: Promocionados */}
+            <div className="bg-white p-5 rounded-3xl border border-emerald-200/70 shadow-xs relative overflow-hidden bg-gradient-to-br from-emerald-50/20 to-transparent">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                  Promocionados
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-['Outfit'] font-black text-emerald-900 tracking-tight">
+                  {summaryMetrics.promoCount}
+                </span>
+                <span className="text-xs font-black text-emerald-700">({summaryMetrics.promoPct}%)</span>
+              </div>
+              <p className="text-[11px] font-medium text-emerald-600 mt-1">
+                Promedio ≥ 7.0 y Asist. ≥ 75%
+              </p>
+            </div>
 
-      {/* Main Closing Spreadsheet Table */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-            <p className="text-xs font-bold text-slate-400">Calculando promedios y cierres de la clase...</p>
+            {/* Card 3: Regulares */}
+            <div className="bg-white p-5 rounded-3xl border border-amber-200/70 shadow-xs relative overflow-hidden bg-gradient-to-br from-amber-50/20 to-transparent">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                  Regulares / Aprobados
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-['Outfit'] font-black text-amber-900 tracking-tight">
+                  {summaryMetrics.regulCount}
+                </span>
+                <span className="text-xs font-black text-amber-700">({summaryMetrics.regulPct}%)</span>
+              </div>
+              <p className="text-[11px] font-medium text-amber-600 mt-1">
+                Promedio 4.0 - 6.9 y Asist. ≥ 60%
+              </p>
+            </div>
+
+            {/* Card 4: Recuperatorio */}
+            <div className="bg-white p-5 rounded-3xl border border-rose-200/70 shadow-xs relative overflow-hidden bg-gradient-to-br from-rose-50/20 to-transparent">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-rose-700">
+                  Recuperatorio
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-rose-100/70 text-rose-700 flex items-center justify-center">
+                  <XCircle className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-['Outfit'] font-black text-rose-900 tracking-tight">
+                  {summaryMetrics.recupCount}
+                </span>
+                <span className="text-xs font-black text-rose-700">({summaryMetrics.recupPct}%)</span>
+              </div>
+              <p className="text-[11px] font-medium text-rose-600 mt-1">
+                Promedio &lt; 4.0 o baja asistencia
+              </p>
+            </div>
           </div>
-        ) : filteredStudents.length === 0 ? (
-          <div className="py-16 text-center space-y-2">
-            <FileSpreadsheet className="w-10 h-10 text-slate-300 mx-auto" />
-            <p className="text-sm font-bold text-slate-600">No se encontraron alumnos con los filtros seleccionados.</p>
-            <p className="text-xs text-slate-400">Intenta cambiar el término de búsqueda o el filtro de estado.</p>
+
+          {/* Toolbar: Filters & Scope */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs print:hidden">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Buscar por alumno o DNI..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-2xs"
+              />
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">
+                Estado:
+              </span>
+              {[
+                { key: "all", label: "Todos" },
+                { key: "promocionado", label: "Promocionados (🟢)" },
+                { key: "aprobado", label: "Regulares (🟡)" },
+                { key: "recuperatorio", label: "Recuperatorio (🔴)" },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setStatusFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    statusFilter === f.key
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-700">
-                  <th className="py-4 px-5 font-bold uppercase tracking-wider text-[10px]">Estudiante</th>
-                  <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100">
-                    1º Cuatrimestre
-                  </th>
-                  <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100">
-                    2º Cuatrimestre
-                  </th>
-                  <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100 bg-indigo-50/40 text-indigo-900">
-                    Promedio Anual
-                  </th>
-                  <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100">
-                    Asist. Anual
-                  </th>
-                  <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100">
-                    Condición Final
-                  </th>
-                  <th className="py-4 px-5 font-bold uppercase tracking-wider text-[10px] text-right border-l border-slate-100 print:hidden">
-                    Acción
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredStudents.map((item) => {
-                  const status = item.statusObj;
-                  return (
-                    <tr
-                      key={item.csId}
-                      className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
-                      onClick={() => setSelectedStudentDetail(item)}
-                    >
-                      {/* Student info */}
-                      <td className="py-4 px-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-['Outfit'] font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
-                            {item.name[0]}
-                          </div>
-                          <div>
-                            <p className="font-['Outfit'] font-black text-sm text-slate-900 leading-tight">
-                              {item.name}
-                            </p>
-                            <span className="text-[11px] font-bold text-slate-400">
-                              DNI: {item.dni}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
 
-                      {/* 1º Cuatrimestre */}
-                      <td className="py-4 px-4 text-center border-l border-slate-100">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`font-['Outfit'] font-black text-sm px-2.5 py-0.5 rounded-lg ${
-                            item.avg1 !== null
-                              ? item.avg1 >= 7
-                                ? "bg-emerald-50 text-emerald-800"
-                                : item.avg1 >= 4
-                                ? "bg-amber-50 text-amber-800"
-                                : "bg-rose-50 text-rose-800"
-                              : "text-slate-400"
-                          }`}>
-                            {item.avg1 !== null ? item.avg1.toFixed(1) : "—"}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-400">
-                            {item.att1Pct}% asist. ({item.sessionsC1Count} cl.)
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 2º Cuatrimestre */}
-                      <td className="py-4 px-4 text-center border-l border-slate-100">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`font-['Outfit'] font-black text-sm px-2.5 py-0.5 rounded-lg ${
-                            item.avg2 !== null
-                              ? item.avg2 >= 7
-                                ? "bg-emerald-50 text-emerald-800"
-                                : item.avg2 >= 4
-                                ? "bg-amber-50 text-amber-800"
-                                : "bg-rose-50 text-rose-800"
-                              : "text-slate-400"
-                          }`}>
-                            {item.avg2 !== null ? item.avg2.toFixed(1) : "—"}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-400">
-                            {item.att2Pct}% asist. ({item.sessionsC2Count} cl.)
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Promedio Anual */}
-                      <td className="py-4 px-4 text-center border-l border-slate-100 bg-indigo-50/20">
-                        <div className="inline-flex items-center justify-center">
-                          <span className="text-base font-['Outfit'] font-black text-indigo-900 bg-white px-3 py-1 rounded-xl border border-indigo-200/80 shadow-2xs">
-                            {item.finalAvg !== null ? item.finalAvg.toFixed(1) : "—"}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Asistencia Anual */}
-                      <td className="py-4 px-4 text-center border-l border-slate-100">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`text-xs font-black ${
-                            item.finalAttPct >= 75
-                              ? "text-emerald-700"
-                              : item.finalAttPct >= 60
-                              ? "text-amber-700"
-                              : "text-rose-700"
-                          }`}>
-                            {item.finalAttPct}%
-                          </span>
-                          <div className="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                item.finalAttPct >= 75
-                                  ? "bg-emerald-500"
-                                  : item.finalAttPct >= 60
-                                  ? "bg-amber-500"
-                                  : "bg-rose-500"
-                              }`}
-                              style={{ width: `${item.finalAttPct}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Condición Final Badge */}
-                      <td className="py-4 px-4 text-center border-l border-slate-100">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-xl border ${status.colorClass} shadow-2xs`}
-                        >
-                          <span className={`w-2 h-2 rounded-full ${status.dotColor}`} />
-                          {status.label}
-                        </span>
-                      </td>
-
-                      {/* Action buttons */}
-                      <td className="py-4 px-5 text-right border-l border-slate-100 print:hidden" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedStudentDetail(item)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
-                            title="Ver desglose detallado de notas"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setActiveReportStudent(item.student)}
-                            className="text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200/80 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
-                            title="Abrir informe pedagógico y devolución"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-violet-600" />
-                            <span className="hidden sm:inline">Boletín</span>
-                          </button>
-                        </div>
-                      </td>
+          {/* Main Closing Spreadsheet Table */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+                <p className="text-xs font-bold text-slate-400">Calculando promedios y cierres de la clase...</p>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="py-16 text-center space-y-2">
+                <FileSpreadsheet className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-bold text-slate-600">No se encontraron alumnos con los filtros seleccionados.</p>
+                <p className="text-xs text-slate-400">Intenta cambiar el término de búsqueda o el filtro de estado.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-700">
+                      <th className="py-4 px-5 font-bold uppercase tracking-wider text-[10px]">Estudiante</th>
+                      <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100">
+                        1º Cuatrimestre
+                      </th>
+                      <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100">
+                        2º Cuatrimestre
+                      </th>
+                      <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100 bg-indigo-50/40 text-indigo-900">
+                        Promedio Anual
+                      </th>
+                      <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100">
+                        Asist. Anual
+                      </th>
+                      <th className="py-4 px-4 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-100">
+                        Condición Final
+                      </th>
+                      <th className="py-4 px-5 font-bold uppercase tracking-wider text-[10px] text-right border-l border-slate-100 print:hidden">
+                        Acción
+                      </th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredStudents.map((item) => {
+                      const status = item.statusObj;
+                      return (
+                        <tr
+                          key={item.csId}
+                          className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
+                          onClick={() => setSelectedStudentDetail(item)}
+                        >
+                          {/* Student info */}
+                          <td className="py-4 px-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-['Outfit'] font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
+                                {item.name[0]}
+                              </div>
+                              <div>
+                                <p className="font-['Outfit'] font-black text-sm text-slate-900 leading-tight">
+                                  {item.name}
+                                </p>
+                                <span className="text-[11px] font-bold text-slate-400">
+                                  DNI: {item.dni}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 1º Cuatrimestre */}
+                          <td className="py-4 px-4 text-center border-l border-slate-100">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className={`font-['Outfit'] font-black text-sm px-2.5 py-0.5 rounded-lg ${
+                                item.avg1 !== null
+                                  ? item.avg1 >= 7
+                                    ? "bg-emerald-50 text-emerald-800"
+                                    : item.avg1 >= 4
+                                    ? "bg-amber-50 text-amber-800"
+                                    : "bg-rose-50 text-rose-800"
+                                  : "text-slate-400"
+                              }`}>
+                                {item.avg1 !== null ? item.avg1.toFixed(1) : "—"}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {item.att1Pct}% asist. ({item.sessionsC1Count} cl.)
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 2º Cuatrimestre */}
+                          <td className="py-4 px-4 text-center border-l border-slate-100">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className={`font-['Outfit'] font-black text-sm px-2.5 py-0.5 rounded-lg ${
+                                item.avg2 !== null
+                                  ? item.avg2 >= 7
+                                    ? "bg-emerald-50 text-emerald-800"
+                                    : item.avg2 >= 4
+                                    ? "bg-amber-50 text-amber-800"
+                                    : "bg-rose-50 text-rose-800"
+                                  : "text-slate-400"
+                              }`}>
+                                {item.avg2 !== null ? item.avg2.toFixed(1) : "—"}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {item.att2Pct}% asist. ({item.sessionsC2Count} cl.)
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Promedio Anual */}
+                          <td className="py-4 px-4 text-center border-l border-slate-100 bg-indigo-50/20">
+                            <div className="inline-flex items-center justify-center">
+                              <span className="text-base font-['Outfit'] font-black text-indigo-900 bg-white px-3 py-1 rounded-xl border border-indigo-200/80 shadow-2xs">
+                                {item.finalAvg !== null ? item.finalAvg.toFixed(1) : "—"}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Asistencia Anual */}
+                          <td className="py-4 px-4 text-center border-l border-slate-100">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className={`text-xs font-black ${
+                                item.finalAttPct >= 75
+                                  ? "text-emerald-700"
+                                  : item.finalAttPct >= 60
+                                  ? "text-amber-700"
+                                  : "text-rose-700"
+                              }`}>
+                                {item.finalAttPct}%
+                              </span>
+                              <div className="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    item.finalAttPct >= 75
+                                      ? "bg-emerald-500"
+                                      : item.finalAttPct >= 60
+                                      ? "bg-amber-500"
+                                      : "bg-rose-500"
+                                  }`}
+                                  style={{ width: `${item.finalAttPct}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Condición Final Badge */}
+                          <td className="py-4 px-4 text-center border-l border-slate-100">
+                            <span
+                              className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-xl border ${status.colorClass} shadow-2xs`}
+                            >
+                              <span className={`w-2 h-2 rounded-full ${status.dotColor}`} />
+                              {status.label}
+                            </span>
+                          </td>
+
+                          {/* Action buttons */}
+                          <td className="py-4 px-5 text-right border-l border-slate-100 print:hidden" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedStudentDetail(item)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
+                                title="Ver desglose detallado de notas"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveReportStudent(item.student)}
+                                className="text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200/80 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                                title="Abrir informe pedagógico y devolución"
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+                                <span className="hidden sm:inline">Boletín</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* VIEW MODE 2: SÁBANA DETALLADA DE NOTAS (MATRIZ POR EVALUACIÓN) */}
+      {viewMode === "matrix" && (
+        <div className="space-y-4">
+          {/* Matrix Filter Controls Bar */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs print:hidden">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Buscar alumno en sábana..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-2xs"
+              />
+            </div>
+
+            {/* Evaluation Type Filters */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">
+                Categoría:
+              </span>
+              {[
+                { key: "all", label: `Todas (${criteriaCounts.all})` },
+                { key: "exam", label: `🎯 Exámenes (${criteriaCounts.exam})` },
+                { key: "assignment", label: `📄 TPs (${criteriaCounts.assignment})` },
+                { key: "class", label: `📝 Clases (${criteriaCounts.class})` },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setMatrixTypeFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    matrixTypeFilter === f.key
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Cuatrimestre Scope for Matrix */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200/60 self-start lg:self-auto">
+              {[
+                { key: "all", label: "Año Completo" },
+                { key: "1", label: "1º Cuatr." },
+                { key: "2", label: "2º Cuatr." },
+              ].map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => setMatrixCuatriFilter(c.key)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    matrixCuatriFilter === c.key
+                      ? "bg-white text-indigo-700 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Matrix Table */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+                <p className="text-xs font-bold text-slate-400">Cargando evaluaciones y notas...</p>
+              </div>
+            ) : filteredMatrixCriteria.length === 0 ? (
+              <div className="py-16 text-center space-y-2">
+                <FileSpreadsheet className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-bold text-slate-600">
+                  No hay evaluaciones registradas con los filtros seleccionados.
+                </p>
+                <p className="text-xs text-slate-400">
+                  Probá seleccionando "Todas" o dictando una sesión con criterios evaluativos.
+                </p>
+              </div>
+            ) : filteredMatrixStudents.length === 0 ? (
+              <div className="py-16 text-center space-y-2">
+                <Search className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-bold text-slate-600">No se encontraron estudiantes para la búsqueda.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-700">
+                      {/* Pinned Left Student Header */}
+                      <th className="sticky left-0 bg-slate-50/95 backdrop-blur-xs z-20 py-4 px-5 font-bold uppercase tracking-wider text-[10px] border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] min-w-[220px]">
+                        Estudiante ({filteredMatrixStudents.length})
+                      </th>
+
+                      {/* Dynamic Criteria Headers */}
+                      {filteredMatrixCriteria.map((c) => {
+                        const meta = c.meta;
+                        return (
+                          <th
+                            key={c.id}
+                            className={`py-3 px-3 text-center border-l border-slate-100 min-w-[125px] max-w-[170px] ${meta.headerClass}`}
+                            title={`Sesión: ${c.date} | ${c.name} | Máx: ${c.max_score || 10}`}
+                          >
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {formatDateLabel(c.date)}
+                              </span>
+                              <span className="font-['Outfit'] font-black text-xs text-slate-900 truncate max-w-[150px] block">
+                                {c.cleanName}
+                              </span>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border ${meta.badgeClass}`}>
+                                  {meta.icon} {meta.shortLabel}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400">
+                                  / {c.max_score || 10}
+                                </span>
+                              </div>
+                            </div>
+                          </th>
+                        );
+                      })}
+
+                      {/* Summary Averages Right Columns */}
+                      <th className="py-4 px-3 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-200 bg-slate-100/70 text-slate-700 min-w-[95px]">
+                        Prom. Clases
+                      </th>
+                      <th className="py-4 px-3 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-200 bg-purple-50/70 text-purple-900 min-w-[105px]">
+                        Prom. Exám/TPs
+                      </th>
+                      <th className="py-4 px-3 font-bold uppercase tracking-wider text-[10px] text-center border-l border-slate-200 bg-indigo-50/80 text-indigo-900 min-w-[105px]">
+                        Promedio Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredMatrixStudents.map((item) => {
+                      return (
+                        <tr
+                          key={item.csId}
+                          className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
+                          onClick={() => setSelectedStudentDetail(item)}
+                        >
+                          {/* Pinned Left Student Cell */}
+                          <td className="sticky left-0 bg-white group-hover:bg-slate-50 transition-colors z-10 py-3.5 px-5 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-['Outfit'] font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                {item.name[0]}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-['Outfit'] font-black text-xs text-slate-900 truncate max-w-[150px]">
+                                  {item.name}
+                                </p>
+                                <span className="text-[10px] font-bold text-slate-400 block truncate">
+                                  DNI: {item.dni}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Dynamic Grade Cells */}
+                          {filteredMatrixCriteria.map((c) => {
+                            const g = gradeLookup[`${item.csId}_${c.id}`];
+                            const hasGrade = g && g.score !== undefined && g.score !== null && g.score !== "";
+                            const scoreNum = hasGrade ? parseFloat(g.score) : null;
+
+                            return (
+                              <td key={c.id} className="py-3 px-3 text-center border-l border-slate-100">
+                                {hasGrade ? (
+                                  <div className="inline-flex items-center justify-center relative">
+                                    <span
+                                      className={`font-['Outfit'] font-black text-xs px-2.5 py-0.5 rounded-lg border ${
+                                        scoreNum >= 7
+                                          ? "bg-emerald-50 text-emerald-800 border-emerald-200/80"
+                                          : scoreNum >= 4
+                                          ? "bg-amber-50 text-amber-900 border-amber-200/80"
+                                          : "bg-rose-50 text-rose-800 border-rose-200/80"
+                                      }`}
+                                      title={g.comment ? `Nota: ${g.score} | Comentario: ${g.comment}` : `Nota: ${g.score}`}
+                                    >
+                                      {g.score}
+                                    </span>
+                                    {g.comment && (
+                                      <span
+                                        className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-500"
+                                        title={`Observación: ${g.comment}`}
+                                      />
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-300 font-bold">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+
+                          {/* Summary Averages */}
+                          <td className="py-3 px-3 text-center border-l border-slate-200 bg-slate-50/50 font-['Outfit'] font-black text-xs text-slate-700">
+                            {item.classAvg !== null ? item.classAvg.toFixed(1) : "—"}
+                          </td>
+                          <td className="py-3 px-3 text-center border-l border-slate-200 bg-purple-50/30 font-['Outfit'] font-black text-xs text-purple-900">
+                            {item.examAvg !== null ? item.examAvg.toFixed(1) : "—"}
+                          </td>
+                          <td className="py-3 px-3 text-center border-l border-slate-200 bg-indigo-50/40">
+                            <span className="font-['Outfit'] font-black text-xs text-indigo-900 bg-white px-2.5 py-1 rounded-xl border border-indigo-200/80 shadow-2xs">
+                              {item.matrixTotalAvg !== null
+                                ? item.matrixTotalAvg.toFixed(1)
+                                : item.finalAvg !== null
+                                ? item.finalAvg.toFixed(1)
+                                : "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Detailed Student Breakdown Drawer/Modal */}
       {selectedStudentDetail && (

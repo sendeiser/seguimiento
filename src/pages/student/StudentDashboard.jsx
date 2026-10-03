@@ -3,7 +3,24 @@ import { supabase } from "../../lib/supabase";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { BookOpen, TrendingUp, Award, Flame, Coins, ShoppingBag, Trophy, Star, Shield, ArrowRight, Lock, CheckCircle2, Flag } from "lucide-react";
+import {
+  BookOpen,
+  TrendingUp,
+  Award,
+  Flame,
+  Coins,
+  ShoppingBag,
+  Trophy,
+  Star,
+  Shield,
+  ArrowRight,
+  Lock,
+  CheckCircle2,
+  Flag,
+  Crown,
+  Heart,
+  Sparkles
+} from "lucide-react";
 import { calculateGamification, RANKS, BADGE_DEFS } from "../../lib/gamificationEngine";
 
 export default function StudentDashboard() {
@@ -76,97 +93,100 @@ export default function StudentDashboard() {
   );
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-10 animate-in fade-in duration-500 pb-20">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">Mi Progreso Notyx</h1>
-          <p className="text-slate-500 mt-3 font-medium text-lg">Tu viaje educativo convertido en una aventura épica.</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight leading-tight">Mi Progreso Notyx</h1>
+          <p className="text-slate-500 mt-1 font-medium text-base">Tu desempeño escolar y logros en un solo lugar.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
            <Link to="/ranking">
-             <Button variant="outline" className="rounded-2xl h-12 px-6 border-2 gap-2 font-black text-xs uppercase tracking-widest shadow-sm">
-               <Trophy className="w-4 h-4" /> Ver Ranking
+             <Button
+               variant="outline"
+               className="rounded-2xl h-11 px-5 border border-slate-200 gap-2 font-semibold text-xs text-slate-700 hover:bg-slate-50 shadow-sm active:scale-[0.98] transition-all"
+             >
+               <Trophy className="w-4 h-4 text-amber-500" /> Ranking
              </Button>
            </Link>
            <Link to="/shop">
-             <Button className="rounded-2xl h-12 px-6 gap-2 font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20">
+             <Button className="rounded-2xl h-11 px-5 gap-2 font-semibold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all">
                <ShoppingBag className="w-4 h-4" /> Tienda
              </Button>
            </Link>
         </div>
       </div>
 
-      {/* Global Gamification Card */}
+      {/* Global Gamification Card - Apple Light Material */}
       {gamificationData && (
-         <div className="bg-slate-900 rounded-[32px] md:rounded-[48px] p-5 sm:p-8 md:p-10 text-white shadow-2xl shadow-slate-900/40 relative overflow-hidden group min-w-0">
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none group-hover:bg-blue-600/30 transition-colors duration-1000" />
+         <div className="relative overflow-hidden rounded-3xl bg-white text-slate-900 p-6 sm:p-8 md:p-10 shadow-sm border border-slate-200/90 group min-w-0">
+            <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-transparent rounded-full blur-[90px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
             
-            <div className="relative z-10 flex flex-col lg:flex-row items-center gap-12">
+            <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
                <div className="shrink-0 relative">
-                  <div className={`w-40 h-40 rounded-[48px] border-4 border-white/10 flex flex-col items-center justify-center font-black text-white shadow-2xl bg-white/5 backdrop-blur-2xl transition-transform duration-500 group-hover:scale-105 group-hover:rotate-2`}>
-                    <Trophy className="w-16 h-16 mb-2 text-blue-400 group-hover:text-blue-300" />
-                    <span className="text-[10px] uppercase tracking-[0.3em] text-blue-200/60 leading-none">Rango Actual</span>
-                    <span className="text-xl tracking-tight mt-1">{gamificationData.rank.name}</span>
+                  <div className="w-36 h-36 rounded-3xl border border-blue-200/80 flex flex-col items-center justify-center font-bold shadow-sm bg-gradient-to-br from-blue-50/80 to-indigo-50/50 backdrop-blur-md transition-transform duration-500 group-hover:scale-105">
+                    <Trophy className="w-14 h-14 mb-2 text-blue-600 group-hover:text-blue-500 transition-colors" />
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider leading-none">Rango</span>
+                    <span className="text-lg font-black tracking-tight mt-1 text-slate-900">{gamificationData.rank.name}</span>
                   </div>
-                  <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-blue-600 text-white rounded-3xl flex items-center justify-center font-black text-2xl border-4 border-slate-900 shadow-2xl">
+                  <div className="absolute -bottom-3 -right-3 w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center font-black text-lg border-4 border-white shadow-md">
                     {gamificationData.currentLevel}
                   </div>
                </div>
                
-               <div className="flex-1 w-full space-y-8">
+               <div className="flex-1 w-full space-y-6">
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 text-center md:text-left">
                     <div>
-                      <h2 className="text-3xl font-black tracking-tight mb-1">Nivel Global {gamificationData.currentLevel}</h2>
-                      <p className="text-blue-200/60 font-black uppercase tracking-widest text-[10px]">Poder Total: {gamificationData.currentXP} XP acumulados</p>
+                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-1 text-slate-900">Nivel Global {gamificationData.currentLevel}</h2>
+                      <p className="text-slate-600 font-medium text-xs">Poder Total: <span className="font-bold text-blue-700">{gamificationData.currentXP} XP</span> acumulados</p>
                     </div>
-                    <div className="bg-white/5 backdrop-blur-md border border-white/10 px-6 py-3 rounded-2xl">
-                       <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest block mb-1">Notyx Coins</span>
-                       <span className="text-2xl font-black text-yellow-400 flex items-center justify-center md:justify-start gap-2">
-                         <Coins className="w-5 h-5" /> {gamificationData.notyxCoins}
+                    <div className="bg-amber-50/90 border border-amber-200/90 px-5 py-2.5 rounded-2xl shadow-2xs">
+                       <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block mb-0.5">Notyx Coins</span>
+                       <span className="text-xl font-black text-amber-950 flex items-center justify-center md:justify-start gap-2">
+                         <Coins className="w-4 h-4 text-amber-600" /> {gamificationData.notyxCoins}
                        </span>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                     <div className="flex justify-between text-[11px] font-black text-blue-200/60 uppercase tracking-widest">
+                  <div className="space-y-2">
+                     <div className="flex justify-between text-xs font-semibold text-slate-600">
                        <span>Siguiente Nivel</span>
-                       <span>{gamificationData.currentLevelXP} / {gamificationData.nextLevelXP} XP</span>
+                       <span className="text-blue-700 font-bold">{gamificationData.currentLevelXP} / {gamificationData.nextLevelXP} XP</span>
                      </div>
-                     <div className="relative h-4 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                     <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                        <div 
-                         className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-600 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all duration-1000" 
+                         className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 rounded-full shadow-xs transition-all duration-700" 
                          style={{ width: `${(gamificationData.currentLevelXP / gamificationData.nextLevelXP) * 100}%` }}
                        />
                      </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-4 border-t border-white/10">
-                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-600 shadow-2xs">
                            <Flame className="w-5 h-5" />
                         </div>
                         <div>
-                           <span className="text-xl font-black block leading-none">{gamificationData.maxStreak}</span>
-                           <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Racha Máxima</span>
+                           <span className="text-lg font-black block leading-none text-slate-900">{gamificationData.maxStreak}</span>
+                           <span className="text-xs text-slate-600 font-medium">Racha Máxima</span>
                         </div>
                      </div>
-                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200/80 flex items-center justify-center text-purple-600 shadow-2xs">
                            <Award className="w-5 h-5" />
                         </div>
                         <div>
-                           <span className="text-xl font-black block leading-none">{gamificationData.unlockedBadges.filter(b => b.unlocked).length}</span>
-                           <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Medallas</span>
+                           <span className="text-lg font-black block leading-none text-slate-900">{gamificationData.unlockedBadges.filter(b => b.unlocked).length}</span>
+                           <span className="text-xs text-slate-600 font-medium">Medallas</span>
                         </div>
                      </div>
-                     <div className="hidden md:flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                     <div className="hidden md:flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shadow-2xs">
                            <Shield className="w-5 h-5" />
                         </div>
                         <div>
-                           <span className="text-xl font-black block leading-none">{gamificationData.hp}%</span>
-                           <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Vitalidad</span>
+                           <span className="text-lg font-black block leading-none text-slate-900">{gamificationData.hp}%</span>
+                           <span className="text-xs text-slate-600 font-medium">Vitalidad</span>
                         </div>
                      </div>
                   </div>
@@ -175,49 +195,52 @@ export default function StudentDashboard() {
          </div>
       )}
 
-      {/* Classes Grid */}
-      <div className="space-y-6">
+      {/* Classes Section */}
+      <div className="space-y-5">
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Mis Materias</h3>
-          <span className="text-slate-400 font-bold text-sm uppercase tracking-widest">{classes.length} Clases Activas</span>
+          <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Mis Materias</h3>
+          <span className="text-slate-400 font-medium text-xs">{classes.length} Clases Activas</span>
         </div>
 
         {classes.length === 0 ? (
-          <div className="bg-white rounded-[48px] py-24 text-center border-2 border-dashed border-slate-100">
-            <BookOpen className="w-16 h-16 mx-auto mb-6 text-slate-200" />
-            <h3 className="text-xl font-black text-slate-400">No estás inscripto en ninguna clase</h3>
-            <p className="text-slate-500 mt-2">Espera a que un docente te agregue para comenzar tu aventura.</p>
+          <div className="apple-card rounded-3xl py-20 text-center border-2 border-dashed border-slate-200">
+            <BookOpen className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+            <h3 className="text-lg font-semibold text-slate-600">No estás inscripto en ninguna clase</h3>
+            <p className="text-slate-400 text-sm mt-1">Espera a que un docente te agregue para comenzar tu aventura.</p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {classes.map((c) => (
-              <Link key={c.id} to={`/student/class/${c.id}`} className="group">
-                <div className="bg-white rounded-[32px] md:rounded-[40px] border border-slate-100 p-6 md:p-8 h-full transition-all duration-300 hover:shadow-2xl hover:shadow-slate-900/5 hover:-translate-y-1 relative overflow-hidden">
-                  <div className="bg-slate-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
-                    <BookOpen className="w-6 h-6" />
+              <Link key={c.id} to={`/student/class/${c.id}`} className="group block">
+                <div className="apple-card rounded-3xl p-6 h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between">
+                  <div>
+                    <div className="bg-blue-50 border border-blue-100 text-blue-600 w-12 h-12 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 leading-snug mb-1 group-hover:text-blue-600 transition-colors tracking-tight">{c.name}</h3>
+                    <p className="text-slate-400 font-medium text-xs mb-6">Docente: {c.profiles?.full_name}</p>
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{c.name}</h3>
-                  <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-8">Docente: {c.profiles?.full_name}</p>
-                  <div className="mt-auto flex items-center justify-between">
-                     <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl uppercase tracking-widest">En Curso</span>
-                     <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center transform translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all">
-                        <ArrowRight className="w-5 h-5" />
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                     <span className="text-xs font-semibold text-blue-600 bg-blue-50/80 border border-blue-200/50 px-2.5 py-1 rounded-full">En Curso</span>
+                     <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                        <ArrowRight className="w-4 h-4" />
                      </div>
                   </div>
                 </div>
               </Link>
             ))}
           </div>
-)}
+        )}
+      </div>
 
       {/* Logros Detallados */}
       {gamificationData && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-              <Award className="w-6 h-6 text-amber-500" /> Mis Logros
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <Award className="w-5 h-5 text-amber-500" /> Mis Logros
             </h3>
-            <span className="text-slate-400 font-bold text-sm uppercase tracking-widest">
+            <span className="text-slate-400 font-medium text-xs">
               {gamificationData.unlockedBadges.filter(b => b.unlocked).length} / {Object.keys(BADGE_DEFS).length} Desbloqueados
             </span>
           </div>
@@ -231,26 +254,26 @@ export default function StudentDashboard() {
               return (
                 <div 
                   key={key}
-                  className={`relative p-5 rounded-3xl border-2 transition-all duration-300 ${
+                  className={`apple-card relative p-5 rounded-3xl transition-all duration-300 ${
                     isUnlocked 
-                      ? 'bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-300 shadow-lg shadow-amber-500/20' 
-                      : 'bg-slate-50 border-slate-200 opacity-60'
+                      ? 'bg-gradient-to-br from-amber-50/70 to-yellow-50/50 border-amber-200/80 shadow-sm' 
+                      : 'opacity-60 bg-white/60'
                   }`}
                 >
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${
-                    isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-white'
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-3 shadow-sm ${
+                    isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
                   }`}>
-                    {isUnlocked ? <BadgeIcon className="w-6 h-6" /> : <Lock className="w-5 h-5" />}
+                    {isUnlocked ? <BadgeIcon className="w-5 h-5" /> : <Lock className="w-4 h-4" />}
                   </div>
-                  <h4 className={`font-black text-sm mb-1 ${isUnlocked ? 'text-amber-900' : 'text-slate-400'}`}>
+                  <h4 className={`font-semibold text-sm mb-1 leading-snug ${isUnlocked ? 'text-amber-950' : 'text-slate-500'}`}>
                     {badge.label}
                   </h4>
-                  <p className={`text-[10px] font-medium leading-tight ${isUnlocked ? 'text-amber-700' : 'text-slate-400'}`}>
+                  <p className={`text-xs font-normal leading-relaxed ${isUnlocked ? 'text-amber-800/80' : 'text-slate-400'}`}>
                     {badge.req}
                   </p>
                   {isUnlocked && (
-                    <div className="absolute top-3 right-3">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <div className="absolute top-4 right-4">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     </div>
                   )}
                 </div>
@@ -259,7 +282,6 @@ export default function StudentDashboard() {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }

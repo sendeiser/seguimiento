@@ -6,6 +6,8 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @import "./base/_variables.css";
 @import "./base/_typography.css";
 
@@ -47,6 +49,28 @@ h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
 /* Text balance for headings */
 .text-balance { text-wrap: balance; }
 .text-pretty { text-wrap: pretty; }
+
+/* Apple Optical Typography & Smoothing */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+.apple-title {
+  letter-spacing: -0.025em;
+}
+.apple-glass {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+.dark .apple-glass {
+  background: rgba(20, 20, 26, 0.78);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
 
 /* Safe area for mobile */
 .safe-area-bottom {

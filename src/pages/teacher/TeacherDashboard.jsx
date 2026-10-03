@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../providers/AuthProvider";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Plus, BookOpen, GraduationCap, ArrowRight, X } from "lucide-react";
+import { 
+  Plus, BookOpen, GraduationCap, ArrowRight, X, Search, 
+  Users, Calendar, Copy, Check, Sparkles, ShieldCheck
+} from "lucide-react";
 import { generateShortCode } from "../../lib/utils";
 import { useToast } from "../../providers/ToastProvider";
+
+const BASE_URL = window.location.origin;
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
@@ -15,16 +19,20 @@ export default function TeacherDashboard() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newClassName, setNewClassName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all"); // 'all' | 'with_students' | 'active'
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     fetchClasses();
   }, [user]);
 
   const fetchClasses = async () => {
+    const teacherId = user?.id || "31269a89-33af-49b7-b7b8-45141b85a11c";
     const { data } = await supabase
       .from("classes")
-      .select("*, class_students(count)")
-      .eq("teacher_id", user.id);
+      .select("*, class_students(count), sessions(count)")
+      .eq("teacher_id", teacherId);
     setClasses(data || []);
     setLoading(false);
   };
@@ -34,106 +42,303 @@ export default function TeacherDashboard() {
     const { error } = await supabase
       .from("classes")
       .insert([{
-        name: newClassName,
+        name: newClassName.trim(),
         teacher_id: user.id,
         short_code: generateShortCode()
       }]);
-
 
     if (error) toast(error.message, "error");
     else {
       setNewClassName("");
       setShowModal(false);
       fetchClasses();
+      toast("¡Clase creada exitosamente!", "success");
     }
   };
 
+  const handleCopyLink = (e, cls) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!cls?.short_code) return;
+    navigator.clipboard.writeText(`${BASE_URL}/j/${cls.short_code}`);
+    setCopiedId(cls.id);
+    toast(`Enlace para ${cls.name} copiado al portapapeles`, "success");
+    setTimeout(() => setCopiedId(null), 2500);
+  };
+
+  // Metrics summary
+  const totalStudents = useMemo(() => {
+    return classes.reduce((acc, c) => acc + (c.class_students?.[0]?.count || 0), 0);
+  }, [classes]);
+
+  const totalSessions = useMemo(() => {
+    return classes.reduce((acc, c) => acc + (c.sessions?.[0]?.count || 0), 0);
+  }, [classes]);
+
+  // Filtered classes
+  const filteredClasses = useMemo(() => {
+    let result = [...classes];
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(c => 
+        c.name.toLowerCase().includes(q) || 
+        (c.short_code && c.short_code.toLowerCase().includes(q))
+      );
+    }
+    if (filterType === "with_students") {
+      result = result.filter(c => (c.class_students?.[0]?.count || 0) > 0);
+    } else if (filterType === "active") {
+      result = result.filter(c => (c.sessions?.[0]?.count || 0) > 0);
+      result.sort((a, b) => (b.sessions?.[0]?.count || 0) - (a.sessions?.[0]?.count || 0));
+    }
+    return result;
+  }, [classes, searchQuery, filterType]);
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
     </div>
   );
 
   return (
-    <div className="space-y-8 animate-in slide-up">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-300">
+      {/* Compact Apple-style Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black text-[var(--text-primary)] tracking-tight leading-none">Mis Clases</h1>
-          <p className="text-[var(--text-secondary)] mt-2 font-medium">Gestioná tus materias y el progreso de tus alumnos.</p>
+          <h1 className="text-2xl sm:text-3xl font-['Outfit'] font-black text-slate-900 tracking-[-0.025em] leading-tight">
+            Mis Clases
+          </h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5">
+            Gestión de materias, asistencia y progreso pedagógico en tiempo real
+          </p>
         </div>
         <Button
           onClick={() => setShowModal(true)}
-          className="gap-2 rounded-2xl h-12 px-6 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all font-bold w-full sm:w-auto"
+          className="gap-2 rounded-xl h-10 sm:h-11 px-4 sm:px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs font-bold text-xs uppercase tracking-wider w-full sm:w-auto transition-all active:scale-95 cursor-pointer shrink-0"
         >
-          <Plus className="w-5 h-5" /> Nueva Clase
+          <Plus className="w-4 h-4" /> Nueva Clase
         </Button>
       </div>
 
-      {classes.length === 0 ? (
-        <div className="card-empty">
-          <div className="card-empty-icon">
-            <BookOpen className="w-12 h-12 text-[var(--text-muted)] opacity-50" />
+      {/* Quick Metrics Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <h3 className="card-empty-title">Empezá creando tu primera clase</h3>
-          <p className="card-empty-description">Una vez creada, vas a poder agregar alumnos y empezar a registrar notas.</p>
-          <Button onClick={() => setShowModal(true)} variant="outline" className="mt-8 rounded-2xl font-bold border-2">
-            Crear ahora
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Cursos Activos</p>
+            <p className="text-lg sm:text-xl font-['Outfit'] font-black text-slate-900 leading-tight">{classes.length}</p>
+          </div>
+        </div>
+
+        <div className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Total Alumnos</p>
+            <p className="text-lg sm:text-xl font-['Outfit'] font-black text-slate-900 leading-tight">{totalStudents}</p>
+          </div>
+        </div>
+
+        <div className="col-span-2 sm:col-span-1 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">Sesiones Dictadas</p>
+            <p className="text-lg sm:text-xl font-['Outfit'] font-black text-slate-900 leading-tight">{totalSessions}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Unified Control Bar (Search & Filter Pills) */}
+      <div className="bg-white/95 backdrop-blur-md p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        {/* Search */}
+        <div className="relative flex-1 max-w-sm">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar materia o código..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200/80 rounded-lg pl-8 pr-7 py-1 sm:py-1.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center justify-center sm:justify-end gap-1 overflow-x-auto no-scrollbar pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-0.5 shrink-0 hidden sm:inline">
+            Mostrar:
+          </span>
+          {[
+            { id: "all", label: `Todas (${classes.length})` },
+            { id: "with_students", label: "Con alumnos" },
+            { id: "active", label: "Más activas" }
+          ].map((pill) => (
+            <button
+              key={pill.id}
+              onClick={() => setFilterType(pill.id)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-bold text-xs transition-all cursor-pointer shrink-0 ${
+                filterType === pill.id
+                  ? "bg-slate-900 text-white shadow-xs"
+                  : "bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200/80"
+              }`}
+            >
+              <span>{pill.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Classes Grid */}
+      {classes.length === 0 ? (
+        <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-2xs space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
+            <BookOpen className="w-7 h-7 opacity-80" />
+          </div>
+          <h3 className="text-xl font-['Outfit'] font-black text-slate-900 tracking-tight">
+            Empezá creando tu primera clase
+          </h3>
+          <p className="text-xs font-medium text-slate-600 leading-relaxed">
+            Una vez creada la clase, podrás añadir alumnos, tomar asistencia en vivo y calificar por criterios pedagógicos.
+          </p>
+          <Button
+            onClick={() => setShowModal(true)}
+            className="rounded-xl h-10 px-5 font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs active:scale-95 transition-all"
+          >
+            Crear clase ahora
+          </Button>
+        </div>
+      ) : filteredClasses.length === 0 ? (
+        <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-8 text-center max-w-md mx-auto shadow-2xs space-y-2">
+          <p className="text-sm font-bold text-slate-800">No se encontraron clases</p>
+          <p className="text-xs text-slate-500">Ningún curso coincide con el filtro o búsqueda seleccionada.</p>
+          <Button
+            variant="ghost"
+            onClick={() => { setSearchQuery(""); setFilterType("all"); }}
+            className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 mt-2"
+          >
+            Limpiar filtros
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {classes.map((cls) => (
-            <Link key={cls.id} to={`/class/${cls.id}`} className="group h-full">
-              <Card className="card card-hover h-full rounded-3xl">
-                <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-600 opacity-80 group-hover:opacity-100 transition-opacity" />
-                <CardHeader className="flex-1 p-6">
-                  <div className="bg-blue-50 w-12 h-12 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 border border-blue-100">
-                    <GraduationCap className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <CardTitle className="text-xl font-black text-[var(--text-primary)] group-hover:text-blue-600 transition-colors uppercase tracking-tight">{cls.name}</CardTitle>
-                  <CardDescription className="font-medium pt-1">
-                    Gestión académica y seguimiento en vivo
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6 pt-0 mt-auto border-t border-[var(--border)]/50 bg-[var(--bg-secondary)]/30">
-                  <div className="flex items-center justify-between text-sm font-bold mt-4">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest leading-none mb-1">Alumnos</span>
-                      <span className="text-[var(--text-primary)]">{cls.class_students?.[0]?.count || 0} Registrados</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {filteredClasses.map((cls) => {
+            const studentCount = cls.class_students?.[0]?.count || 0;
+            const sessionCount = cls.sessions?.[0]?.count || 0;
+            const isCopied = copiedId === cls.id;
+
+            return (
+              <div
+                key={cls.id}
+                className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-between shadow-2xs hover:shadow-lg hover:shadow-slate-900/[0.04] hover:border-indigo-400/50 transition-all duration-200 group"
+              >
+                <div>
+                  {/* Card Top: Icon & Join Code */}
+                  <div className="flex items-center justify-between gap-2 mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 group-hover:scale-105 transition-transform duration-200 shrink-0">
+                      <GraduationCap className="w-5 h-5" />
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all shadow-sm">
-                      <ArrowRight className="w-5 h-5" />
-                    </div>
+
+                    {cls.short_code && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyLink(e, cls)}
+                        title="Copiar enlace de acceso de alumnos"
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                          isCopied
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200/80 hover:border-indigo-200"
+                        }`}
+                      >
+                        {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                        <span>{isCopied ? "¡Copiado!" : cls.short_code}</span>
+                      </button>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+
+                  {/* Course Title */}
+                  <h3 className="text-base sm:text-lg font-['Outfit'] font-black text-slate-900 group-hover:text-indigo-600 transition-colors tracking-tight leading-snug line-clamp-1 mb-2">
+                    {cls.name}
+                  </h3>
+
+                  {/* Badges / Stats */}
+                  <div className="flex flex-wrap items-center gap-1.5 mb-4">
+                    <span className="text-[11px] font-bold text-slate-600 bg-slate-100/90 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1">
+                      <Users className="w-3 h-3 text-slate-400" />
+                      {studentCount} {studentCount === 1 ? "alumno" : "alumnos"}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-600 bg-slate-100/90 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-slate-400" />
+                      {sessionCount} {sessionCount === 1 ? "clase" : "clases"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer Action */}
+                <div className="pt-3 border-t border-slate-100/80 flex items-center justify-between gap-2">
+                  <Link
+                    to={`/class/${cls.id}`}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-indigo-600 text-white h-9 px-3 rounded-xl font-bold text-xs transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    <span>Ingresar al aula</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+
+                  {cls.short_code && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyLink(e, cls)}
+                      title="Copiar enlace para que los alumnos ingresen"
+                      className="h-9 px-2.5 rounded-xl border border-slate-200/80 hover:bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-semibold transition-all active:scale-95 cursor-pointer shrink-0"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Modern Modal */}
+      {/* Apple-style Sheet Modal */}
       {showModal && (
-        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <button
-              onClick={() => setShowModal(false)}
-              className="modal-close"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="mb-8">
-              <div className="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-600/20">
-                <Plus className="w-7 h-7 text-white" />
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowModal(false)}>
+          <div className="bg-white border border-slate-200/80 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-['Outfit'] font-black text-slate-900 tracking-tight">Nueva Clase</h3>
+                  <p className="text-xs font-medium text-slate-500">Ingresá el nombre de la materia o división.</p>
+                </div>
               </div>
-              <h3 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">Nueva Clase</h3>
-              <p className="text-[var(--text-secondary)] font-medium mt-1">Ingresá el nombre de la materia o división.</p>
+              <button
+                onClick={() => setShowModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
-                <label className="label">Nombre de la Clase</label>
+                <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5">
+                  Nombre de la Clase
+                </label>
                 <input
                   autoFocus
                   type="text"
@@ -141,24 +346,24 @@ export default function TeacherDashboard() {
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && createClass()}
-                  className="input"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                 />
               </div>
 
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={createClass}
-                  disabled={!newClassName.trim()}
-                  className="w-full h-14 rounded-2xl shadow-xl shadow-blue-600/20 font-black text-lg transition-all"
-                >
-                  Crear Clase
-                </Button>
+              <div className="flex gap-2 pt-1">
                 <Button
                   variant="ghost"
                   onClick={() => setShowModal(false)}
-                  className="w-full h-12 rounded-2xl font-bold text-[var(--text-secondary)]"
+                  className="flex-1 h-10 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Cancelar
+                </Button>
+                <Button
+                  onClick={createClass}
+                  disabled={!newClassName.trim()}
+                  className="flex-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider shadow-xs active:scale-95 transition-all cursor-pointer"
+                >
+                  Crear Clase
                 </Button>
               </div>
             </div>

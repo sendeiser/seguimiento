@@ -5,6 +5,11 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { GraduationCap, Users, Clock, Trophy, LayoutGrid, List, Search, Pin, PinOff, History, CheckCircle2, TrendingUp, Sparkles, Medal, Flame, Heart, ChevronRight, ChevronDown } from "lucide-react";
 import { calculateGamification } from "../../lib/gamificationEngine";
+import {
+  getCriteriaType,
+  getCriteriaCleanName,
+  getCriteriaTypeMeta,
+} from "../../lib/pedagogicalReportEngine";
 import AchievementToast from "../../components/AchievementToast";
 import StudentCard from "../../components/gamification/StudentCard";
 
@@ -20,6 +25,8 @@ export default function PublicClassView() {
   const [pinnedStudent, setPinnedStudent] = useState(null);
   const [sessionFilter, setSessionFilter] = useState("latest"); // "latest", "all", or session.id
   const [cuatrimestreFilter, setCuatrimestreFilter] = useState("all"); // "all", "1", "2"
+  const [categoryFilter, setCategoryFilter] = useState("all"); // "all", "exam", "assignment", "class"
+  const [tableSubView, setTableSubView] = useState("detailed"); // "detailed" | "summary"
   const [animKey, setAnimKey] = useState(0);
   const [newBadges, setNewBadges] = useState([]);
 
@@ -104,15 +111,34 @@ export default function PublicClassView() {
     </div>
   );
 
-  // Flatten all criteria across all sessions (overall history)
+  // Flatten all criteria across all sessions (overall history) with categorization
   const allCriteria = [];
   const sortedSessions = [...(data.sessions || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
   
   sortedSessions.forEach(session => {
     (session.criteria || []).forEach(crit => {
-      allCriteria.push({ ...crit, sessionDate: session.date });
+      const type = getCriteriaType(crit.name);
+      const cleanName = getCriteriaCleanName(crit.name) || crit.name;
+      const meta = getCriteriaTypeMeta(type);
+      allCriteria.push({
+        ...crit,
+        session_id: session.id,
+        sessionDate: session.date,
+        cuatrimestre: session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1),
+        type,
+        cleanName,
+        meta,
+      });
     });
   });
+
+  // Category counts across all criteria
+  const criteriaCounts = {
+    all: allCriteria.length,
+    exam: allCriteria.filter(c => c.type === "exam").length,
+    assignment: allCriteria.filter(c => c.type === "assignment").length,
+    class: allCriteria.filter(c => c.type === "class").length,
+  };
 
   // Calculate visible items based on cuatrimestre filter & session filter
   const filteredByCuatrimestreSessions = sortedSessions.filter(s => {
@@ -130,7 +156,20 @@ export default function PublicClassView() {
   const visibleCriteria = [];
   visibleSessions.forEach(session => {
     (session.criteria || []).forEach(crit => {
-      visibleCriteria.push({ ...crit, sessionDate: session.date });
+      const type = getCriteriaType(crit.name);
+      const cleanName = getCriteriaCleanName(crit.name) || crit.name;
+      const meta = getCriteriaTypeMeta(type);
+      if (categoryFilter === "all" || type === categoryFilter) {
+        visibleCriteria.push({
+          ...crit,
+          session_id: session.id,
+          sessionDate: session.date,
+          cuatrimestre: session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1),
+          type,
+          cleanName,
+          meta,
+        });
+      }
     });
   });
 
@@ -144,8 +183,31 @@ export default function PublicClassView() {
 
   const maxXP = Math.max(...studentsWithRawXP.map(s => s.gamiRaw.currentXP), 0);
 
-  // Calculate final gamification data (Pass 2 - Relative)
+  // Calculate final gamification data (Pass 2 - Relative) & divided averages
   const studentTotals = studentsWithRawXP.map(st => {
+    let classScoreSum = 0;
+    let classMaxSum = 0;
+    let examScoreSum = 0;
+    let examMaxSum = 0;
+
+    allCriteria.forEach(crit => {
+      const score = st.grades?.[crit.id];
+      if (score != null) {
+        const num = Number(score);
+        const max = Number(crit.max_score || 10);
+        if (crit.type === "class") {
+          classScoreSum += num;
+          classMaxSum += max;
+        } else {
+          examScoreSum += num;
+          examMaxSum += max;
+        }
+      }
+    });
+
+    const classAvg = classMaxSum > 0 ? (classScoreSum / classMaxSum) * 10 : null;
+    const examAvg = examMaxSum > 0 ? (examScoreSum / examMaxSum) * 10 : null;
+
     const total = visibleCriteria.reduce((sum, crit) => {
       const score = st.grades?.[crit.id];
       return sum + (score != null ? Number(score) : 0);
@@ -159,7 +221,7 @@ export default function PublicClassView() {
 
     const gami = calculateGamification(sortedSessions, st.grades, st.attendance, st.spent_coins || 0, maxXP);
 
-    return { ...st, total, max, overallTotal, gami };
+    return { ...st, total, max, overallTotal, classAvg, examAvg, gami };
   });
 
   // Sort students: pinned first, then highest overall total (to keep ranking stable)
@@ -203,119 +265,147 @@ export default function PublicClassView() {
         <div className="absolute bottom-[-10%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-cyan-400/10 blur-[120px] mix-blend-multiply" />
       </div>
 
-      {/* Glassmorphic Header */}
-      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200 z-50 shadow-sm">
-        <div className="w-full max-w-7xl mx-auto px-4 py-4 md:py-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Glassmorphic Compact Header */}
+      <header className="bg-white/95 backdrop-blur-2xl border-b border-slate-200/80 sticky top-0 z-40 shadow-xs">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-2.5">
             
-            {/* Class Info & Badges */}
-            <div className="flex items-start gap-4 flex-1 min-w-0">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-3 rounded-2xl shadow-lg shadow-blue-600/20 shrink-0">
-                <GraduationCap className="w-6 h-6 md:w-8 md:h-8 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-tight text-slate-800 truncate leading-tight">
-                  {data.class_name}
-                </h1>
-                <div className="flex items-center gap-3 mt-2 flex-wrap">
-                  <div className="flex items-center gap-2 text-[10px] md:text-xs font-black text-emerald-700 bg-emerald-100/80 px-3 py-1 rounded-full border border-emerald-200/50">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    SALA EN VIVO
-                  </div>
-                  {lastUpdated && (
-                    <span className="text-[10px] md:text-xs text-slate-500 font-bold tracking-wide flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      Actualizado {format(lastUpdated, "HH:mm")}
-                    </span>
-                  )}
+            {/* Class Info & Live Status + View Toggle on Mobile */}
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 sm:p-2 rounded-xl shadow-xs shadow-blue-600/20 shrink-0">
+                  <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="font-extrabold text-base sm:text-lg md:text-xl tracking-tight text-slate-800 leading-tight truncate">
+                      {data.class_name}
+                    </h1>
+                    <div className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 shrink-0">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                      </span>
+                      VIVO
+                    </div>
+                    {lastUpdated && (
+                      <span className="text-[10px] text-slate-400 font-semibold tracking-wide flex items-center gap-1 shrink-0 hidden sm:inline-flex">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        {format(lastUpdated, "HH:mm")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* View Mode Toggle (Mobile / Tablet compact placement) */}
+              <div className="flex lg:hidden bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/80 shrink-0">
+                <button 
+                  onClick={() => setViewMode("table")}
+                  className={`p-1.5 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
+                    viewMode === "table" ? "bg-white text-blue-600 shadow-xs font-bold" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                  title="Vista Planilla"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={() => setViewMode("cards")}
+                  className={`p-1.5 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
+                    viewMode === "cards" ? "bg-white text-blue-600 shadow-xs font-bold" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                  title="Vista Tarjetas"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
-            {/* Controls Row */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-              {/* Search bar - full width on mobile */}
-              <div className="relative flex-1 md:w-64">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            {/* Controls Bar: Search + Cuatrimestre + Session + View Toggle (Desktop) */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 lg:pt-0 border-t border-slate-100 lg:border-t-0">
+              {/* Search bar */}
+              <div className="relative flex-1 sm:w-44 lg:w-48 shrink-0">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <input 
                   type="text"
                   placeholder="Buscar alumno..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 hover:border-slate-300 transition-all shadow-sm"
+                  className="w-full bg-slate-50/90 border border-slate-200/80 rounded-xl py-1 pl-7 pr-2.5 text-xs font-medium text-slate-700 outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
                 />
               </div>
-              
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Cuatrimestre Selector */}
-                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
-                  <button
-                    onClick={() => { setCuatrimestreFilter("all"); setAnimKey(k => k + 1); }}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      cuatrimestreFilter === "all" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Año
-                  </button>
-                  <button
-                    onClick={() => { setCuatrimestreFilter("1"); setAnimKey(k => k + 1); }}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      cuatrimestreFilter === "1" ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    1ºC
-                  </button>
-                  <button
-                    onClick={() => { setCuatrimestreFilter("2"); setAnimKey(k => k + 1); }}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      cuatrimestreFilter === "2" ? "bg-purple-600 text-white shadow-md shadow-purple-600/20" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    2ºC
-                  </button>
-                </div>
 
-                {/* Session Filter */}
-                <div className="relative flex-1 sm:flex-none">
-                  <History className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <select 
-                    value={sessionFilter}
-                    onChange={(e) => { setSessionFilter(e.target.value); setAnimKey(k => k + 1); }}
-                    className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-8 text-[11px] font-black uppercase tracking-wider text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
-                  >
-                    <option value="latest">Hoy</option>
-                    <option value="all">Todo</option>
-                    {filteredByCuatrimestreSessions.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {format(new Date(s.date + "T12:00:00"), "d/MM")}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                  </div>
+              {/* Cuatrimestre Selector */}
+              <div className="flex bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/80 shrink-0 gap-0.5">
+                <button
+                  onClick={() => { setCuatrimestreFilter("all"); setAnimKey(k => k + 1); }}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-['Outfit'] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    cuatrimestreFilter === "all" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Año
+                </button>
+                <button
+                  onClick={() => { setCuatrimestreFilter("1"); setAnimKey(k => k + 1); }}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-['Outfit'] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    cuatrimestreFilter === "1" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  1ºC
+                </button>
+                <button
+                  onClick={() => { setCuatrimestreFilter("2"); setAnimKey(k => k + 1); }}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-['Outfit'] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    cuatrimestreFilter === "2" ? "bg-purple-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  2ºC
+                </button>
+              </div>
+
+              {/* Session Filter */}
+              <div className="relative shrink-0">
+                <History className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                <select 
+                  value={sessionFilter}
+                  onChange={(e) => { setSessionFilter(e.target.value); setAnimKey(k => k + 1); }}
+                  className="appearance-none bg-slate-50/90 border border-slate-200/80 rounded-xl py-1 pl-6 pr-6 text-[11px] font-['Outfit'] font-black uppercase tracking-wider text-slate-700 outline-none focus:border-blue-500 cursor-pointer shadow-xs"
+                >
+                  <option value="latest">Hoy (Última)</option>
+                  <option value="all">Todas las Clases</option>
+                  {filteredByCuatrimestreSessions.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {format(new Date(s.date + "T12:00:00"), "d 'de' MMM", { locale: es })}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
                 </div>
-                
-                {/* View Toggles */}
-                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-                  <button 
-                    onClick={() => setViewMode("table")}
-                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "table" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500"}`}
-                  >
-                    <List className="w-4 h-4" />
-                    <span className="text-[10px] sm:hidden font-black uppercase tracking-widest">Planilla</span>
-                  </button>
-                  <button 
-                    onClick={() => setViewMode("cards")}
-                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${viewMode === "cards" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-500"}`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                    <span className="text-[10px] sm:hidden font-black uppercase tracking-widest">Tarjeta</span>
-                  </button>
-                </div>
+              </div>
+
+              {/* View Mode Toggle (Desktop placement) */}
+              <div className="hidden lg:flex bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/80 shrink-0">
+                <button 
+                  onClick={() => setViewMode("table")}
+                  className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                    viewMode === "table" ? "bg-white text-blue-600 shadow-xs font-bold" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                  title="Vista Planilla"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-['Outfit'] font-black uppercase tracking-wider">Planilla</span>
+                </button>
+                <button 
+                  onClick={() => setViewMode("cards")}
+                  className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                    viewMode === "cards" ? "bg-white text-blue-600 shadow-xs font-bold" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                  title="Vista Tarjetas"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-['Outfit'] font-black uppercase tracking-wider">Tarjetas</span>
+                </button>
               </div>
             </div>
 
@@ -323,7 +413,7 @@ export default function PublicClassView() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 md:py-12 max-w-[1400px]">
+      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 md:py-6 max-w-[1400px]">
         {allCriteria.length === 0 || students.length === 0 ? (
           <div className="text-center py-20 lg:py-32 flex flex-col items-center bg-white/50 backdrop-blur-xl rounded-[40px] shadow-xl shadow-slate-200/40 border border-white max-w-2xl mx-auto">
             <div className="bg-slate-100 w-28 h-28 rounded-full flex items-center justify-center mb-8 relative border-4 border-white shadow-xl">
@@ -336,174 +426,437 @@ export default function PublicClassView() {
             <p className="text-slate-500 max-w-sm text-lg font-medium leading-relaxed">El docente aún no ha registrado calificaciones en esta clase. ¡Pronto aparecerán aquí!</p>
           </div>
         ) : viewMode === "table" ? (
-          /* Table View - Executive Redesign */
-          <div className="bg-white rounded-[32px] md:rounded-[40px] border border-slate-200/80 shadow-2xl shadow-slate-900/5 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-base border-collapse table-fixed md:table-auto">
-                <thead>
-                  <tr className="bg-slate-100 text-slate-800 border-b border-slate-200">
-                    <th className="text-left px-4 md:px-8 py-4 md:py-6 font-['Outfit'] font-black text-[10px] md:text-xs uppercase tracking-widest text-slate-800 sticky left-0 bg-slate-100 z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[120px] md:w-auto">
-                      Alumno
-                    </th>
-                    {(visibleSessions).map(session => {
-                      const sCuatrimestre = session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1);
-                      return (
-                        <th
-                          key={session.id}
-                          colSpan={(session.criteria || []).length}
-                          className="px-2 md:px-6 py-3 md:py-5 text-center border-l border-slate-200"
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
-                              sCuatrimestre === 2 
-                                ? "bg-purple-100 text-purple-700 border-purple-200" 
-                                : "bg-blue-100 text-blue-700 border-blue-200"
-                            }`}>
-                              {sCuatrimestre}ºC
-                            </span>
-                            <span className="font-['Outfit'] font-black text-sm uppercase tracking-widest text-slate-800">
-                              {format(new Date(session.date + "T12:00:00"), "d 'de' MMM", { locale: es })}
-                            </span>
-                          </div>
+          /* Table View - Executive Redesign with Category Breakdown & Alternating View */
+          <div className="space-y-2">
+            {/* Apple-style Table Control Toolbar - Ultra Compact */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 sm:gap-2 bg-white/95 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-slate-200/80 shadow-2xs">
+              <div className="shrink-0 flex justify-center">
+                <div className="grid grid-cols-2 p-0.5 bg-slate-100/90 rounded-lg border border-slate-200/80 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setTableSubView("detailed")}
+                    className={`px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-['Outfit'] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      tableSubView === "detailed" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    <List className="w-3 h-3 shrink-0" />
+                    <span className="whitespace-nowrap">
+                      <span className="sm:hidden">Sábana</span>
+                      <span className="hidden sm:inline">Sábana Detallada</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTableSubView("summary")}
+                    className={`px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-['Outfit'] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      tableSubView === "summary" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    <GraduationCap className="w-3 h-3 shrink-0" />
+                    <span className="whitespace-nowrap">
+                      <span className="sm:hidden">Promedios</span>
+                      <span className="hidden sm:inline">Resumen de Promedios</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Quick Filter Pills */}
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5 sm:pb-0">
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mr-0.5 hidden md:inline shrink-0">Dividir:</span>
+                {[
+                  { key: "all", label: "Todas", count: criteriaCounts.all, icon: null },
+                  { key: "exam", label: "Exámenes", count: criteriaCounts.exam, icon: "🎯" },
+                  { key: "assignment", label: "TPs", count: criteriaCounts.assignment, icon: "📄" },
+                  { key: "class", label: "Clases", count: criteriaCounts.class, icon: "📝" },
+                ].map((cat) => (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => { setCategoryFilter(cat.key); setAnimKey(k => k + 1); }}
+                    className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[10px] sm:text-[11px] font-['Outfit'] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
+                      categoryFilter === cat.key
+                        ? "bg-slate-900 text-white shadow-2xs"
+                        : "bg-slate-100/90 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80"
+                    }`}
+                  >
+                    {cat.icon && <span className="text-[10px]">{cat.icon}</span>}
+                    <span>{cat.label}</span>
+                    <span className={`text-[9px] px-1 py-0.2 rounded ${categoryFilter === cat.key ? "bg-white/20 text-white" : "bg-white text-slate-500 border border-slate-200"}`}>
+                      {cat.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {tableSubView === "summary" ? (
+              /* Executive Summary Table: Divided Averages & Academic Status */
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto scroll-smooth">
+                  <table className="w-full text-base border-collapse min-w-[680px]">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-800 border-b border-slate-200">
+                        <th className="text-left px-3 sm:px-5 py-2.5 sm:py-3 font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 sticky left-0 bg-slate-100 z-20 shadow-[3px_0_10px_-2px_rgba(0,0,0,0.08)] border-r border-slate-200 min-w-[160px] sm:min-w-[200px]">
+                          Alumno ({filteredStudents.length})
                         </th>
-                      );
-                    })}
-                    <th className="px-3 md:px-8 py-4 md:py-6 text-center font-['Outfit'] font-black text-[10px] md:text-xs uppercase tracking-widest text-blue-700 bg-blue-100/80 border-l-2 border-blue-200 sticky right-0 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[70px] md:w-auto">
-                      TOTAL
-                    </th>
-                  </tr>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="sticky left-0 bg-slate-50 z-20 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
-                    {visibleCriteria.map(crit => (
-                      <th key={crit.id} className="px-2 md:px-6 py-2.5 md:py-4 text-center border-l border-slate-200 min-w-[50px] md:min-w-[140px]">
-                        <div className="text-[10px] md:text-xs font-['Outfit'] font-black text-slate-800 uppercase tracking-wider truncate max-w-[130px] mx-auto leading-tight" title={crit.name}>{crit.name}</div>
-                        <div className="text-[9px] md:text-[10px] font-black text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md inline-block mt-1">
-                          MÁX: {crit.max_score}
-                        </div>
-                      </th>
-                    ))}
-                    <th className="sticky right-0 bg-blue-50 border-l-2 border-blue-200 z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)]" />
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {filteredStudents.map((student, idx) => {
-                    const pct = calculateOverallPercentage(student.total, student.max);
-                    const names = student.name.split(" ");
-                    const mobileName = names.length > 1 ? `${names[0]} ${names[1][0]}.` : names[0];
-                    const isPinned = student.cs_id === pinnedStudent;
-                    
-                    return (
-                    <tr
-                      key={student.cs_id}
-                      onClick={() => student.token && navigate(`/live/${student.token}`)}
-                      className={`cursor-pointer transition-colors group hover:bg-blue-50/40 ${isPinned ? "bg-blue-50/60" : "bg-white"}`}
-                    >
-                      <td className={`px-4 md:px-8 py-4 md:py-5 sticky left-0 z-10 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] transition-colors group-hover:bg-slate-50 w-[120px] md:w-[300px] overflow-hidden ${isPinned ? "bg-blue-50" : "bg-white"}`}>
-                        <div className="flex items-center gap-2 md:gap-4">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); togglePin(student.cs_id); }}
-                            className={`p-1.5 rounded-xl transition-all outline-none ${isPinned ? "text-amber-500 bg-amber-50 shadow-sm" : "text-slate-300 hover:text-amber-500 hover:bg-slate-100"}`}
-                            title={isPinned ? "Desfijar" : "Fijar Alumno"}
-                          >
-                            <Pin className={`w-4 h-4 ${isPinned ? "fill-amber-500" : ""}`} />
-                          </button>
-                          
-                          <div className={`hidden md:flex w-10 h-10 rounded-2xl items-center justify-center text-sm font-['Outfit'] font-black shadow-md flex-shrink-0 ${
-                            isPinned ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/20" :
-                            idx === 0 ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-amber-500/20" :
-                            idx === 1 ? "bg-gradient-to-br from-slate-300 to-slate-400 text-white" :
-                            idx === 2 ? "bg-gradient-to-br from-amber-600 to-amber-700 text-white" :
-                            "bg-slate-100 text-slate-600 border border-slate-200"
-                          }`}>
-                            {idx < 3 && !isPinned ? <Medal className="w-5 h-5" /> : idx + 1}
-                          </div>
-                          
-                          <div className="flex flex-col justify-center min-w-0">
-                            <span 
-                              className="font-['Outfit'] font-extrabold text-sm md:text-lg text-slate-900 tracking-tight truncate leading-tight block w-full"
-                              title={student.name}
-                            >
-                              <span className="md:hidden">{mobileName}</span>
-                              <span className="hidden md:inline">{student.name}</span>
-                            </span>
-                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
-                                Nv. {student.gami?.currentLevel || 1}
-                              </span>
-                              {student.gami?.streak >= 3 && (
-                                <span className="flex items-center gap-0.5 text-[9px] font-black text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">
-                                   <Flame className="w-3 h-3 fill-orange-500 text-orange-500" />
-                                   {student.gami.streak}
-                                </span>
-                              )}
-                              {student.gami?.hp <= 30 && (
-                                <span className="flex items-center gap-0.5 text-[9px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md animate-pulse">
-                                   <Heart className="w-3 h-3 fill-rose-500 text-rose-500" /> {student.gami.hp}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {visibleCriteria.map(crit => {
-                        const score = student.grades?.[crit.id];
-                        const numScore = score != null ? Number(score) : null;
-                        const pctScore = numScore != null && crit.max_score > 0 ? numScore / crit.max_score : 0;
-                        
-                        let scoreColorClass = "text-slate-300 font-bold";
-                        if (numScore != null) {
-                          if (pctScore >= 0.7) {
-                            scoreColorClass = "bg-emerald-50 text-emerald-800 border-2 border-emerald-400 font-black shadow-sm";
-                          } else if (pctScore >= 0.4) {
-                            scoreColorClass = "bg-amber-50 text-amber-900 border-2 border-amber-400 font-black shadow-sm";
-                          } else {
-                            scoreColorClass = "bg-rose-50 text-rose-900 border-2 border-rose-400 font-black shadow-sm";
-                          }
-                        }
+                        <th className="text-center px-3 py-2.5 sm:py-3 font-['Outfit'] font-black text-xs uppercase tracking-wider text-slate-700 bg-slate-50 border-l border-slate-200 min-w-[120px]">
+                          📝 Prom. Clases
+                        </th>
+                        <th className="text-center px-3 py-2.5 sm:py-3 font-['Outfit'] font-black text-xs uppercase tracking-wider text-purple-900 bg-purple-50/70 border-l border-slate-200 min-w-[140px]">
+                          🎯 Prom. Exám/TPs
+                        </th>
+                        <th className="text-center px-3 py-2.5 sm:py-3 font-['Outfit'] font-black text-xs uppercase tracking-wider text-blue-800 bg-blue-50/80 border-l border-slate-200 min-w-[140px]">
+                          🌟 Rendimiento
+                        </th>
+                        <th className="text-center px-3 py-2.5 sm:py-3 font-['Outfit'] font-black text-xs uppercase tracking-wider text-slate-700 border-l border-slate-200 min-w-[120px]">
+                          🛡️ Condición
+                        </th>
+                        <th className="text-center px-3 py-2.5 sm:py-3 font-['Outfit'] font-black text-xs uppercase tracking-wider text-slate-500 border-l border-slate-200 min-w-[90px]">
+                          Detalle
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredStudents.map((student, idx) => {
+                        const pct = calculateOverallPercentage(student.total, student.max);
+                        const isPinned = student.cs_id === pinnedStudent;
+                        const isPassing = (student.examAvg !== null ? student.examAvg >= 6 : (pct >= 0.6));
+                        const isHonor = pct >= 0.8 && (student.examAvg === null || student.examAvg >= 8);
 
                         return (
-                          <td key={crit.id} className="px-2 md:px-6 py-3 md:py-5 text-center border-l border-slate-100 transition-colors">
-                            {numScore != null ? (
-                              <div className={`mx-auto w-12 h-10 md:w-16 md:h-11 rounded-2xl flex items-center justify-center font-['Outfit'] font-black text-base md:text-lg ${scoreColorClass}`}>
-                                {score}
+                          <tr
+                            key={student.cs_id}
+                            onClick={() => student.token && navigate(`/live/${student.token}`)}
+                            className={`cursor-pointer hover:bg-blue-50/40 transition-colors group ${isPinned ? "bg-blue-50/60" : "bg-white"}`}
+                          >
+                            <td className={`px-4 sm:px-6 py-4 sticky left-0 z-10 border-r border-slate-200 shadow-[3px_0_10px_-2px_rgba(0,0,0,0.08)] ${isPinned ? "bg-blue-50" : "bg-white group-hover:bg-slate-50"}`}>
+                              <div className="flex items-center gap-2.5 sm:gap-3">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); togglePin(student.cs_id); }}
+                                  className={`p-1.5 rounded-xl transition-all outline-none shrink-0 ${isPinned ? "text-amber-500 bg-amber-50 shadow-xs" : "text-slate-300 hover:text-amber-500 hover:bg-slate-100"}`}
+                                  title={isPinned ? "Desfijar" : "Fijar Alumno"}
+                                >
+                                  <Pin className={`w-3.5 h-3.5 ${isPinned ? "fill-amber-500" : ""}`} />
+                                </button>
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-['Outfit'] font-black shrink-0 ${
+                                  idx === 0 ? "bg-amber-400 text-white shadow-xs" :
+                                  idx === 1 ? "bg-slate-300 text-white" :
+                                  idx === 2 ? "bg-amber-600 text-white" :
+                                  "bg-slate-100 text-slate-600 border border-slate-200"
+                                }`}>
+                                  {idx < 3 ? <Medal className="w-3.5 h-3.5" /> : idx + 1}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-['Outfit'] font-bold text-xs sm:text-sm text-slate-900 block leading-tight truncate">
+                                    {student.name}
+                                  </span>
+                                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                                    Nv. {student.gami?.currentLevel || 1} · {student.gami?.rank?.name || "Estudiante"}
+                                  </span>
+                                </div>
                               </div>
-                            ) : (
-                              <span className="text-slate-300 font-bold text-base">—</span>
-                            )}
-                          </td>
+                            </td>
+
+                            {/* Promedio Clases Normales */}
+                            <td className="px-4 py-4 text-center border-l border-slate-200 bg-slate-50/40">
+                              {typeof student.classAvg === 'number' ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="font-['Outfit'] font-black text-base text-slate-900">
+                                      {student.classAvg.toFixed(1)}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-slate-400">/ 10</span>
+                                  </div>
+                                  <div className="w-16 bg-slate-200 rounded-full h-1 overflow-hidden">
+                                    <div
+                                      className="bg-blue-600 h-full rounded-full"
+                                      style={{ width: `${Math.min(student.classAvg * 10, 100)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-slate-300 font-bold text-xs">—</span>
+                              )}
+                            </td>
+
+                            {/* Promedio Exámenes / TPs */}
+                            <td className="px-4 py-4 text-center border-l border-slate-200 bg-purple-50/30">
+                              {typeof student.examAvg === 'number' ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="font-['Outfit'] font-black text-base text-purple-700">
+                                      {student.examAvg.toFixed(1)}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-purple-400">/ 10</span>
+                                  </div>
+                                  <div className="w-16 bg-purple-200 rounded-full h-1 overflow-hidden">
+                                    <div
+                                      className="bg-purple-600 h-full rounded-full"
+                                      style={{ width: `${Math.min(student.examAvg * 10, 100)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-slate-300 font-bold text-xs">— Sin exámenes —</span>
+                              )}
+                            </td>
+
+                            {/* Rendimiento General */}
+                            <td className="px-4 py-4 text-center border-l border-slate-200 bg-blue-50/40">
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="flex items-baseline gap-1">
+                                  <span className="font-['Outfit'] font-black text-base text-blue-700">
+                                    {Math.round(pct * 100)}%
+                                  </span>
+                                  <span className="text-[10px] font-bold text-blue-400">
+                                    ({student.total}/{student.max})
+                                  </span>
+                                </div>
+                                <div className="w-16 bg-blue-200 rounded-full h-1 overflow-hidden">
+                                  <div
+                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full"
+                                    style={{ width: `${pct * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Condición */}
+                            <td className="px-4 py-4 text-center border-l border-slate-200">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-['Outfit'] font-black uppercase tracking-wider border ${
+                                isHonor
+                                  ? "bg-amber-50 text-amber-800 border-amber-200"
+                                  : isPassing
+                                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                  : "bg-rose-50 text-rose-800 border-rose-200"
+                              }`}>
+                                {isHonor ? "⭐ Promoción" : isPassing ? "✅ Aprobado" : "⏳ En Proceso"}
+                              </span>
+                            </td>
+
+                            {/* Acción / Ver Detalle */}
+                            <td className="px-4 py-4 text-center border-l border-slate-200">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); student.token && navigate(`/live/${student.token}`); }}
+                                className="px-2.5 py-1 rounded-xl text-xs font-['Outfit'] font-black uppercase tracking-wider transition-all cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
+                              >
+                                Ver
+                              </button>
+                            </td>
+                          </tr>
                         );
                       })}
-                      
-                      <td className="px-3 md:px-8 py-3 md:py-5 border-l-2 border-blue-200 sticky right-0 z-10 bg-blue-50/80 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.1)] w-[70px] md:w-[150px]">
-                        <div className="flex flex-col h-full justify-center text-center md:text-left">
-                           <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-1 mb-1.5">
-                             <div className="flex items-baseline justify-center md:justify-start gap-1">
-                               <span className="font-['Outfit'] font-black text-base md:text-2xl tracking-tight text-blue-700 leading-none">
-                                {student.total}
-                               </span>
-                               <span className="text-[10px] font-black uppercase text-blue-400 tracking-widest leading-none hidden md:inline">/ {student.max}</span>
-                             </div>
-                             <span className="text-[10px] md:text-xs font-black text-blue-700 bg-white px-2 py-0.5 rounded-lg border border-blue-200 shadow-sm inline-block mx-auto md:mx-0">
-                               {Math.round(pct * 100)}%
-                             </span>
-                           </div>
-                           
-                           {/* Mini Progress Bar */}
-                           <div className="w-full bg-blue-200 rounded-full h-1.5 overflow-hidden">
-                             <div 
-                                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500" 
-                                style={{ width: `${pct * 100}%` }}
-                              />
-                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              /* Detailed Matrix Sheet: All Columns by Session with Badges & Divided Averages */
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto scroll-smooth">
+                  <table className="w-full text-base border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-800 border-b border-slate-200">
+                        <th
+                          rowSpan={2}
+                          className="text-left px-3 sm:px-5 py-2.5 sm:py-3 font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 sticky left-0 bg-slate-100 z-30 shadow-[3px_0_10px_-2px_rgba(0,0,0,0.08)] border-r border-slate-200 w-[160px] sm:w-[200px]"
+                        >
+                          Alumno ({filteredStudents.length})
+                        </th>
+                        {visibleSessions.map(session => {
+                          const sessionVisibleCrits = visibleCriteria.filter(c => c.session_id === session.id);
+                          if (sessionVisibleCrits.length === 0) return null;
+                          const sCuatrimestre = session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1);
+                          return (
+                            <th
+                              key={session.id}
+                              colSpan={sessionVisibleCrits.length}
+                              className="px-2.5 py-2 text-center border-l border-slate-200"
+                            >
+                              <div className="flex items-center justify-center gap-1.5">
+                                <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${
+                                  sCuatrimestre === 2 
+                                    ? "bg-purple-100 text-purple-700 border-purple-200" 
+                                    : "bg-blue-100 text-blue-700 border-blue-200"
+                                }`}>
+                                  {sCuatrimestre}ºC
+                                </span>
+                                <span className="font-['Outfit'] font-black text-xs sm:text-sm uppercase tracking-wider text-slate-800">
+                                  {format(new Date(session.date + "T12:00:00"), "d 'de' MMM", { locale: es })}
+                                </span>
+                              </div>
+                            </th>
+                          );
+                        })}
+                        <th
+                          rowSpan={2}
+                          className="px-2.5 py-2.5 sm:py-3 text-center font-['Outfit'] font-black text-[11px] sm:text-xs uppercase tracking-wider text-slate-700 bg-slate-50/90 border-l border-slate-200 min-w-[90px]"
+                        >
+                          <div>Prom. Clases</div>
+                          <div className="text-[10px] font-bold text-slate-400 mt-0.5">/ 10</div>
+                        </th>
+                        <th
+                          rowSpan={2}
+                          className="px-2.5 py-2.5 sm:py-3 text-center font-['Outfit'] font-black text-[11px] sm:text-xs uppercase tracking-wider text-purple-900 bg-purple-50/70 border-l border-slate-200 min-w-[100px]"
+                        >
+                          <div>Prom. Exám/TPs</div>
+                          <div className="text-[10px] font-bold text-purple-400 mt-0.5">/ 10</div>
+                        </th>
+                        <th
+                          rowSpan={2}
+                          className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-['Outfit'] font-black text-xs uppercase tracking-widest text-blue-700 bg-blue-100 border-l-2 border-blue-200 sticky right-0 z-30 shadow-[-3px_0_10px_-2px_rgba(0,0,0,0.08)] min-w-[95px] sm:min-w-[115px]"
+                        >
+                          TOTAL
+                        </th>
+                      </tr>
+                      <tr className="border-b border-slate-200 bg-slate-50">
+                        {visibleCriteria.map(crit => (
+                          <th key={crit.id} className={`px-2 py-2 text-center border-l border-slate-200 min-w-[90px] ${crit.meta.headerClass}`}>
+                            <div className="flex flex-col items-center gap-1">
+                              <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md border ${crit.meta.badgeClass}`}>
+                                {crit.meta.icon} {crit.meta.shortLabel}
+                              </span>
+                              <div className="text-[10px] sm:text-xs font-['Outfit'] font-black text-slate-800 uppercase tracking-wider truncate max-w-[110px] mx-auto leading-tight" title={crit.cleanName}>
+                                {crit.cleanName}
+                              </div>
+                              <div className="text-[9px] font-bold text-slate-400">
+                                MÁX: {crit.max_score}
+                              </div>
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredStudents.map((student, idx) => {
+                        const pct = calculateOverallPercentage(student.total, student.max);
+                        const isPinned = student.cs_id === pinnedStudent;
+                        
+                        return (
+                        <tr
+                          key={student.cs_id}
+                          onClick={() => student.token && navigate(`/live/${student.token}`)}
+                          className={`cursor-pointer transition-colors group hover:bg-blue-50/40 ${isPinned ? "bg-blue-50/60" : "bg-white"}`}
+                        >
+                          <td className={`px-3 sm:px-5 py-3.5 sm:py-4 sticky left-0 z-10 shadow-[3px_0_10px_-2px_rgba(0,0,0,0.08)] border-r border-slate-200 transition-colors group-hover:bg-slate-50 w-[170px] sm:w-[220px] ${isPinned ? "bg-blue-50" : "bg-white"}`}>
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); togglePin(student.cs_id); }}
+                                className={`p-1.5 rounded-xl transition-all outline-none shrink-0 ${isPinned ? "text-amber-500 bg-amber-50 shadow-xs" : "text-slate-300 hover:text-amber-500 hover:bg-slate-100"}`}
+                                title={isPinned ? "Desfijar" : "Fijar Alumno"}
+                              >
+                                <Pin className={`w-3.5 h-3.5 ${isPinned ? "fill-amber-500" : ""}`} />
+                              </button>
+                              
+                              <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-xs font-['Outfit'] font-black shadow-xs shrink-0 ${
+                                isPinned ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/20" :
+                                idx === 0 ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-amber-500/20" :
+                                idx === 1 ? "bg-gradient-to-br from-slate-300 to-slate-400 text-white" :
+                                idx === 2 ? "bg-gradient-to-br from-amber-600 to-amber-700 text-white" :
+                                "bg-slate-100 text-slate-600 border border-slate-200"
+                              }`}>
+                                {idx < 3 && !isPinned ? <Medal className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : idx + 1}
+                              </div>
+                              
+                              <div className="flex flex-col justify-center min-w-0 flex-1">
+                                <span 
+                                  className="font-['Outfit'] font-bold text-xs sm:text-sm text-slate-900 tracking-tight truncate leading-tight block w-full"
+                                  title={student.name}
+                                >
+                                  {student.name}
+                                </span>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200/80">
+                                    Nv. {student.gami?.currentLevel || 1}
+                                  </span>
+                                  {student.gami?.streak > 1 && (
+                                    <span className="text-[9px] font-black text-amber-600 flex items-center gap-0.5">
+                                      <Flame className="w-2.5 h-2.5 fill-amber-500" /> {student.gami.streak}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {visibleCriteria.map(crit => {
+                            const score = student.grades?.[crit.id];
+                            return (
+                              <td key={crit.id} className="px-2 py-3 text-center border-l border-slate-100 group-hover:border-slate-200 transition-colors">
+                                {score != null ? (
+                                  <div className="inline-flex flex-col items-center justify-center">
+                                    <span className={`w-8 h-8 rounded-xl font-['Outfit'] font-extrabold text-sm flex items-center justify-center border transition-transform group-hover:scale-105 ${getScoreBadge(Number(score), crit.max_score || 10)}`}>
+                                      {score}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-300 font-bold text-xs">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          
+                          {/* Promedio Clases */}
+                          <td className="px-3 py-3 text-center border-l border-slate-200 bg-slate-50/40">
+                            {typeof student.classAvg === 'number' ? (
+                              <span className="font-['Outfit'] font-black text-sm text-slate-800">
+                                {student.classAvg.toFixed(1)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 font-bold text-xs">—</span>
+                            )}
+                          </td>
+
+                          {/* Promedio Exámenes / TPs */}
+                          <td className="px-3 py-3 text-center border-l border-slate-200 bg-purple-50/30">
+                            {typeof student.examAvg === 'number' ? (
+                              <span className="font-['Outfit'] font-black text-sm text-purple-700">
+                                {student.examAvg.toFixed(1)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 font-bold text-xs">—</span>
+                            )}
+                          </td>
+
+                          {/* TOTAL Sticky Right */}
+                          <td className={`px-3 sm:px-4 py-3 text-center sticky right-0 z-10 border-l-2 border-blue-200 shadow-[-3px_0_10px_-2px_rgba(0,0,0,0.08)] ${isPinned ? "bg-blue-50" : "bg-white group-hover:bg-slate-50"}`}>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <div className="flex items-baseline gap-1">
+                                <span className="font-['Outfit'] font-black text-sm sm:text-base text-blue-700">
+                                  {student.total}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400">
+                                  / {student.max}
+                                </span>
+                                <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1 py-0.2 rounded border border-blue-200/60 ml-0.5">
+                                  {Math.round(pct * 100)}%
+                                </span>
+                              </div>
+                              <div className="w-14 sm:w-16 bg-slate-100 rounded-full h-1 overflow-hidden mt-0.5">
+                                <div 
+                                  className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500" 
+                                  style={{ width: `${pct * 100}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Scroll Hint */}
+            <div className="md:hidden flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-400 py-1">
+              <span>👈</span>
+              <span>Deslizá para ver todas las columnas</span>
+              <span>👉</span>
             </div>
           </div>
         ) : (
@@ -527,176 +880,6 @@ export default function PublicClassView() {
             })}
           </div>
         )}
-
-        {/* Selected Student Details (When pinned) */}
-        {pinnedStudent && (() => {
-          const st = data.students.find(s => s.cs_id === pinnedStudent);
-          if (!st) return null;
-          const pct = calculateOverallPercentage(st.total, st.max);
-          
-          return (
-            <div className="mt-12 lg:mt-16 bg-white/90 backdrop-blur-xl rounded-[32px] p-6 md:p-8 shadow-2xl border-t-4 border-blue-500 relative overflow-hidden animate-spring">
-                
-                {/* Pinned Student Profile Header */}
-                <div className="flex flex-col md:flex-row items-center gap-8 mb-8 px-2 md:px-6">
-                   <div className="w-[200px] md:w-[220px] shrink-0">
-                      <StudentCard 
-                        student={{...st, pct}}
-                        isPinned={true}
-                        onClick={() => st.token && navigate(`/live/${st.token}`)}
-                      />
-                   </div>
-                   <div className="flex-1 space-y-6 text-center md:text-left">
-                      <div>
-                         <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-none mb-2">{st.name}</h2>
-                         <div className="flex items-center justify-center md:justify-start gap-2">
-                            <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-200">Perfil Seleccionado</span>
-                            {st.gami?.streak >= 3 && <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-200">🔥 Racha x{st.gami.streak}</span>}
-                         </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4 max-w-lg">
-                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nivel Actual</p>
-                            <p className="text-2xl font-black text-slate-800">{st.gami?.currentLevel || 1}</p>
-                         </div>
-                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Rendimiento</p>
-                            <p className="text-2xl font-black text-blue-600">{Math.round(pct * 100)}%</p>
-                         </div>
-                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm col-span-2 sm:col-span-1">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Notyx Coins</p>
-                            <div className="flex items-center justify-center md:justify-start gap-2">
-                               <p className="text-2xl font-black text-orange-600">{st.gami?.notyxCoins || 0}</p>
-                               <span className="text-xl">💰</span>
-                            </div>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-
-                {/* Divider */}
-                <div className="mx-2 md:mx-6 my-8 border-t-2 border-dashed border-slate-100" />
-
-                {/* Grades Section */}
-                <div className="px-6 pb-6 flex-1 flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                       {sessionFilter === "all" ? <History className="w-4 h-4 text-blue-500" /> : <TrendingUp className="w-4 h-4 text-blue-500" />  }
-                       {sessionFilter === "all" ? "Historial Académico" : "Rendimiento Seleccionado"}
-                     </p>
-                  </div>
-                  
-                  <div className={`content-start relative ${sessionFilter === "all" ? 'max-h-[340px] overflow-y-auto pr-2 custom-scrollbar' : 'grid grid-cols-1 gap-3'}`}>
-                    
-                    {sessionFilter === "all" ? (
-                      /* AESTHETIC TIMELINE VIEW FOR HISTORY */
-                      <div className="relative pt-2">
-                        {/* Continuous Timeline Line */}
-                        <div className="absolute top-4 bottom-4 left-[15px] w-0.5 bg-gradient-to-b from-blue-200 via-slate-200 to-transparent rounded-full" />
-                        
-                        {Object.entries(
-                          visibleCriteria.reduce((acc, crit) => {
-                            if (!acc[crit.sessionDate]) acc[crit.sessionDate] = [];
-                            acc[crit.sessionDate].push(crit);
-                            return acc;
-                          }, {})
-                        )
-                        .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
-                        .map(([date, criteriaGrouping], groupIdx) => (
-                          <div key={date} className="relative mb-6 last:mb-0">
-                            {/* Timeline Date Header */}
-                            <div className="flex items-center gap-4 mb-3 relative z-10 w-full">
-                              <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0 group-hover:border-blue-300 transition-colors">
-                                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                              </div>
-                              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/60 w-full flex justify-between items-center shadow-sm">
-                                <h4 className="font-black text-xs uppercase tracking-widest text-slate-600">
-                                  {format(new Date(date + "T12:00:00"), "d MMM yyyy", { locale: es })}
-                                </h4>
-                                <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">
-                                  {criteriaGrouping.length} eval.
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Criteria Cards within Date */}
-                            <div className="pl-12 space-y-2 relative z-10">
-                              {criteriaGrouping.map(crit => {
-                                const score = st.grades?.[crit.id];
-                                return (
-                                  <div key={crit.id} className="flex justify-between items-center bg-white p-3 rounded-[14px] border border-slate-200 shadow-sm hover:border-blue-300 transition-all hover:shadow-md group/crit">
-                                    <div className="min-w-0 pr-3">
-                                      <p className="text-sm font-bold text-slate-700 truncate group-hover/crit:text-blue-700 transition-colors">{crit.name}</p>
-                                      <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest flex items-center gap-1">
-                                        Máx: {crit.max_score}
-                                      </p>
-                                    </div>
-                                    <div className="flex-shrink-0">
-                                       {score != null ? (
-                                          <div className={`flex flex-col items-center justify-center min-w-[3rem] h-[3rem] rounded-xl border-2 ${getScoreBadge(score, crit.max_score)} transition-transform group-hover/crit:scale-105`}>
-                                            <span className="font-black text-xl tracking-tighter leading-none">{score}</span>
-                                          </div>
-                                        ) : (
-                                          <div className="flex items-center justify-center min-w-[3rem] h-[3rem] rounded-xl border-2 border-slate-100 bg-slate-50 text-slate-300">
-                                            <span className="font-black text-xl leading-none">—</span>
-                                          </div>
-                                        )}
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                    ) : (
-
-                      /* FLAT LIST FOR RECENT VIEW */
-                      <>
-                        {visibleCriteria.slice(0, 6).map(crit => {
-                          const score = st.grades?.[crit.id];
-                          return (
-                            <div key={crit.id} className="flex justify-between items-center bg-slate-50/80 hover:bg-white p-3.5 rounded-2xl border border-slate-200/60 transition-all hover:shadow-md hover:border-blue-200 group/crit">
-                              <div className="min-w-0 pr-4">
-                                <p className="text-sm font-bold text-slate-800 truncate group-hover/crit:text-blue-700 transition-colors">{crit.name}</p>
-                                <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest flex items-center gap-1.5">
-                                  {format(new Date(crit.sessionDate + "T12:00:00"), "d MMM", { locale: es })}
-                                </p>
-                              </div>
-                              
-                              <div className="flex-shrink-0">
-                                 {score != null ? (
-                                    <div className={`flex flex-col items-center justify-center min-w-[3.5rem] h-[3.5rem] rounded-xl border-2 ${getScoreBadge(score, crit.max_score)} transition-transform group-hover/crit:scale-110`}>
-                                      <span className="font-black text-2xl tracking-tighter leading-none">{score}</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center justify-center min-w-[3.5rem] h-[3.5rem] rounded-xl border-2 border-slate-200 bg-white text-slate-300 shadow-sm">
-                                      <span className="font-black text-xl leading-none">—</span>
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                        
-                        {sessionFilter === "latest" && visibleCriteria.length > 6 && (
-                          <button 
-                            onClick={() => setSessionFilter("all")}
-                            className="w-full flex items-center justify-center gap-2 py-3 mt-1 bg-white hover:bg-blue-50 text-blue-600 rounded-2xl border-2 border-blue-100 hover:border-blue-200 transition-all font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-md"
-                          >
-                             <History className="w-4 h-4" />
-                             +{visibleCriteria.length - 6} Evaluaciones Anteriores
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
 
       </div>
 

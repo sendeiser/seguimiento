@@ -5,11 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, Trophy, Medal, ShoppingBag, ShoppingCart, Swords, Heart, Sparkles, Flame, Crown, Flag, ShieldCheck, Star, Gamepad2, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Trophy, Medal, ShoppingBag, ShoppingCart, Swords, Heart, Sparkles, Flame, Crown, Flag, ShieldCheck, Star, Gamepad2, Loader2, List, FileSpreadsheet, Layers } from "lucide-react";
 import { useAuth } from "../../providers/AuthProvider";
 import { useToast } from "../../providers/ToastProvider";
 import { calculateGamification } from "../../lib/gamificationEngine";
 import { RewardIcon } from "../../lib/skinThemes";
+import {
+  getCriteriaType,
+  getCriteriaCleanName,
+  getCriteriaTypeMeta,
+} from "../../lib/pedagogicalReportEngine";
 
 // Vercel bundle-dynamic-imports: Lazy load heavy components (recharts & arena)
 const SkillsRadar = lazy(() => import("../../components/ui/SkillsRadar").then(m => ({ default: m.SkillsRadar })));
@@ -150,13 +155,28 @@ export default function StudentClassView() {
 
     // Update sessions data with my grades for UI using O(1) lookup map
     const myGradesMap = (allGData || []).filter(g => g.student_id === user.id).reduce((acc, curr) => { acc[curr.criteria_id] = curr.score; return acc; }, {});
-    const enhancedSessions = (sData || []).map(sess => ({
-      ...sess,
-      criteriaWithGrades: (sess.session_criteria || []).map(crit => ({
-        ...crit,
-        score: myGradesMap[crit.id] !== undefined ? myGradesMap[crit.id] : null
-      }))
-    }));
+    const enhancedSessions = (sData || []).map(sess => {
+      const sCuatrimestre = sess.cuatrimestre || (new Date(sess.date).getMonth() >= 6 ? 2 : 1);
+      return {
+        ...sess,
+        cuatrimestre: sCuatrimestre,
+        criteriaWithGrades: (sess.session_criteria || []).map(crit => {
+          const type = getCriteriaType(crit.name);
+          const cleanName = getCriteriaCleanName(crit.name) || crit.name;
+          const meta = getCriteriaTypeMeta(type);
+          return {
+            ...crit,
+            session_id: sess.id,
+            sessionDate: sess.date,
+            cuatrimestre: sCuatrimestre,
+            type,
+            cleanName,
+            meta,
+            score: myGradesMap[crit.id] !== undefined ? myGradesMap[crit.id] : null
+          };
+        })
+      };
+    });
     setSessionsData(enhancedSessions);
     setRewards(rwData || []);
     setMyPurchases(allPurchases || []);
@@ -198,6 +218,8 @@ export default function StudentClassView() {
   };
 
   const [selectedCuatrimestre, setSelectedCuatrimestre] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all"); // "all" | "exam" | "assignment" | "class"
+  const [academicSubView, setAcademicSubView] = useState("sessions"); // "sessions" | "table"
 
   if (loading) return <div className="p-8">Cargando progreso en vivo...</div>;
 
@@ -208,8 +230,41 @@ export default function StudentClassView() {
   });
 
   const allCriteria = filteredSessionsData.flatMap(s => s.criteriaWithGrades);
+
+  // Category counts across selected cuatrimestre
+  const criteriaCounts = {
+    all: allCriteria.length,
+    exam: allCriteria.filter(c => c.type === "exam").length,
+    assignment: allCriteria.filter(c => c.type === "assignment").length,
+    class: allCriteria.filter(c => c.type === "class").length,
+  };
+
+  // Separated score sums: Clases vs Exámenes/TPs
+  let classScoreSum = 0;
+  let classMaxSum = 0;
+  let examScoreSum = 0;
+  let examMaxSum = 0;
+
+  allCriteria.forEach(crit => {
+    if (crit.score !== null) {
+      const num = Number(crit.score);
+      const max = Number(crit.max_score || 10);
+      if (crit.type === "class") {
+        classScoreSum += num;
+        classMaxSum += max;
+      } else {
+        examScoreSum += num;
+        examMaxSum += max;
+      }
+    }
+  });
+
+  const classAvg = classMaxSum > 0 ? (classScoreSum / classMaxSum) * 10 : null;
+  const examAvg = examMaxSum > 0 ? (examScoreSum / examMaxSum) * 10 : null;
+
   const totalScore = allCriteria.reduce((a, c) => a + (c.score || 0), 0);
   const maxTotal = allCriteria.reduce((a, c) => a + (c.max_score || 0), 0);
+  const overallPct = maxTotal > 0 ? (totalScore / maxTotal) : 0;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
@@ -217,39 +272,32 @@ export default function StudentClassView() {
         <div className="flex items-center gap-4">
           <Link to="/home">
             <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-white border-transparent">
-              <ArrowLeft className="w-5 h-5 text-slate-500" />
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">{classData?.name}</h1>
-            <p className="text-slate-500 mt-2 font-medium text-sm">Progreso en vivo y rendimiento académico.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-snug">{classData?.name}</h1>
+            <p className="text-slate-500 mt-0.5 font-medium text-xs sm:text-sm">Progreso en vivo y rendimiento académico.</p>
           </div>
         </div>
 
         {/* Cuatrimestre Selector */}
-        <div className="flex items-center gap-2 bg-white p-2 rounded-2xl shadow-lg border border-slate-200 self-start md:self-auto">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Ver:</span>
+        <div className="apple-segmented-control self-start md:self-auto">
           <button
             onClick={() => setSelectedCuatrimestre("all")}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
-              selectedCuatrimestre === "all" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-105" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+            className={`apple-segmented-item ${selectedCuatrimestre === "all" ? "active" : ""}`}
           >
             Año Completo
           </button>
           <button
             onClick={() => setSelectedCuatrimestre("1")}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
-              selectedCuatrimestre === "1" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-105" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+            className={`apple-segmented-item ${selectedCuatrimestre === "1" ? "active" : ""}`}
           >
             1º Cuatrimestre
           </button>
           <button
             onClick={() => setSelectedCuatrimestre("2")}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
-              selectedCuatrimestre === "2" ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30 scale-105" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+            className={`apple-segmented-item ${selectedCuatrimestre === "2" ? "active" : ""}`}
           >
             2º Cuatrimestre
           </button>
@@ -257,27 +305,19 @@ export default function StudentClassView() {
       </div>
 
       {/* Main View Switcher Tabs */}
-      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white border border-slate-200/80 shadow-sm self-start">
+      <div className="apple-segmented-control self-start">
         <button
           onClick={() => setActiveMainTab("academic")}
-          className={`px-5 py-2.5 rounded-xl font-['Outfit'] font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
-            activeMainTab === 'academic' 
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' 
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`apple-segmented-item flex items-center gap-2 ${activeMainTab === 'academic' ? 'active' : ''}`}
         >
-          <Trophy className="w-4 h-4" />
+          <Trophy className="w-3.5 h-3.5 text-blue-600" />
           <span>Progreso y Clases</span>
         </button>
         <button
           onClick={() => setActiveMainTab("arena")}
-          className={`px-5 py-2.5 rounded-xl font-['Outfit'] font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
-            activeMainTab === 'arena' 
-              ? 'bg-gradient-to-r from-rose-500 to-purple-600 text-white shadow-md shadow-rose-500/30' 
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`apple-segmented-item flex items-center gap-2 ${activeMainTab === 'arena' ? 'active text-rose-600 font-bold' : ''}`}
         >
-          <Gamepad2 className="w-4 h-4" />
+          <Gamepad2 className="w-3.5 h-3.5 text-rose-500" />
           <span>Arena Competitiva</span>
         </button>
       </div>
@@ -320,14 +360,22 @@ export default function StudentClassView() {
             </div>
 
             <div className="flex-1 w-full space-y-6">
-              <div className="flex justify-between items-end">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Tu Experiencia (XP)</p>
-                    <h3 className="text-4xl font-black text-slate-800 leading-none tracking-tighter">{myGami.currentXP}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Tu Experiencia</p>
+                    <h3 className="text-3xl font-black text-slate-800 leading-none tracking-tighter">{myGami.currentXP} <span className="text-xs text-slate-400 font-bold">XP</span></h3>
                  </div>
-                 <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Nota Promedio</p>
-                    <p className="text-2xl font-black text-slate-600 leading-none tracking-tighter">{maxTotal > 0 ? Math.round((totalScore / maxTotal) * 100) : 0}%</p>
+                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-2xs">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">📝 Prom. Clases</p>
+                    <p className="text-xl font-black text-slate-800 leading-none">{typeof classAvg === 'number' ? `${classAvg.toFixed(1)}/10` : "—"}</p>
+                 </div>
+                 <div className="bg-purple-50/70 p-3 rounded-2xl border border-purple-100 shadow-2xs">
+                    <p className="text-[10px] font-black text-purple-700 uppercase tracking-widest mb-1">🎯 Prom. Exám/TPs</p>
+                    <p className="text-xl font-black text-purple-900 leading-none">{typeof examAvg === 'number' ? `${examAvg.toFixed(1)}/10` : "—"}</p>
+                 </div>
+                 <div className="bg-blue-50/70 p-3 rounded-2xl border border-blue-100 shadow-2xs">
+                    <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest leading-none mb-1">🌟 Rendimiento</p>
+                    <p className="text-xl font-black text-blue-800 leading-none">{Math.round(overallPct * 100)}%</p>
                  </div>
               </div>
 
@@ -463,6 +511,62 @@ export default function StudentClassView() {
         )}
       </div>
 
+      {/* Student Academic View & Category Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-xs">
+        <div className="flex items-center gap-2">
+          <div className="apple-segmented-control w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setAcademicSubView("sessions")}
+              className={`apple-segmented-item flex items-center justify-center gap-1.5 text-xs font-['Outfit'] font-black uppercase tracking-wider ${
+                academicSubView === "sessions" ? "active" : ""
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Por Sesiones</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAcademicSubView("table")}
+              className={`apple-segmented-item flex items-center justify-center gap-1.5 text-xs font-['Outfit'] font-black uppercase tracking-wider ${
+                academicSubView === "table" ? "active text-indigo-700 font-black" : ""
+              }`}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Planilla Completa</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Category Quick Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1 hidden md:inline">Dividir:</span>
+          {[
+            { key: "all", label: "Todas", count: criteriaCounts.all, icon: null },
+            { key: "exam", label: "Exámenes", count: criteriaCounts.exam, icon: "🎯" },
+            { key: "assignment", label: "TPs", count: criteriaCounts.assignment, icon: "📄" },
+            { key: "class", label: "Clases", count: criteriaCounts.class, icon: "📝" },
+          ].map((cat) => (
+            <button
+              key={cat.key}
+              type="button"
+              onClick={() => setCategoryFilter(cat.key)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-['Outfit'] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                categoryFilter === cat.key
+                  ? "bg-slate-900 text-white shadow-xs"
+                  : "bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80"
+              }`}
+            >
+              {cat.icon && <span>{cat.icon}</span>}
+              <span>{cat.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${categoryFilter === cat.key ? "bg-white/20 text-white" : "bg-white text-slate-500 border border-slate-200"}`}>
+                {cat.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-8">
         {filteredSessionsData.length > 0 && (
           <Suspense fallback={
@@ -473,60 +577,198 @@ export default function StudentClassView() {
             <SkillsRadar sessions={filteredSessionsData.map(s => ({...s, criteria: s.criteriaWithGrades}))} />
           </Suspense>
         )}
-        {filteredSessionsData.map(session => {
-          const sessionGami = myGami?.sessionScores?.find(s => s.id === session.id);
-          return (
-            <div key={session.id} className={`bg-white rounded-[40px] border shadow-xl shadow-slate-900/5 overflow-hidden ${sessionGami?.died ? 'border-red-200' : 'border-slate-100'}`}>
-              <div className={`border-b px-10 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 ${sessionGami?.died ? 'bg-red-50' : 'bg-slate-50/50'}`}>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Registro de Sesión</p>
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
-                      (session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1)) === 2 
-                        ? "bg-purple-50 text-purple-700 border-purple-200" 
-                        : "bg-blue-50 text-blue-700 border-blue-200"
-                    }`}>
-                      {(session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1))}º Cuatrimestre
-                    </span>
-                  </div>
-                  <h3 className="capitalize text-2xl font-black text-slate-900 tracking-tight">
-                    {format(new Date(session.date + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es })}
-                  </h3>
-                </div>
-                {sessionGami && (
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border ${sessionGami.hpChange > 0 ? "bg-green-50 text-green-600 border-green-200" : "bg-red-50 text-red-600 border-red-200"}`}>
-                     <Heart className={`w-4 h-4 ${sessionGami.hpChange > 0 ? 'fill-green-500' : 'fill-red-500'}`} />
-                     {sessionGami.hpChange > 0 ? '+' : ''}{sessionGami.hpChange} HP
-                  </div>
-                )}
+
+        {academicSubView === "table" ? (
+          /* Consolidated Student Grades Matrix Table */
+          <div className="bg-white rounded-[32px] md:rounded-[40px] border border-slate-200/80 shadow-xl shadow-slate-900/5 overflow-hidden">
+            <div className="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-['Outfit'] font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
+                  Sábana de Calificaciones del Alumno
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Desglose exhaustivo de todas tus notas registradas, divididas entre clases y exámenes.
+                </p>
               </div>
-              <div className="p-0 overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/30 border-b border-slate-50">
-                      <th className="text-left px-10 py-5 font-black text-[11px] uppercase tracking-[0.2em] text-slate-400">Criterio</th>
-                      <th className="text-center px-6 py-5 font-black text-[11px] uppercase tracking-[0.2em] text-slate-400">Nota</th>
-                      <th className="text-right px-10 py-5 font-black text-[11px] uppercase tracking-[0.2em] text-slate-400">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {session.criteriaWithGrades.map(crit => (
-                      <tr key={crit.id} className="hover:bg-slate-50/50">
-                        <td className="px-10 py-6 font-black text-slate-800">{crit.name}</td>
-                        <td className="px-6 py-6 text-center font-black text-2xl">{crit.score !== null ? crit.score : '--'} <span className="text-xs text-slate-300">/ {crit.max_score}</span></td>
-                        <td className="px-10 py-6 text-right">
-                           <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-xl ${crit.score !== null ? 'bg-blue-50 text-blue-800' : 'bg-slate-100 text-slate-400'}`}>
-                            {crit.score !== null ? 'Victoria' : 'Pendiente'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-xl border border-slate-200">
+                  Total: {allCriteria.filter(c => c.score !== null).length} / {allCriteria.length} evaluados
+                </span>
               </div>
             </div>
-          );
-        })}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-800 border-b border-slate-200">
+                    <th className="text-left px-6 py-4 font-['Outfit'] font-black text-[11px] uppercase tracking-wider text-slate-700">
+                      Fecha / Sesión
+                    </th>
+                    <th className="text-center px-4 py-4 font-['Outfit'] font-black text-[11px] uppercase tracking-wider text-slate-700">
+                      Cuatrimestre
+                    </th>
+                    <th className="text-left px-6 py-4 font-['Outfit'] font-black text-[11px] uppercase tracking-wider text-slate-700">
+                      Evaluación
+                    </th>
+                    <th className="text-center px-6 py-4 font-['Outfit'] font-black text-[11px] uppercase tracking-wider text-slate-700">
+                      Nota
+                    </th>
+                    <th className="text-center px-6 py-4 font-['Outfit'] font-black text-[11px] uppercase tracking-wider text-slate-700">
+                      Máximo
+                    </th>
+                    <th className="text-center px-6 py-4 font-['Outfit'] font-black text-[11px] uppercase tracking-wider text-slate-700">
+                      Rendimiento
+                    </th>
+                    <th className="text-right px-6 py-4 font-['Outfit'] font-black text-[11px] uppercase tracking-wider text-slate-700">
+                      Estado
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {allCriteria
+                    .filter(c => categoryFilter === "all" || c.type === categoryFilter)
+                    .map(crit => {
+                      const numScore = crit.score !== null ? Number(crit.score) : null;
+                      const pct = numScore !== null && crit.max_score > 0 ? numScore / crit.max_score : 0;
+                      return (
+                        <tr key={crit.id} className="hover:bg-blue-50/40 transition-colors">
+                          <td className="px-6 py-4 font-bold text-slate-700 whitespace-nowrap">
+                            {format(new Date(crit.sessionDate + "T12:00:00"), "d 'de' MMMM", { locale: es })}
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                              crit.cuatrimestre === 2 
+                                ? "bg-purple-100 text-purple-700 border-purple-200" 
+                                : "bg-blue-100 text-blue-700 border-blue-200"
+                            }`}>
+                              {crit.cuatrimestre}ºC
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${crit.meta.badgeClass}`}>
+                                {crit.meta.icon} {crit.meta.shortLabel}
+                              </span>
+                              <span className="font-['Outfit'] font-extrabold text-slate-900 text-base">
+                                {crit.cleanName}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {numScore !== null ? (
+                              <span className={`font-['Outfit'] font-black text-xl ${
+                                pct >= 0.7 ? "text-emerald-700" : pct >= 0.4 ? "text-amber-700" : "text-rose-700"
+                              }`}>
+                                {crit.score}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 font-bold text-sm">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-center font-bold text-slate-400">
+                            {crit.max_score}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {numScore !== null ? (
+                              <span className="text-xs font-black text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                                {Math.round(pct * 100)}%
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-xl ${
+                              numScore === null
+                                ? "bg-slate-100 text-slate-400"
+                                : pct >= 0.7
+                                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                : pct >= 0.4
+                                ? "bg-amber-50 text-amber-800 border border-amber-200"
+                                : "bg-rose-50 text-rose-800 border border-rose-200"
+                            }`}>
+                              {numScore === null ? "Pendiente" : pct >= 0.7 ? "Excelente" : pct >= 0.4 ? "Regular" : "A Reforzar"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          /* Session by Session Cards with Clean Names & Badges */
+          filteredSessionsData.map(session => {
+            const sessionGami = myGami?.sessionScores?.find(s => s.id === session.id);
+            const visibleCrits = session.criteriaWithGrades.filter(
+              crit => categoryFilter === "all" || crit.type === categoryFilter
+            );
+            if (visibleCrits.length === 0 && categoryFilter !== "all") return null;
+
+            return (
+              <div key={session.id} className={`bg-white rounded-[40px] border shadow-xl shadow-slate-900/5 overflow-hidden ${sessionGami?.died ? 'border-red-200' : 'border-slate-100'}`}>
+                <div className={`border-b px-6 sm:px-10 py-6 sm:py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${sessionGami?.died ? 'bg-red-50' : 'bg-slate-50/50'}`}>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Registro de Sesión</p>
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
+                        (session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1)) === 2 
+                          ? "bg-purple-50 text-purple-700 border-purple-200" 
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+                      }`}>
+                        {(session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1))}º Cuatrimestre
+                      </span>
+                    </div>
+                    <h3 className="capitalize text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                      {format(new Date(session.date + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es })}
+                    </h3>
+                  </div>
+                  {sessionGami && (
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border ${sessionGami.hpChange > 0 ? "bg-green-50 text-green-600 border-green-200" : "bg-red-50 text-red-600 border-red-200"}`}>
+                       <Heart className={`w-4 h-4 ${sessionGami.hpChange > 0 ? 'fill-green-500' : 'fill-red-500'}`} />
+                       {sessionGami.hpChange > 0 ? '+' : ''}{sessionGami.hpChange} HP
+                    </div>
+                  )}
+                </div>
+                <div className="p-0 overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/30 border-b border-slate-50">
+                        <th className="text-left px-6 sm:px-10 py-5 font-black text-[11px] uppercase tracking-[0.2em] text-slate-400">Criterio / Evaluación</th>
+                        <th className="text-center px-6 py-5 font-black text-[11px] uppercase tracking-[0.2em] text-slate-400">Nota</th>
+                        <th className="text-right px-6 sm:px-10 py-5 font-black text-[11px] uppercase tracking-[0.2em] text-slate-400">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {visibleCrits.map(crit => (
+                        <tr key={crit.id} className="hover:bg-slate-50/50">
+                          <td className="px-6 sm:px-10 py-6 font-black text-slate-800">
+                            <div className="flex items-center gap-2.5">
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${crit.meta.badgeClass}`}>
+                                {crit.meta.icon} {crit.meta.shortLabel}
+                              </span>
+                              <span className="text-slate-900 font-extrabold text-base">{crit.cleanName}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6 text-center font-black text-2xl">
+                            {crit.score !== null ? crit.score : '--'} <span className="text-xs text-slate-300">/ {crit.max_score}</span>
+                          </td>
+                          <td className="px-6 sm:px-10 py-6 text-right">
+                             <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-xl ${crit.score !== null ? 'bg-blue-50 text-blue-800 border border-blue-200' : 'bg-slate-100 text-slate-400'}`}>
+                              {crit.score !== null ? 'Victoria' : 'Pendiente'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
       </>
       )}

@@ -219,40 +219,86 @@ export default function PublicStudentView() {
   })();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] to-[#EFF6FF] pb-20">
-      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200 z-50 shadow-sm">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3">
-          <div className="flex flex-col gap-4">
-            {/* Top row: Back + Info + Coins */}
-            <div className="flex items-center gap-3 w-full">
-               <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
-                 <ChevronLeft className="w-5 h-5" />
-               </button>
-               <div className="flex-1 min-w-0 pr-2">
-                   <h1 className="font-black text-base sm:text-lg md:text-2xl tracking-tight text-slate-800 truncate leading-tight">{data.class_name}</h1>
-                   <p className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-400 truncate uppercase tracking-widest leading-none mt-1">{data.student_name}</p>
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-orange-50 border border-orange-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl shadow-sm shrink-0">
-                   <CoinsIcon className="w-3.5 h-3.5 sm:w-4 h-4 text-orange-500" />
-                   <span className="text-sm sm:text-base font-black text-orange-700 leading-none">{gami?.notyxCoins || 0}</span>
-                </div>
+    <div className="min-h-screen bg-slate-50/50 pb-20">
+      <header className="sticky top-0 bg-white/95 backdrop-blur-2xl border-b border-slate-200/80 z-50 shadow-xs">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 sm:gap-3">
+            {/* Left: Back button + Student Info */}
+            <div className="flex items-center justify-between md:justify-start gap-2.5 min-w-0">
+               <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                 <button
+                   onClick={() => navigate(-1)}
+                   className="p-1.5 sm:p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 shrink-0 active:scale-95 transition-all cursor-pointer"
+                   title="Volver"
+                 >
+                   <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                 </button>
+                 <div className="min-w-0">
+                     <h1 className="font-extrabold text-sm sm:text-base md:text-lg tracking-tight text-slate-900 truncate leading-tight">{data.class_name}</h1>
+                     <p className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate leading-none mt-0.5">{data.student_name}</p>
+                 </div>
+               </div>
+               
+               {/* Mobile Coins Badge */}
+               <div className="flex md:hidden items-center gap-1.5 bg-amber-50/80 border border-amber-200/70 px-2.5 py-1 rounded-xl shadow-2xs shrink-0">
+                  <CoinsIcon className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-xs font-bold text-amber-800 leading-none">{totalNotyxCoins}</span>
+               </div>
             </div>
             
-            {/* Bottom row: Navigation Tabs */}
-            <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200 w-full">
-               <button onClick={() => setActiveTab("progress")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'progress' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Progreso</button>
-               <button onClick={() => setActiveTab("shop")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Bazar</button>
-               <button onClick={() => setActiveTab("games")} className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-all ${activeTab === 'games' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Arena</button>
+            {/* Center: Navigation Tabs - Apple Compact Segmented Control */}
+            <div className="flex items-center justify-center">
+              <div className="grid grid-cols-3 sm:flex items-center bg-slate-100/90 p-0.5 sm:p-1 rounded-xl border border-slate-200/80 shadow-2xs w-full sm:w-auto">
+                 <button
+                   onClick={() => setActiveTab("progress")}
+                   className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                     activeTab === 'progress' 
+                       ? 'bg-white text-blue-600 shadow-xs' 
+                       : 'text-slate-500 hover:text-slate-800'
+                   }`}
+                 >
+                   <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+                   <span>Progreso</span>
+                 </button>
+                 <button
+                   onClick={() => setActiveTab("shop")}
+                   className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                     activeTab === 'shop' 
+                       ? 'bg-white text-orange-600 shadow-xs' 
+                       : 'text-slate-500 hover:text-slate-800'
+                   }`}
+                 >
+                   <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                   <span>Bazar</span>
+                 </button>
+                 <button
+                   onClick={() => setActiveTab("games")}
+                   className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                     activeTab === 'games' 
+                       ? 'bg-white text-indigo-600 shadow-xs' 
+                       : 'text-slate-500 hover:text-slate-800'
+                   }`}
+                 >
+                   <Gamepad2 className="w-3.5 h-3.5 shrink-0" />
+                   <span>Arena</span>
+                 </button>
+              </div>
+            </div>
+
+            {/* Desktop Coins Badge */}
+            <div className="hidden md:flex items-center gap-1.5 bg-amber-50/80 border border-amber-200/70 px-3 py-1.5 rounded-xl shadow-2xs shrink-0">
+               <CoinsIcon className="w-4 h-4 text-amber-500" />
+               <span className="text-sm font-bold text-amber-800 leading-none">{totalNotyxCoins}</span>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-12">
+      <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-5 space-y-5 sm:space-y-6">
         {activeTab === "progress" && (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="bg-white rounded-[40px] p-6 md:p-10 border border-slate-100 shadow-2xl overflow-hidden relative flex flex-col md:flex-row items-center gap-8 md:gap-12">
-               <div className="w-[240px] shrink-0 relative group">
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-500">
+            <div className="apple-card rounded-2xl p-4 sm:p-6 overflow-hidden relative flex flex-col md:flex-row items-center gap-5 sm:gap-8 border border-slate-200/80 shadow-xs">
+               <div className="w-[220px] sm:w-[240px] shrink-0 relative group">
                   <StudentCard 
                     student={{
                       name: data.student_name,
@@ -265,73 +311,73 @@ export default function PublicStudentView() {
                   {hasPhotoPower && (
                     <button 
                       onClick={() => fileInputRef.current.click()}
-                      className="absolute bottom-4 right-4 bg-white p-3 rounded-2xl shadow-2xl border border-slate-100 hover:scale-110 transition-all z-50 text-blue-600"
+                      className="absolute bottom-4 right-4 bg-white p-2.5 rounded-xl shadow-md border border-slate-200/80 hover:scale-105 active:scale-95 transition-all z-50 text-blue-600"
                     >
-                      <Camera className="w-5 h-5" />
+                      <Camera className="w-4 h-4" />
                       <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
                     </button>
                   )}
                </div>
-               <div className="flex-1 w-full space-y-5">
+               <div className="flex-1 w-full space-y-3.5 sm:space-y-4">
                   <div className="space-y-1 text-center md:text-left">
-                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-800 tracking-tighter leading-none">Mi Perfil Notyx</h2>
-                     <p className="text-slate-400 font-bold text-xs md:text-sm">Tu rango actual es <span className="text-blue-600 uppercase tracking-widest">{gami?.rank?.name || 'Hierro'}</span></p>
+                     <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">Mi Perfil Notyx</h2>
+                     <p className="text-slate-400 font-medium text-xs sm:text-sm">Tu rango actual es <span className="text-blue-600 font-semibold">{gami?.rank?.name || 'Hierro'}</span></p>
                   </div>
                   
                   {hasPhotoPower && !data.avatar_url && (
-                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-left duration-500">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                        <Camera className="w-5 h-5 text-blue-500" />
+                    <div className="bg-blue-50/80 border border-blue-200/60 p-3 rounded-xl flex items-center gap-3 animate-in slide-in-from-left duration-300">
+                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-xs shrink-0">
+                        <Camera className="w-4 h-4 text-blue-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-0.5">¡Poder Desbloqueado!</p>
-                        <p className="text-xs font-bold text-slate-600 truncate">Sube tu foto personalizada</p>
+                        <p className="text-xs font-semibold text-blue-700 leading-none">¡Poder Desbloqueado!</p>
+                        <p className="text-xs font-normal text-slate-600 truncate mt-0.5">Sube tu foto personalizada</p>
                       </div>
                       <button 
                         onClick={() => fileInputRef.current.click()}
-                        className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest"
+                        className="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-transform"
                       >
                         Subir
                       </button>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Puntos XP</span>
-                      <span className="text-3xl font-black text-blue-600 tracking-tight">{gami.currentXP}</span>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="apple-card p-3.5 sm:p-4 rounded-xl border border-slate-200/70 shadow-2xs">
+                      <span className="text-[11px] sm:text-xs font-semibold text-slate-400 block mb-0.5">Puntos XP</span>
+                      <span className="text-xl sm:text-2xl font-extrabold text-blue-600 tracking-tight">{gami.currentXP}</span>
                     </div>
-                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vitalidad</span>
+                    <div className="apple-card p-3.5 sm:p-4 rounded-xl border border-slate-200/70 shadow-2xs">
+                      <span className="text-[11px] sm:text-xs font-semibold text-slate-400 block mb-0.5">Vitalidad</span>
                       <div className="flex items-center gap-2">
-                         <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-                         <span className="text-3xl font-black text-slate-800 tracking-tight">{gami.hp}</span>
+                         <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 fill-rose-500" />
+                         <span className="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">{gami.hp}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-medium text-slate-500 px-1">
                       <span>Nivel {gami.currentLevel}</span>
                       <span>{gami.currentLevelXP} / {gami.nextLevelXP} XP</span>
                     </div>
-                    <div className="h-4 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-inner"><div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000" style={{ width: `${(gami.currentLevelXP / gami.nextLevelXP) * 100}%` }} /></div>
+                    <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60"><div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-700" style={{ width: `${(gami.currentLevelXP / gami.nextLevelXP) * 100}%` }} /></div>
                   </div>
                </div>
             </div>
 
             {/* Logros Section */}
-            <div className="space-y-6">
-               <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-3">
-                     <div className="bg-amber-100 p-2 rounded-xl"><Award className="w-5 h-5 text-amber-600" /></div>
-                     <h3 className="text-2xl font-black text-slate-800 tracking-tight">Mis Logros</h3>
+            <div className="space-y-3 sm:space-y-4">
+               <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2.5">
+                     <div className="bg-amber-100 p-1.5 sm:p-2 rounded-xl"><Award className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" /></div>
+                     <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">Mis Logros</h3>
                   </div>
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
                      {gami?.unlockedBadges?.filter(b => b.unlocked).length || 0} / {Object.keys(BADGE_DEFS).length} Desbloqueados
                   </span>
                </div>
                
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                   {Object.keys(BADGE_DEFS).map((key) => {
                     const badge = BADGE_DEFS[key];
                     const isUnlocked = gami?.unlockedBadges?.find(b => b.id === key)?.unlocked;
@@ -339,26 +385,26 @@ export default function PublicStudentView() {
                     return (
                       <div 
                         key={key}
-                        className={`relative p-5 rounded-3xl border-2 transition-all duration-300 ${
+                        className={`relative p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 ${
                           isUnlocked 
-                            ? 'bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-300 shadow-lg shadow-amber-500/20' 
-                            : 'bg-slate-50 border-slate-200 opacity-60'
+                            ? 'bg-gradient-to-br from-amber-50 to-yellow-100/80 border-amber-300 shadow-sm shadow-amber-500/10' 
+                            : 'bg-white/80 border-slate-200/80 opacity-60'
                         }`}
                       >
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${
+                        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center mb-2.5 ${
                           isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-white'
                         }`}>
-                          {isUnlocked ? <BadgeIcon className="w-6 h-6" /> : <Lock className="w-5 h-5" />}
+                          {isUnlocked ? <BadgeIcon className="w-5 h-5" /> : <Lock className="w-4 h-4" />}
                         </div>
-                        <h4 className={`font-black text-sm mb-1 ${isUnlocked ? 'text-amber-900' : 'text-slate-400'}`}>
+                        <h4 className={`font-extrabold text-xs sm:text-sm mb-0.5 leading-snug ${isUnlocked ? 'text-amber-900' : 'text-slate-500'}`}>
                           {badge.label}
                         </h4>
                         <p className={`text-[10px] font-medium leading-tight ${isUnlocked ? 'text-amber-700' : 'text-slate-400'}`}>
                           {badge.req}
                         </p>
                         {isUnlocked && (
-                          <div className="absolute top-3 right-3">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                          <div className="absolute top-2.5 right-2.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           </div>
                         )}
                       </div>
@@ -368,54 +414,54 @@ export default function PublicStudentView() {
             </div>
 
             {/* Class History Section */}
-            <div className="space-y-6">
-               <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-3">
-                     <div className="bg-blue-100 p-2 rounded-xl"><History className="w-5 h-5 text-blue-600" /></div>
-                     <h3 className="text-2xl font-black text-slate-800 tracking-tight">Historial de Clases</h3>
+            <div className="space-y-3 sm:space-y-4">
+               <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2.5">
+                     <div className="bg-blue-100 p-1.5 sm:p-2 rounded-xl"><History className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" /></div>
+                     <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">Historial de Clases</h3>
                   </div>
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{data.sessions?.length || 0} Sesiones</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">{data.sessions?.length || 0} Sesiones</span>
                </div>
                
-               <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
+               <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                   <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
-                     <table className="w-full text-base border-collapse min-w-[500px] md:min-w-full">
+                     <table className="w-full text-sm border-collapse min-w-[500px] md:min-w-full">
                         <thead>
-                           <tr className="border-b-2 border-slate-100">
-                              <th className="px-4 md:px-6 py-4 text-left text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
-                              <th className="px-4 md:px-6 py-4 text-left text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Asistencia</th>
-                              <th className="px-4 md:px-6 py-4 text-left text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Rendimiento</th>
-                              <th className="px-4 md:px-6 py-4 text-right text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Puntaje</th>
+                           <tr className="border-b border-slate-200/80 bg-slate-50/50">
+                              <th className="px-3 sm:px-5 py-2.5 sm:py-3 text-left text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider">Fecha</th>
+                              <th className="px-3 sm:px-5 py-2.5 sm:py-3 text-left text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider">Asistencia</th>
+                              <th className="px-3 sm:px-5 py-2.5 sm:py-3 text-left text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider">Rendimiento</th>
+                              <th className="px-3 sm:px-5 py-2.5 sm:py-3 text-right text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider">Puntaje</th>
                            </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-slate-100">
                            {data.sessions?.map((session, idx) => {
                               const sessTotal = session.criteria?.reduce((sum, c) => sum + (c.score || 0), 0) || 0;
                               const sessMax = session.criteria?.reduce((sum, c) => sum + (c.max_score || 0), 0) || 0;
                               const sessPct = sessMax > 0 ? (sessTotal / sessMax) * 100 : 0;
                               
                               return (
-                                 <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                       <span className="text-sm font-black text-slate-700">{format(new Date(session.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}</span>
+                                 <tr key={session.id} className="hover:bg-slate-50/60 transition-colors">
+                                    <td className="px-3 sm:px-5 py-2.5 sm:py-3">
+                                       <span className="text-xs sm:text-sm font-bold text-slate-700">{format(new Date(session.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}</span>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-3 sm:px-5 py-2.5 sm:py-3">
                                        {session.attendance ? (
-                                          <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">Presente</span>
+                                          <span className="bg-emerald-50 border border-emerald-200/70 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Presente</span>
                                        ) : (
-                                          <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">Ausente</span>
+                                          <span className="bg-rose-50 border border-rose-200/70 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Ausente</span>
                                        )}
                                     </td>
-                                    <td className="px-6 py-4">
-                                       <div className="flex items-center gap-3">
-                                          <div className="flex-1 h-1.5 w-20 bg-slate-100 rounded-full overflow-hidden">
+                                    <td className="px-3 sm:px-5 py-2.5 sm:py-3">
+                                       <div className="flex items-center gap-2 sm:gap-3">
+                                          <div className="flex-1 h-1.5 w-16 sm:w-20 bg-slate-100 rounded-full overflow-hidden">
                                              <div className={`h-full rounded-full ${sessPct >= 80 ? 'bg-emerald-500' : sessPct >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${sessPct}%` }} />
                                           </div>
-                                          <span className="text-xs font-black text-slate-500">{Math.round(sessPct)}%</span>
+                                          <span className="text-[11px] font-bold text-slate-500">{Math.round(sessPct)}%</span>
                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                       <span className="text-sm font-black text-slate-900">{sessTotal} / {sessMax}</span>
+                                    <td className="px-3 sm:px-5 py-2.5 sm:py-3 text-right">
+                                       <span className="text-xs sm:text-sm font-extrabold text-slate-800">{sessTotal} / {sessMax}</span>
                                     </td>
                                  </tr>
                               );
@@ -429,100 +475,86 @@ export default function PublicStudentView() {
         )}
 
         {activeTab === "shop" && (
-          <div className="space-y-12 animate-in slide-up">
-             <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl relative overflow-hidden">
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 text-center md:text-left">
-                   <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-                      <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-xl border border-white/20"><ShoppingBag className="w-8 h-8 md:w-10 md:h-10" /></div>
-                      <div>
-                         <h2 className="text-2xl md:text-4xl font-black tracking-tight leading-none mb-1 md:mb-2">Bazar Estudiantil</h2>
-                         <p className="text-orange-100 text-sm md:text-lg font-medium italic">Canjea tus monedas por estilo</p>
-                      </div>
-                   </div>
-                   <div className="bg-white text-orange-600 px-8 py-4 md:px-10 md:py-5 rounded-2xl md:rounded-[2rem] flex flex-col items-center shadow-xl border-2 md:border-4 border-orange-100">
-                      <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-60">Tu Fortuna</span>
-                      <div className="flex items-center gap-2 font-black text-2xl md:text-4xl">
-                         <CoinsIcon className="w-6 h-6 md:w-8 md:h-8" /> {gami?.notyxCoins || 0}
-                      </div>
-                   </div>
-                </div>
-             </div>
-
-             {/* Shop Sub-Tabs */}
-             <div className="flex justify-center -mt-6 relative z-20">
-                <div className="inline-flex p-1.5 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-slate-200 shadow-xl shadow-slate-200/50">
+          <div className="space-y-4 sm:space-y-5 animate-in slide-up duration-300">
+             {/* Unified Bazar Control Bar */}
+             <div className="bg-white/95 backdrop-blur-md p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 sm:gap-2">
+                {/* Left: Sub-tabs (Premios / Pokémon / Pokedex) */}
+                <div className="flex items-center justify-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/80 shadow-2xs">
                    {[
-                      { id: 'rewards', label: 'Premios', icon: <Trophy className="w-4 h-4" /> },
-                      { id: 'pokemon', label: 'Tienda Pokémon', icon: <Sparkles className="w-4 h-4" /> },
-                      { id: 'pokedex', label: 'Mi Pokedex', icon: <BookOpen className="w-4 h-4" /> }
+                      { id: 'rewards', label: 'Premios', icon: <Trophy className="w-3.5 h-3.5" /> },
+                      { id: 'pokemon', label: 'Tienda Pokémon', icon: <Sparkles className="w-3.5 h-3.5" /> },
+                      { id: 'pokedex', label: 'Mi Pokedex', icon: <BookOpen className="w-3.5 h-3.5" /> }
                    ].map((tab) => (
                       <button
                          key={tab.id}
                          onClick={() => setActiveShopTab(tab.id)}
-                         className={`flex items-center gap-2 px-6 py-3.5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all duration-300 ${
+                         className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md font-bold text-xs transition-all cursor-pointer ${
                             activeShopTab === tab.id 
-                               ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 scale-105' 
-                               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                               ? 'bg-orange-500 text-white shadow-xs' 
+                               : 'text-slate-500 hover:text-slate-800'
                          }`}
                       >
                          {tab.icon}
-                         {tab.label}
+                         <span>{tab.label}</span>
                       </button>
                    ))}
                 </div>
-             </div>
 
-             {activeShopTab === "rewards" && (
-                <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                   {/* Reward Categories */}
-                   <div className="flex flex-wrap gap-2 justify-center">
+                {/* Right (when in rewards): Category filter pills */}
+                {activeShopTab === "rewards" && (
+                   <div className="flex items-center justify-center sm:justify-end gap-1 overflow-x-auto no-scrollbar pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-0.5 shrink-0">Filtrar:</span>
                       {[
-                         { id: 'all', label: 'Todo', icon: <ShoppingBag className="w-3.5 h-3.5" /> },
-                         { id: 'skins', label: 'Skins', icon: <Sparkles className="w-3.5 h-3.5" /> },
-                         { id: 'powerups', label: 'Poderes', icon: <Zap className="w-3.5 h-3.5" /> },
-                         { id: 'class', label: 'Clase', icon: <Trophy className="w-3.5 h-3.5" /> }
+                         { id: 'all', label: 'Todo', icon: <ShoppingBag className="w-3 h-3" /> },
+                         { id: 'skins', label: 'Skins', icon: <Sparkles className="w-3 h-3" /> },
+                         { id: 'powerups', label: 'Poderes', icon: <Zap className="w-3 h-3" /> },
+                         { id: 'class', label: 'Clase', icon: <Trophy className="w-3 h-3" /> }
                       ].map(cat => (
                          <button
                             key={cat.id}
                             onClick={() => setRewardCategory(cat.id)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                            className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md font-bold text-xs transition-all cursor-pointer shrink-0 ${
                                rewardCategory === cat.id 
-                                  ? 'bg-slate-900 text-white shadow-lg' 
-                                  : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                                  ? 'bg-slate-900 text-white shadow-xs' 
+                                  : 'bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200/80'
                             }`}
                          >
                             {cat.icon}
-                            {cat.label}
+                            <span>{cat.label}</span>
                          </button>
                       ))}
                    </div>
+                )}
+             </div>
 
+             {activeShopTab === "rewards" && (
+                <div className="space-y-5 sm:space-y-6 animate-in slide-in-from-bottom-2 duration-300">
                    {/* Powerups Section */}
                    {(rewardCategory === 'all' || rewardCategory === 'powerups') && powerups.length > 0 && (
-                      <div className="space-y-6">
-                         <div className="flex items-center gap-3 px-2">
-                            <div className="bg-amber-100 p-2 rounded-xl"><Zap className="w-5 h-5 text-amber-600" /></div>
-                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">Superpoderes</h3>
+                      <div className="space-y-3 sm:space-y-4">
+                         <div className="flex items-center gap-2.5 px-1">
+                            <div className="bg-amber-100 p-1.5 sm:p-2 rounded-xl"><Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" /></div>
+                            <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">Superpoderes</h3>
                          </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {powerups.map(reward => {
                                const isBought = data.purchases?.some(p => p.reward_id === reward.id);
-                               const canAfford = gami.notyxCoins >= reward.cost_coins;
+                               const canAfford = totalNotyxCoins >= reward.cost_coins;
                                return (
-                                 <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isBought ? 'border-amber-400 bg-amber-50/30' : 'border-slate-100 hover:border-amber-200'}`}>
+                                 <div key={reward.id} className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all flex flex-col justify-between ${isBought ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200/80 hover:border-amber-300 shadow-2xs hover:shadow-xs'}`}>
                                     <div>
-                                       <div className="w-20 h-20 rounded-3xl bg-amber-50 flex items-center justify-center border border-amber-100 mb-6 shadow-inner">
-                                         <RewardIcon reward={reward} name={reward.name} icon={reward.icon} className="w-10 h-10 text-amber-600" textClassName="text-4xl" />
+                                       <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100 mb-3 shadow-2xs">
+                                         <RewardIcon reward={reward} name={reward.name} icon={reward.icon} className="w-6 h-6 text-amber-600" textClassName="text-2xl" />
                                        </div>
-                                       <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
-                                       <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">{reward.description}</p>
+                                       <h4 className="text-base sm:text-lg font-bold text-slate-900 mb-1">{reward.name}</h4>
+                                       <p className="text-slate-500 text-xs sm:text-sm font-medium mb-4 leading-relaxed">{reward.description}</p>
                                     </div>
                                     <Button 
                                       disabled={isBought || !canAfford} 
                                       onClick={() => handlePurchase(reward)}
-                                      className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-amber-100 text-amber-800' : canAfford ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-slate-100 text-slate-400'}`}
+                                      className={`w-full h-10 sm:h-11 rounded-xl font-bold uppercase text-xs tracking-wider cursor-pointer ${isBought ? 'bg-amber-100 text-amber-800' : canAfford ? 'bg-amber-500 text-white shadow-xs hover:bg-amber-600' : 'bg-slate-100 text-slate-400'}`}
                                     >
-                                       {isBought ? 'Desbloqueado' : <><CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}</>}
+                                       {isBought ? 'Desbloqueado' : <><CoinsIcon className="w-3.5 h-3.5 mr-1.5" /> {reward.cost_coins}</>}
                                     </Button>
                                  </div>
                                )
@@ -533,20 +565,20 @@ export default function PublicStudentView() {
 
                    {/* Skins Section */}
                    {(rewardCategory === 'all' || rewardCategory === 'skins') && cosmetics.length > 0 && (
-                      <div className="space-y-6">
-                         <div className="flex items-center gap-3 px-2">
-                            <div className="bg-fuchsia-100 p-2.5 rounded-2xl shadow-sm"><Sparkles className="w-5 h-5 text-fuchsia-600" /></div>
+                      <div className="space-y-3 sm:space-y-4">
+                         <div className="flex items-center gap-2.5 px-1">
+                            <div className="bg-fuchsia-100 p-1.5 sm:p-2 rounded-xl"><Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-fuchsia-600" /></div>
                             <div>
-                              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Temas Legendarios</h3>
-                              <p className="text-xs text-slate-400 font-medium">Personalizá tu tarjeta de estudiante con efectos, halos y partículas animadas</p>
+                              <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">Temas Legendarios</h3>
+                              <p className="text-[11px] text-slate-400 font-medium">Personalizá tu tarjeta de estudiante con efectos, halos y partículas animadas</p>
                             </div>
                          </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {cosmetics.map(reward => {
                                const purchase = data.purchases?.find(p => p.reward_id === reward.id);
                                const isBought = !!purchase;
                                const isEquipped = purchase?.status === 'equipped';
-                               const canAfford = gami.notyxCoins >= reward.cost_coins;
+                               const canAfford = totalNotyxCoins >= reward.cost_coins;
 
                                return (
                                  <ShopCard
@@ -555,7 +587,7 @@ export default function PublicStudentView() {
                                    purchase={purchase}
                                    isBought={isBought}
                                    isEquipped={isEquipped}
-                                   notyxCoins={gami.notyxCoins}
+                                   notyxCoins={totalNotyxCoins}
                                    canAfford={canAfford}
                                    onPurchase={handlePurchase}
                                    onEquip={handleEquip}
@@ -570,33 +602,33 @@ export default function PublicStudentView() {
 
                    {/* Class Rewards Section */}
                    {(rewardCategory === 'all' || rewardCategory === 'class') && classRewards.length > 0 && (
-                      <div className="space-y-6">
-                         <div className="flex items-center gap-3 px-2">
-                            <div className="bg-blue-100 p-2.5 rounded-2xl shadow-sm"><Trophy className="w-5 h-5 text-blue-600" /></div>
+                      <div className="space-y-3 sm:space-y-4">
+                         <div className="flex items-center gap-2.5 px-1">
+                            <div className="bg-blue-100 p-1.5 sm:p-2 rounded-xl"><Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" /></div>
                             <div>
-                              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Premios de Clase</h3>
-                              <p className="text-xs text-slate-400 font-medium">Recompensas especiales canjeables en el aula</p>
+                              <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">Premios de Clase</h3>
+                              <p className="text-[11px] text-slate-400 font-medium">Recompensas especiales canjeables en el aula</p>
                             </div>
                          </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {classRewards.map(reward => {
                                const isBought = data.purchases?.some(p => p.reward_id === reward.id);
-                               const canAfford = gami.notyxCoins >= reward.cost_coins;
+                               const canAfford = totalNotyxCoins >= reward.cost_coins;
                                return (
-                                 <div key={reward.id} className={`bg-white rounded-[2.5rem] p-8 border-2 transition-all flex flex-col justify-between ${isBought ? 'border-blue-400 bg-blue-50/30' : 'border-slate-100 hover:border-blue-200'}`}>
+                                 <div key={reward.id} className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all flex flex-col justify-between ${isBought ? 'border-blue-300 bg-blue-50/20' : 'border-slate-200/80 hover:border-blue-300 shadow-2xs hover:shadow-xs'}`}>
                                     <div>
-                                       <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center border border-blue-100 mb-6 shadow-inner">
-                                         <RewardIcon reward={reward} name={reward.name} icon={reward.icon} className="w-10 h-10 text-blue-600" textClassName="text-4xl" />
+                                       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100 mb-3 shadow-2xs">
+                                         <RewardIcon reward={reward} name={reward.name} icon={reward.icon} className="w-6 h-6 text-blue-600" textClassName="text-2xl" />
                                        </div>
-                                       <h4 className="text-2xl font-black text-slate-800 mb-2">{reward.name}</h4>
-                                       <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">{reward.description}</p>
+                                       <h4 className="text-base sm:text-lg font-bold text-slate-900 mb-1">{reward.name}</h4>
+                                       <p className="text-slate-500 text-xs sm:text-sm font-medium mb-4 leading-relaxed">{reward.description}</p>
                                     </div>
                                     <Button 
                                       disabled={isBought || !canAfford} 
                                       onClick={() => handlePurchase(reward)}
-                                       className={`w-full h-16 rounded-2xl font-black uppercase text-xs tracking-[0.2em] ${isBought ? 'bg-blue-100 text-blue-800' : canAfford ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'bg-slate-100 text-slate-400'}`}
+                                       className={`w-full h-10 sm:h-11 rounded-xl font-bold uppercase text-xs tracking-wider cursor-pointer ${isBought ? 'bg-blue-100 text-blue-800' : canAfford ? 'bg-blue-600 text-white shadow-xs hover:bg-blue-700' : 'bg-slate-100 text-slate-400'}`}
                                     >
-                                       {isBought ? 'Adquirido' : <><CoinsIcon className="w-4 h-4 mr-2" /> {reward.cost_coins}</>}
+                                       {isBought ? 'Adquirido' : <><CoinsIcon className="w-3.5 h-3.5 mr-1.5" /> {reward.cost_coins}</>}
                                     </Button>
                                  </div>
                                )
@@ -610,7 +642,7 @@ export default function PublicStudentView() {
              {activeShopTab === "pokemon" && (
                 <div className="animate-in slide-in-from-bottom-4 duration-500">
                    <PokemonStoreTab 
-                     notyxCoins={gami?.notyxCoins || 0} 
+                     notyxCoins={totalNotyxCoins} 
                      onBuySuccess={fetchData} 
                      onBuyRequest={handlePokemonPurchase} 
                      ownedPokemonIds={data?.pokemon?.map(p => p.pokemon_id) || []}

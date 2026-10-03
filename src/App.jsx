@@ -14,6 +14,7 @@ const TeacherDashboard = lazy(() => import("./pages/teacher/TeacherDashboard"));
 const ClassView = lazy(() => import("./pages/teacher/ClassView"));
 const LiveSession = lazy(() => import("./pages/teacher/LiveSession"));
 const JoinClass = lazy(() => import("./pages/JoinClass"));
+const StudentEnrollmentView = lazy(() => import("./pages/public/StudentEnrollmentView"));
 const Gateway = lazy(() => import("./pages/Gateway"));
 const StudentDashboard = lazy(() => import("./pages/student/StudentDashboard"));
 const StudentClassView = lazy(() => import("./pages/student/StudentClassView"));
@@ -50,8 +51,9 @@ export default function App() {
           <Route path="/tutor" element={<TutorPortal />} />
           <Route path="/cargar-dni" element={<StudentDniRegister />} />
           <Route path="/cargar-dni/:code" element={<StudentDniRegister />} />
-          <Route path="/dni/:code" element={<StudentDniRegister />} />
           <Route path="/j/:code" element={<JoinClass />} />
+          <Route path="/inscribirse" element={<StudentEnrollmentView />} />
+          <Route path="/inscribirse/:token" element={<StudentEnrollmentView />} />
 
           <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route path="/home" element={<DynamicDashboard />} />

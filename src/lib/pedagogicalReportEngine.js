@@ -101,3 +101,81 @@ export function generatePedagogicalFeedback({
 
   return `${apertura}${detalleCriterios}${detalleAsistencia}${cierre}`.trim();
 }
+
+/**
+ * Detecta y clasifica el tipo de criterio/evaluación:
+ * 'exam' | 'assignment' | 'class'
+ */
+export function getCriteriaType(criteriaName = "") {
+  if (!criteriaName) return "class";
+  const lower = criteriaName.toLowerCase().trim();
+
+  if (lower.startsWith("[examen]") || lower.startsWith("[parcial]") || lower.startsWith("[evaluacion]") || lower.startsWith("[evaluación]")) {
+    return "exam";
+  }
+  if (lower.startsWith("[tp]") || lower.startsWith("[practico]") || lower.startsWith("[práctico]") || lower.startsWith("[trabajo practico]") || lower.startsWith("[trabajo práctico]")) {
+    return "assignment";
+  }
+  if (lower.startsWith("[clase]") || lower.startsWith("[diario]")) {
+    return "class";
+  }
+
+  // Automatic keyword matching
+  if (/(\bexamen\b|\bparcial\b|\bevaluaci[oó]n\b|\bprueba\b|\boral\b|\btest\b|\brecuperatorio\b)/i.test(lower)) {
+    return "exam";
+  }
+  if (/(\btp\b|\btrabajo\s*pr[aá]ctico\b|\bpr[aá]ctico\b|\bproyecto\b|\bentrega\b|\blaboratorio\b|\binforme\b)/i.test(lower)) {
+    return "assignment";
+  }
+
+  return "class";
+}
+
+/**
+ * Remueve prefijos de etiquetado tipo [Examen], [TP], [Clase] para mostrar un nombre limpio.
+ */
+export function getCriteriaCleanName(criteriaName = "") {
+  if (!criteriaName) return "";
+  return criteriaName
+    .replace(/^\[(examen|parcial|evaluaci[oó]n|tp|practico|práctico|trabajo\s*pr[aá]ctico|clase|diario)\]\s*/i, "")
+    .trim();
+}
+
+/**
+ * Retorna metadatos visuales del tipo de evaluación para badges e iconos
+ */
+export function getCriteriaTypeMeta(type = "class") {
+  switch (type) {
+    case "exam":
+      return {
+        type: "exam",
+        label: "Examen / Parcial",
+        shortLabel: "Examen",
+        icon: "🎯",
+        badgeClass: "bg-purple-50 text-purple-800 border-purple-200",
+        headerClass: "bg-purple-50/60 border-purple-200 text-purple-900",
+        dotColor: "bg-purple-500",
+      };
+    case "assignment":
+      return {
+        type: "assignment",
+        label: "Trabajo Práctico",
+        shortLabel: "TP",
+        icon: "📄",
+        badgeClass: "bg-blue-50 text-blue-800 border-blue-200",
+        headerClass: "bg-blue-50/60 border-blue-200 text-blue-900",
+        dotColor: "bg-blue-500",
+      };
+    case "class":
+    default:
+      return {
+        type: "class",
+        label: "Clase Normal",
+        shortLabel: "Clase",
+        icon: "📝",
+        badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+        headerClass: "bg-slate-50/80 border-slate-200 text-slate-800",
+        dotColor: "bg-slate-400",
+      };
+  }
+}

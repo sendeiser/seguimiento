@@ -139,12 +139,12 @@ export default function GlobalRanking() {
               <div className="mt-4 bg-slate-50 px-4 py-2 rounded-xl text-lg font-black text-slate-700">{filteredRanking[1].xp} XP</div>
            </div>
            {/* 1st Place */}
-           <div className="order-1 md:order-2 bg-slate-900 rounded-[32px] md:rounded-[48px] p-6 md:p-10 shadow-2xl shadow-blue-900/20 flex flex-col items-center text-center relative transform md:scale-110 z-10 border-4 border-blue-500/20 min-w-0">
-               <div className="absolute -top-8 bg-yellow-400 text-yellow-900 w-16 h-16 rounded-[24px] flex items-center justify-center font-black text-2xl shadow-2xl border-4 border-white">1</div>
-              <div className="w-24 h-24 rounded-[32px] bg-blue-600 flex items-center justify-center text-5xl mb-6 shadow-2xl shadow-blue-500/40">👑</div>
-              <h3 className="font-black text-2xl text-white leading-none">{filteredRanking[0].name}</h3>
-              <p className="text-[10px] font-black text-blue-300 uppercase tracking-[0.3em] mt-3">{filteredRanking[0].rank.name}</p>
-              <div className="mt-6 bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl text-2xl font-black text-yellow-400 border border-white/10">{filteredRanking[0].xp} XP</div>
+           <div className="order-1 md:order-2 bg-gradient-to-b from-amber-50 via-yellow-50/40 to-white rounded-[32px] md:rounded-[48px] p-6 md:p-10 shadow-2xl shadow-amber-500/10 flex flex-col items-center text-center relative transform md:scale-110 z-10 border-4 border-amber-300 min-w-0">
+               <div className="absolute -top-8 bg-gradient-to-br from-yellow-400 to-amber-500 text-yellow-950 w-16 h-16 rounded-[24px] flex items-center justify-center font-black text-2xl shadow-xl border-4 border-white">1</div>
+              <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-5xl mb-6 shadow-xl shadow-amber-400/40 border-2 border-white">👑</div>
+              <h3 className="font-black text-2xl text-slate-900 leading-none">{filteredRanking[0].name}</h3>
+              <p className="text-[10px] font-black text-amber-700 uppercase tracking-[0.3em] mt-3">{filteredRanking[0].rank.name}</p>
+              <div className="mt-6 bg-amber-100/90 px-6 py-3 rounded-2xl text-2xl font-black text-amber-950 border border-amber-200 shadow-xs">{filteredRanking[0].xp} XP</div>
            </div>
            {/* 3rd Place */}
            <div className="order-3 bg-white rounded-[40px] p-8 border border-slate-100 shadow-xl flex flex-col items-center text-center relative">

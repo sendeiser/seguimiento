@@ -133,34 +133,34 @@ export default function ClassAttendanceTab({
   }, [studentStats, attendanceSearch, attendanceRiskFilter, getStudentName]);
 
   return (
-    <div className="space-y-8 animate-in slide-up">
+    <div className="space-y-6 animate-in slide-up">
       {/* Top Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Asistencia Global */}
-        <div className="p-6 rounded-[28px] bg-white border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="apple-card rounded-3xl p-5 relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Asistencia Global</span>
-            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+            <span className="text-xs font-semibold text-slate-500">Asistencia Global</span>
+            <div className="w-10 h-10 rounded-2xl bg-blue-50/80 border border-blue-200/50 text-blue-600 flex items-center justify-center font-bold shadow-sm">
               <UserCheck className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="font-['Outfit'] font-black text-3xl text-slate-900 tracking-tight">{totalClassPercentage}%</span>
-            <p className="text-xs text-slate-500 font-medium mt-1">Promedio de la materia</p>
+            <span className="font-semibold text-3xl text-slate-900 tracking-tight">{totalClassPercentage}%</span>
+            <p className="text-xs text-slate-600 font-medium mt-0.5">Promedio de la materia</p>
           </div>
         </div>
 
         {/* Total Clases Dictadas */}
-        <div className="p-6 rounded-[28px] bg-white border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="apple-card rounded-3xl p-5 relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Clases Dictadas</span>
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
+            <span className="text-xs font-semibold text-slate-500">Clases Dictadas</span>
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50/80 border border-indigo-200/50 text-indigo-600 flex items-center justify-center font-bold shadow-sm">
               <CalendarPlus className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="font-['Outfit'] font-black text-3xl text-slate-900 tracking-tight">{totalSessionsCount}</span>
-            <p className="text-xs text-slate-500 font-medium mt-1">
+            <span className="font-semibold text-3xl text-slate-900 tracking-tight">{totalSessionsCount}</span>
+            <p className="text-xs text-slate-600 font-medium mt-0.5">
               {cuatrimestreFilter === "all" ? "Año completo" : `${cuatrimestreFilter}º Cuatrimestre`}
             </p>
           </div>
@@ -168,52 +168,52 @@ export default function ClassAttendanceTab({
 
         {/* Alumnos en Riesgo */}
         <div
-          className={`p-6 rounded-[28px] border shadow-sm relative overflow-hidden transition-all ${
-            atRiskCount > 0 ? "bg-rose-50/70 border-rose-200" : "bg-white border-slate-100"
+          className={`apple-card rounded-3xl p-5 relative overflow-hidden transition-all ${
+            atRiskCount > 0 ? "bg-rose-50/50 border-rose-200/80" : ""
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-black uppercase tracking-widest ${atRiskCount > 0 ? "text-rose-600" : "text-slate-400"}`}>
+            <span className={`text-xs font-semibold ${atRiskCount > 0 ? "text-rose-700" : "text-slate-600"}`}>
               Alumnos en Riesgo
             </span>
             <div
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${
-                atRiskCount > 0 ? "bg-rose-100 text-rose-600" : "bg-slate-50 text-slate-400"
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold ${
+                atRiskCount > 0 ? "bg-rose-100/80 text-rose-600 border border-rose-200" : "bg-slate-50 border border-slate-200/60 text-slate-500"
               }`}
             >
               <ShieldAlert className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <span className={`font-['Outfit'] font-black text-3xl tracking-tight ${atRiskCount > 0 ? "text-rose-700" : "text-slate-900"}`}>
+            <span className={`font-semibold text-3xl tracking-tight ${atRiskCount > 0 ? "text-rose-700" : "text-slate-900"}`}>
               {atRiskCount}
             </span>
-            <p className={`text-xs font-medium mt-1 ${atRiskCount > 0 ? "text-rose-600 font-bold" : "text-slate-500"}`}>
+            <p className={`text-xs font-medium mt-0.5 ${atRiskCount > 0 ? "text-rose-600 font-semibold" : "text-slate-600"}`}>
               {atRiskCount > 0 ? "Menor al 75% de asistencia" : "Sin casos críticos"}
             </p>
           </div>
         </div>
 
         {/* Asistencia Perfecta */}
-        <div className="p-6 rounded-[28px] bg-white border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="apple-card rounded-3xl p-5 relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Asistencia Perfecta</span>
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
+            <span className="text-xs font-semibold text-slate-500">Asistencia Perfecta</span>
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50/80 border border-emerald-200/50 text-emerald-600 flex items-center justify-center font-bold shadow-sm">
               <Sparkles className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="font-['Outfit'] font-black text-3xl text-slate-900 tracking-tight">{perfectAttendanceCount}</span>
-            <p className="text-xs text-slate-500 font-medium mt-1">100% de presencia</p>
+            <span className="font-semibold text-3xl text-slate-900 tracking-tight">{perfectAttendanceCount}</span>
+            <p className="text-xs text-slate-600 font-medium mt-0.5">100% de presencia</p>
           </div>
         </div>
       </div>
 
       {/* Controls Bar */}
-      <div className="flex flex-col gap-4 bg-white p-4 sm:p-5 rounded-[28px] border border-slate-100 shadow-sm">
+      <div className="apple-card flex flex-col gap-4 p-4 sm:p-5 rounded-3xl">
         {/* Row 1: Search + Risk Filter + Export */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -221,25 +221,23 @@ export default function ClassAttendanceTab({
                 placeholder="Buscar alumno o DNI..."
                 value={attendanceSearch}
                 onChange={(e) => setAttendanceSearch(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:bg-white transition-all"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl pl-10 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all"
               />
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
+            <div className="apple-segmented-control">
               <button
                 type="button"
                 onClick={() => setAttendanceRiskFilter("all")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                  attendanceRiskFilter === "all" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
-                }`}
+                className={`apple-segmented-item ${attendanceRiskFilter === "all" ? "active" : ""}`}
               >
                 Todos ({students.length})
               </button>
               <button
                 type="button"
                 onClick={() => setAttendanceRiskFilter("risk")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${
-                  attendanceRiskFilter === "risk" ? "bg-rose-600 text-white shadow-xs" : "text-slate-500 hover:text-rose-600"
+                className={`apple-segmented-item flex items-center gap-1.5 ${
+                  attendanceRiskFilter === "risk" ? "active text-rose-600 font-bold" : ""
                 }`}
               >
                 <ShieldAlert className="w-3.5 h-3.5" /> En Riesgo ({atRiskCount})
@@ -258,7 +256,8 @@ export default function ClassAttendanceTab({
                   cuatrimestreFilter
                 )
               }
-              className="rounded-2xl h-11 px-5 font-black text-xs uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 flex items-center gap-2"
+              variant="outline"
+              className="rounded-2xl h-10 px-4 font-semibold text-xs border border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-2 active:scale-[0.98] transition-all shadow-sm"
             >
               <Download className="w-4 h-4 text-emerald-600" /> Exportar (CSV)
             </Button>
@@ -268,17 +267,17 @@ export default function ClassAttendanceTab({
         {/* Row 2: Session date filter */}
         <div className="border-t border-slate-100 pt-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0 flex items-center gap-1">
-              <Filter className="w-3 h-3" /> Filtrar por clase:
+            <span className="text-xs font-semibold text-slate-600 shrink-0 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" /> Filtrar por clase:
             </span>
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               <button
                 type="button"
                 onClick={() => setAttendanceSessionFilter("all")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 border ${
+                className={`px-3 py-1 rounded-xl text-xs font-medium transition-all shrink-0 border ${
                   attendanceSessionFilter === "all"
                     ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    : "bg-white text-slate-600 border-slate-200/80 hover:bg-slate-50"
                 }`}
               >
                 Todas ({cuatrimestreSessions.length})
@@ -291,10 +290,10 @@ export default function ClassAttendanceTab({
                     key={s.id}
                     type="button"
                     onClick={() => setAttendanceSessionFilter(isActive ? "all" : s.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 border ${
+                    className={`px-3 py-1 rounded-xl text-xs font-medium transition-all shrink-0 border ${
                       isActive
                         ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                        : "bg-white text-slate-600 border-slate-200/80 hover:bg-slate-50"
                     }`}
                     title={format(dObj, "EEEE d 'de' MMMM", { locale: es })}
                   >
@@ -308,12 +307,12 @@ export default function ClassAttendanceTab({
       </div>
 
       {/* Attendance Matrix Table */}
-      <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl overflow-hidden">
+      <div className="apple-card rounded-3xl overflow-hidden min-w-0">
         {relevantSessions.length === 0 ? (
           <div className="p-16 text-center">
             <CalendarPlus className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="font-['Outfit'] font-black text-slate-800 text-lg">No hay sesiones creadas en este periodo</p>
-            <p className="text-slate-400 text-xs font-medium mt-1">
+            <p className="font-semibold text-slate-800 text-lg">No hay sesiones creadas en este periodo</p>
+            <p className="text-slate-500 text-xs font-medium mt-1">
               Creá una nueva sesión para comenzar el seguimiento de asistencia
             </p>
           </div>
@@ -321,8 +320,8 @@ export default function ClassAttendanceTab({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/80">
-                  <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-500 sticky left-0 bg-slate-50 z-20 w-64 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+                <tr className="bg-slate-50/80 border-b border-slate-200/80">
+                  <th className="px-6 py-3.5 font-semibold text-xs text-slate-500 sticky left-0 bg-slate-50/90 z-20 w-64 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                     Estudiante
                   </th>
                   {relevantSessions.map((s) => {
@@ -405,7 +404,7 @@ export default function ClassAttendanceTab({
                               {getStudentName(st)}
                             </span>
                             {st.dni && (
-                              <span className="text-[10px] font-bold text-slate-400">DNI: {st.dni}</span>
+                              <span className="text-[10px] font-bold text-slate-600">DNI: {st.dni}</span>
                             )}
                           </div>
                         </div>

@@ -26,90 +26,81 @@ export default function ClassSessionsTab({
   });
 
   return (
-    <div className="space-y-6">
-      {/* Student Link Share Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 text-white overflow-hidden relative shadow-2xl shadow-blue-600/20">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
-          <div className="flex items-center gap-6">
-            <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-xl border border-white/20">
-              <LinkIcon className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <p className="font-black text-xl leading-none mb-1">Acceso de Estudiantes</p>
-              <p className="text-blue-100/80 text-sm mb-4 font-medium italic">Compartí este código para que se unan</p>
-              <span className="bg-white/10 border border-white/20 px-6 py-3 rounded-2xl text-3xl font-black tracking-[0.3em] uppercase">
-                {classData?.short_code || "..."}
-              </span>
-            </div>
-          </div>
-          <Button onClick={copyClassLink} className="bg-white text-blue-600 hover:bg-blue-50 h-14 px-8 rounded-2xl font-black shadow-xl">
-            {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
-            {copied ? "¡Copiado!" : "Copiar Enlace"}
+    <div className="space-y-4 sm:space-y-5">
+      {/* Unified Sessions Control Bar */}
+      <div className="bg-white/95 backdrop-blur-md p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        {/* Left: Cuatrimestre Filter Tabs */}
+        <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/80 shadow-2xs overflow-x-auto no-scrollbar">
+          {[
+            { id: "all", label: "Año Completo" },
+            { id: "1", label: "1º Cuatrimestre" },
+            { id: "2", label: "2º Cuatrimestre" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setCuatrimestreFilter(tab.id)}
+              className={`flex-1 sm:flex-none inline-flex items-center justify-center px-2.5 sm:px-3 py-1 rounded-md font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
+                cuatrimestreFilter === tab.id
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Right: Actions (Student Code Copy, Cuatrimestre Management, New Session) */}
+        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+          {classData?.short_code && (
+            <button
+              type="button"
+              onClick={copyClassLink}
+              title="Copiar enlace para que los alumnos ingresen"
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-all cursor-pointer ${
+                copied
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200/80 hover:border-indigo-200"
+              }`}
+            >
+              {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-400" />}
+              <span>{copied ? "¡Copiado!" : `Código: ${classData.short_code}`}</span>
+            </button>
+          )}
+
+          <Button
+            onClick={onOpenCuatrimestreModal}
+            variant="outline"
+            className="rounded-lg h-7 sm:h-8 px-2.5 font-bold border border-slate-200/80 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs shrink-0 gap-1 active:scale-95 transition-all cursor-pointer"
+          >
+            <CalendarPlus className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="hidden sm:inline">Gestión 2ºC</span>
+          </Button>
+
+          <Button
+            onClick={onCreateSession}
+            className="rounded-lg h-7 sm:h-8 px-3 font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 gap-1 shadow-xs active:scale-95 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Nueva Sesión</span>
           </Button>
         </div>
       </div>
 
-      {/* Cuatrimestre Filter & Management Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-[28px] border border-slate-100 shadow-sm">
-        <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1 sm:pb-0">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2 shrink-0">Filtrar:</span>
-          <button
-            type="button"
-            onClick={() => setCuatrimestreFilter("all")}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
-              cuatrimestreFilter === "all"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-            }`}
-          >
-            Año Completo
-          </button>
-          <button
-            type="button"
-            onClick={() => setCuatrimestreFilter("1")}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
-              cuatrimestreFilter === "1"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-            }`}
-          >
-            1º Cuatrimestre
-          </button>
-          <button
-            type="button"
-            onClick={() => setCuatrimestreFilter("2")}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
-              cuatrimestreFilter === "2"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-            }`}
-          >
-            2º Cuatrimestre
-          </button>
-        </div>
-
-        <Button
-          onClick={onOpenCuatrimestreModal}
-          variant="outline"
-          className="rounded-2xl h-11 px-5 font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 text-xs w-full sm:w-auto shrink-0 gap-2"
-        >
-          <CalendarPlus className="w-4 h-4 text-blue-600" />
-          Gestión / Resetear 2ºC
-        </Button>
-      </div>
-
       {/* Grid of Sessions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {/* Create Session Card */}
         <div
           onClick={onCreateSession}
-          className="border-2 border-dashed border-slate-200 rounded-[28px] p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all bg-white group min-h-[160px]"
+          className="apple-card border-2 border-dashed border-slate-200/80 hover:border-blue-400 hover:bg-blue-50/40 rounded-3xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group min-h-[170px] active:scale-[0.98]"
         >
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm">
             <Plus className="w-6 h-6" />
           </div>
-          <h4 className="font-black text-slate-800 text-base">Nueva Sesión</h4>
-          <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 mt-1">
-            ({activeCuatrimestre === 2 ? "2º Cuatrimestre" : "1º Cuatrimestre"})
+          <h4 className="font-semibold text-slate-800 text-base">Nueva Sesión</h4>
+          <span className="text-xs font-medium text-blue-600 mt-1">
+            {activeCuatrimestre === 2 ? "2º Cuatrimestre" : "1º Cuatrimestre"}
           </span>
         </div>
 
@@ -127,66 +118,77 @@ export default function ClassSessionsTab({
           return (
             <div
               key={s.id}
-              className="bg-white rounded-[28px] border border-slate-100 p-5 flex flex-col hover:shadow-xl hover:-translate-y-0.5 transition-all group/card relative overflow-hidden"
+              className="apple-card rounded-3xl p-5 flex flex-col justify-between group/card relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
             >
-              <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
+              <div className="absolute top-3.5 right-3.5 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
                 <Button
                   onClick={() => onEditSession(s)}
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 shadow-sm"
+                  className="h-8 w-8 rounded-xl bg-white/90 hover:bg-white border border-slate-200/80 shadow-sm active:scale-95 transition-transform"
                 >
-                  <Pencil className="w-3 h-3 text-slate-500" />
+                  <Pencil className="w-3.5 h-3.5 text-slate-600" />
                 </Button>
                 <Button
                   onClick={() => onDeleteSession(s.id)}
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 rounded-lg bg-red-50 hover:bg-white border border-red-100 shadow-sm"
+                  className="h-8 w-8 rounded-xl bg-white/90 hover:bg-rose-50 border border-slate-200/80 shadow-sm active:scale-95 transition-transform"
                 >
-                  <Trash2 className="w-3 h-3 text-red-500" />
+                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2 mb-3">
-                <span
-                  className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
-                    sCuatrimestre === 2 ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
-                  }`}
-                >
-                  {sCuatrimestre}º C
-                </span>
-                {attPct !== null && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
                   <span
-                    className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ml-auto ${
-                      attPct >= 75 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                    className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                      sCuatrimestre === 2
+                        ? "bg-purple-50 text-purple-700 border border-purple-200/60"
+                        : "bg-blue-50 text-blue-700 border border-blue-200/60"
                     }`}
                   >
-                    {attPct}% pres.
+                    {sCuatrimestre}º Cuatrimestre
                   </span>
+                  {attPct !== null && (
+                    <span
+                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ml-auto ${
+                        attPct >= 75
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                          : "bg-rose-50 text-rose-700 border border-rose-200/60"
+                      }`}
+                    >
+                      {attPct}% pres.
+                    </span>
+                  )}
+                </div>
+
+                <h4 className="font-semibold text-slate-900 text-lg capitalize leading-snug tracking-tight">
+                  {format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}
+                </h4>
+                <p className="text-slate-600 text-xs font-medium capitalize mt-0.5">
+                  {format(new Date(s.date + "T12:00:00"), "MMMM yyyy", { locale: es })}
+                </p>
+
+                {sessionAtt.length > 0 && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                        style={{ width: `${attPct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-slate-600 shrink-0">
+                      {presentCount}/{totalForSession}
+                    </span>
+                  </div>
                 )}
               </div>
 
-              <h4 className="font-black text-slate-900 text-lg capitalize leading-tight">
-                {format(new Date(s.date + "T12:00:00"), "EEEE d", { locale: es })}
-              </h4>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-0.5">
-                {format(new Date(s.date + "T12:00:00"), "MMM yyyy", { locale: es })}
-              </p>
-
-              {sessionAtt.length > 0 && (
-                <div className="mt-2 flex items-center gap-1.5">
-                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${attPct}%` }} />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400 shrink-0">
-                    {presentCount}/{totalForSession}
-                  </span>
-                </div>
-              )}
-
-              <Link to={`/session/${s.id}`} className="mt-4">
-                <Button className="w-full rounded-xl h-10 font-black uppercase text-[10px]">Ingresar Notas</Button>
+              <Link to={`/session/${s.id}`} className="mt-5">
+                <Button className="w-full rounded-2xl h-10 font-semibold text-xs bg-slate-900 hover:bg-slate-800 text-white shadow-sm active:scale-[0.98] transition-all">
+                  Ingresar Notas
+                </Button>
               </Link>
             </div>
           );

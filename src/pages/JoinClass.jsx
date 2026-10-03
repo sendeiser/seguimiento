@@ -14,6 +14,18 @@ export default function JoinClass() {
       const cleanCode = code.trim();
 
       try {
+        // 0. Check if cleanCode matches an active temporary enrollment token
+        const { data: tempClass } = await supabase
+          .from("classes")
+          .select("id, join_code")
+          .like("join_code", `%${cleanCode}%`)
+          .maybeSingle();
+
+        if (tempClass?.join_code?.includes(cleanCode)) {
+          navigate(`/inscribirse/${cleanCode}`, { replace: true });
+          return;
+        }
+
         // 1. Check if cleanCode is a class short_code (case-insensitive)
         const { data: classData } = await supabase
           .from("classes")

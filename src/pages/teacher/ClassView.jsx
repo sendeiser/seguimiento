@@ -13,9 +13,12 @@ import {
   Shield,
   ArrowLeft,
   GraduationCap,
+  Clock,
 } from "lucide-react";
 
 import TutorLinkShareModal from "../../components/teacher/TutorLinkShareModal";
+import TempEnrollmentModal from "../../components/teacher/class-modals/TempEnrollmentModal";
+import { parseTempEnrollCode } from "../../lib/tempEnrollment";
 import ClassSessionsTab from "../../components/teacher/class-tabs/ClassSessionsTab";
 import ClassStudentsTab from "../../components/teacher/class-tabs/ClassStudentsTab";
 import ClassAttendanceTab from "../../components/teacher/class-tabs/ClassAttendanceTab";
@@ -57,6 +60,9 @@ export default function ClassView() {
   // Tutor Portal Share Module State
   const [showTutorShareModal, setShowTutorShareModal] = useState(false);
   const [tutorUpdating, setTutorUpdating] = useState(false);
+
+  // Temporary Enrollment Module State
+  const [showTempEnrollModal, setShowTempEnrollModal] = useState(false);
 
   // Cuatrimestre state
   const [activeCuatrimestre, setActiveCuatrimestre] = useState(1);
@@ -597,100 +603,102 @@ export default function ClassView() {
       </div>
     );
 
+  const tempEnrollInfo = parseTempEnrollCode(classData?.join_code);
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-300 pb-16">
+      {/* Compact Apple-style Class Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
           <Link to="/home">
-            <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-white">
-              <ArrowLeft className="w-5 h-5 text-slate-500" />
-            </Button>
+            <button
+              type="button"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/95 backdrop-blur-xl border border-slate-200/80 hover:bg-slate-100 text-slate-700 flex items-center justify-center shadow-2xs transition-all active:scale-95 cursor-pointer shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
           </Link>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">{classData?.name}</h1>
-            <p className="text-slate-500 mt-2 font-medium text-sm flex items-center gap-2">
-              <Shield className="w-4 h-4 text-blue-500" />
-              Docente • Gestión de RPG y Academia
+            <h1 className="text-xl sm:text-2xl font-['Outfit'] font-black text-slate-900 tracking-[-0.025em] leading-tight">
+              {classData?.name}
+            </h1>
+            <p className="text-slate-500 font-medium text-xs flex items-center gap-1.5 mt-0.5">
+              <Shield className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Gestión integral de aula, asistencia y calificaciones</span>
             </p>
           </div>
         </div>
 
-        {/* Quick Action Button for Tutor Portal */}
-        <div className="flex items-center gap-3">
+        {/* Quick Action Buttons for Temporary Enrollment and Tutor Portal */}
+        <div className="flex items-center gap-2">
           <Button
-            onClick={() => setShowTutorShareModal(true)}
-            className={`rounded-2xl h-12 px-5 font-black text-xs uppercase tracking-wider flex items-center gap-2.5 border transition-all shadow-sm active:scale-95 ${
-              classData?.tutor_portal_enabled !== false
-                ? "bg-white text-blue-700 hover:bg-blue-50 border-blue-200"
-                : "bg-slate-100 text-slate-500 hover:bg-slate-200 border-slate-300"
+            onClick={() => setShowTempEnrollModal(true)}
+            className={`rounded-xl h-9 sm:h-10 px-3 sm:px-4 font-bold text-xs flex items-center gap-2 border transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0 ${
+              tempEnrollInfo.isActive
+                ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                : "bg-white/95 text-slate-900 hover:bg-white border-slate-200/80"
             }`}
           >
-            <Share2 className="w-4 h-4 text-blue-600" />
-            <span>Boletín Familias (DNI)</span>
+            <Clock className={`w-3.5 h-3.5 ${tempEnrollInfo.isActive ? "text-emerald-600 animate-pulse" : "text-indigo-600"}`} />
+            <span className="hidden xs:inline">Link de Inscripción</span>
+            <span className="xs:hidden">Inscripción</span>
             <span
-              className={`w-2.5 h-2.5 rounded-full ${
+              className={`w-2 h-2 rounded-full ${
+                tempEnrollInfo.isActive
+                  ? "bg-emerald-500 ring-2 ring-emerald-100 animate-pulse"
+                  : "bg-slate-300"
+              }`}
+            />
+          </Button>
+
+          <Button
+            onClick={() => setShowTutorShareModal(true)}
+            className={`rounded-xl h-9 sm:h-10 px-3 sm:px-4 font-bold text-xs flex items-center gap-2 border transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0 ${
+              classData?.tutor_portal_enabled !== false
+                ? "bg-white/95 text-slate-900 hover:bg-white border-slate-200/80"
+                : "bg-slate-100 text-slate-400 border-slate-200"
+            }`}
+          >
+            <Share2 className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="hidden xs:inline">Boletín Familias</span>
+            <span className="xs:hidden">Boletín</span>
+            <span
+              className={`w-2 h-2 rounded-full ${
                 classData?.tutor_portal_enabled !== false
-                  ? "bg-emerald-500 ring-4 ring-emerald-100"
-                  : "bg-rose-500 ring-4 ring-rose-100"
+                  ? "bg-emerald-500 ring-2 ring-emerald-100"
+                  : "bg-rose-500 ring-2 ring-rose-100"
               }`}
             />
           </Button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="w-full overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-[24px] w-fit border border-slate-200/50 min-w-full sm:min-w-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab("sessions")}
-            className={`tab-btn flex-shrink-0 ${activeTab === "sessions" ? "active" : ""}`}
-          >
-            <CalendarPlus className="w-4 h-4" /> Sesiones
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("students")}
-            className={`tab-btn flex-shrink-0 ${activeTab === "students" ? "active" : ""}`}
-          >
-            <Users className="w-4 h-4" /> Alumnos
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("attendance")}
-            className={`tab-btn flex-shrink-0 ${activeTab === "attendance" ? "active" : ""}`}
-          >
-            <UserCheck className="w-4 h-4" /> Asistencia
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("closing")}
-            className={`tab-btn flex-shrink-0 ${activeTab === "closing" ? "active" : ""}`}
-          >
-            <GraduationCap className="w-4 h-4" /> Cierre de Notas
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("gamification")}
-            className={`tab-btn flex-shrink-0 ${activeTab === "gamification" ? "active" : ""}`}
-          >
-            <Trophy className="w-4 h-4" /> Gamificación
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("arena")}
-            className={`tab-btn flex-shrink-0 ${activeTab === "arena" ? "active" : ""}`}
-          >
-            <Gamepad2 className="w-4 h-4" /> Arena
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("tutor")}
-            className={`tab-btn flex-shrink-0 ${activeTab === "tutor" ? "active" : ""}`}
-          >
-            <Share2 className="w-4 h-4" /> Boletín DNI
-          </button>
+      {/* Apple-style Unified Tab Control Bar */}
+      <div className="bg-white/95 backdrop-blur-md p-1 sm:p-1.5 rounded-xl border border-slate-200/80 shadow-2xs overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 min-w-max">
+          {[
+            { id: "sessions", label: "Sesiones", icon: <CalendarPlus className="w-3.5 h-3.5 text-indigo-500" /> },
+            { id: "students", label: "Alumnos", icon: <Users className="w-3.5 h-3.5 text-blue-500" /> },
+            { id: "attendance", label: "Asistencia", icon: <UserCheck className="w-3.5 h-3.5 text-emerald-500" /> },
+            { id: "closing", label: "Cierre de Notas", icon: <GraduationCap className="w-3.5 h-3.5 text-violet-500" /> },
+            { id: "gamification", label: "Gamificación", icon: <Trophy className="w-3.5 h-3.5 text-amber-500" /> },
+            { id: "arena", label: "Arena", icon: <Gamepad2 className="w-3.5 h-3.5 text-rose-500" /> },
+            { id: "tutor", label: "Boletín DNI", icon: <Share2 className="w-3.5 h-3.5 text-sky-500" /> },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                activeTab === tab.id
+                  ? "bg-slate-900 text-white shadow-xs"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+              }`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -722,6 +730,8 @@ export default function ClassView() {
           onDeleteStudent={handleDeleteStudent}
           updateStudentHouse={updateStudentHouse}
           updateStudentDni={updateStudentDni}
+          onOpenTempEnrollModal={() => setShowTempEnrollModal(true)}
+          tempEnrollInfo={tempEnrollInfo}
         />
       )}
 
@@ -889,27 +899,15 @@ export default function ClassView() {
         onUpdateClass={(updated) => setClassData(updated)}
       />
 
-      <style>{`
-        .tab-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 24px;
-          border-radius: 16px;
-          font-size: 11px;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          transition: all 0.3s;
-          color: #64748b;
-        }
-        .tab-btn:hover { color: #1e293b; }
-        .tab-btn.active {
-          background: white;
-          color: #2563eb;
-          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        }
-      `}</style>
+      {/* TEMPORARY ENROLLMENT LINK MODAL */}
+      <TempEnrollmentModal
+        isOpen={showTempEnrollModal}
+        onClose={() => setShowTempEnrollModal(false)}
+        classData={classData}
+        students={students}
+        onUpdateClass={(updated) => setClassData(updated)}
+        onRefreshStudents={fetchAll}
+      />
     </div>
   );
 }

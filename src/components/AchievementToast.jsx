@@ -94,7 +94,7 @@ export default function AchievementToast({ badges }) {
   if (!current) return null;
 
   return (
-    <div className="fixed top-6 right-6 z-[200] flex flex-col gap-3 items-end pointer-events-none">
+    <div className="fixed bottom-6 right-4 sm:right-6 z-[200] flex flex-col gap-3 items-end pointer-events-none">
       <SingleToast
         key={current.id}
         badge={current}

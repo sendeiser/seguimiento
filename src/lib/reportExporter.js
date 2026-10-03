@@ -186,6 +186,52 @@ export function exportAcademicClosingToCSV(className, studentClosingData = []) {
   downloadCSV(rows, `Cierre_Academico_${(className || "Clase").replace(/\s+/g, "_")}.csv`);
 }
 
+/**
+ * Export full detailed grades matrix (students x all criteria) to CSV
+ */
+export function exportDetailedGradesMatrixToCSV(className, students, criteria, gradeLookup) {
+  if (!students || students.length === 0) return;
+
+  const headers = ["DNI", "Estudiante"];
+  criteria.forEach(c => {
+    const typeLabel = c.type === "exam" ? "[Examen]" : c.type === "assignment" ? "[TP]" : "[Clase]";
+    headers.push(`${c.date || ""} ${typeLabel} ${c.cleanName || c.name} (Máx ${c.max_score || 10})`);
+  });
+  headers.push("Promedio Clases", "Promedio Exám/TPs", "Promedio Total");
+
+  const rows = [];
+  rows.push(headers.map(h => `"${(h || "").replace(/"/g, '""')}"`).join(","));
+
+  students.forEach(st => {
+    const csId = st.csId || st.id;
+    const name = st.name || st.profiles?.full_name || "Sin nombre";
+    const dni = st.dni || "—";
+
+    const rowData = [dni, name];
+
+    criteria.forEach(c => {
+      const g = gradeLookup[`${csId}_${c.id}`];
+      if (g && g.score !== undefined && g.score !== null && g.score !== "") {
+        rowData.push(g.score);
+      } else {
+        rowData.push("—");
+      }
+    });
+
+    rowData.push(st.classAvg !== null && st.classAvg !== undefined ? st.classAvg.toFixed(1) : "—");
+    rowData.push(st.examAvg !== null && st.examAvg !== undefined ? st.examAvg.toFixed(1) : "—");
+    rowData.push(
+      st.matrixTotalAvg !== null && st.matrixTotalAvg !== undefined
+        ? st.matrixTotalAvg.toFixed(1)
+        : (st.finalAvg !== null && st.finalAvg !== undefined ? st.finalAvg.toFixed(1) : "—")
+    );
+
+    rows.push(rowData.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","));
+  });
+
+  downloadCSV(rows, `Sabana_Notas_${(className || "Clase").replace(/\s+/g, "_")}.csv`);
+}
+
 function downloadCSV(rows, fileName) {
   const csvContent = "\uFEFF" + rows.join("\r\n"); // \uFEFF ensures UTF-8 BOM for Excel
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

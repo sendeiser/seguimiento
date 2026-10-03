@@ -213,19 +213,19 @@ export default function TutorPortal() {
       `}</style>
 
       {/* Top Header */}
-      <header className="w-full max-w-5xl flex items-center justify-between py-6 border-b border-slate-200/80 mb-8 no-print">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <GraduationCap className="w-7 h-7" />
+      <header className="w-full max-w-5xl flex items-center justify-between py-5 border-b border-slate-200/80 mb-8 no-print">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+            <GraduationCap className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="font-['Outfit'] font-black text-xl tracking-tight flex items-center gap-1.5 text-slate-900">
+            <h1 className="font-bold text-lg tracking-tight flex items-center gap-2 text-slate-900 leading-none">
               NOTYX EDU
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+              <span className="text-[11px] font-semibold tracking-normal px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
                 Familias
               </span>
             </h1>
-            <p className="font-['DM_Sans'] font-semibold text-xs text-slate-500">
+            <p className="font-normal text-xs text-slate-500 mt-1">
               Consulta de Boletines, Desempeño y Asistencia
             </p>
           </div>
@@ -235,14 +235,14 @@ export default function TutorPortal() {
           {classInfo && (
             <button
               onClick={handleClearClass}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-sm transition-colors"
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-colors active:scale-95"
               title="Cambiar a consulta general"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Ver todos los cursos</span>
             </button>
           )}
-          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm">
+          <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             <span>Acceso Seguro</span>
           </div>
@@ -254,20 +254,20 @@ export default function TutorPortal() {
         
         {/* IF CLASS SPECIFIED BUT DISABLED BY TEACHER */}
         {classInfo && classInfo.tutor_portal_enabled === false && (
-          <div className="bg-white rounded-[32px] p-8 sm:p-12 border-2 border-rose-200 shadow-xl shadow-rose-900/5 text-center max-w-2xl mx-auto space-y-5 animate-in fade-in duration-300">
-            <div className="w-16 h-16 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+          <div className="apple-card rounded-3xl p-8 sm:p-12 border-2 border-rose-200 shadow-xl shadow-rose-900/5 text-center max-w-2xl mx-auto space-y-5 animate-in fade-in duration-300">
+            <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
               <Lock className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-rose-800 bg-rose-100 px-3 py-1 rounded-full border border-rose-300">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-rose-800 bg-rose-100 px-3 py-1 rounded-full border border-rose-300">
                 <ShieldAlert className="w-3.5 h-3.5" />
                 Acceso Pausado
               </span>
-              <h2 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-slate-900 tracking-tight">
+              <h2 className="font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight">
                 Consultas Temporalmente Deshabilitadas
               </h2>
-              <p className="text-slate-600 font-semibold text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+              <p className="text-slate-600 font-medium text-sm sm:text-base max-w-md mx-auto leading-relaxed">
                 El docente de <strong>{classInfo.name}</strong> ({classInfo.teacher_name}) ha deshabilitado o pausado temporalmente las consultas del boletín escolar para este curso.
               </p>
             </div>
@@ -279,7 +279,7 @@ export default function TutorPortal() {
             <Button
               onClick={handleClearClass}
               variant="outline"
-              className="rounded-2xl font-bold text-xs uppercase tracking-wider px-6 h-11 border-slate-300 hover:bg-slate-50"
+              className="rounded-2xl font-semibold text-xs px-6 h-11 border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
             >
               Realizar Consulta General sin Curso
             </Button>
@@ -288,33 +288,33 @@ export default function TutorPortal() {
 
         {/* SEARCH BOX (Visible when not disabled) */}
         {(!classInfo || classInfo.tutor_portal_enabled !== false) && (
-          <div className="bg-white rounded-[32px] p-6 sm:p-10 border border-slate-200/80 shadow-xl shadow-slate-900/5 no-print">
+          <div className="apple-card rounded-3xl p-6 sm:p-10 shadow-sm border border-slate-200/80 no-print">
             <div className="max-w-2xl mx-auto text-center space-y-4">
               
               {/* Class Banner if entering via a specific class link */}
               {classInfo ? (
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-black uppercase tracking-wider animate-in fade-in">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/70 text-blue-800 text-xs font-semibold animate-in fade-in">
                   <BookOpen className="w-4 h-4 text-blue-600" />
                   <span>{classInfo.name}</span>
-                  <span className="text-blue-400 font-normal">• Prof. {classInfo.teacher_name}</span>
+                  <span className="text-blue-500 font-normal">• Prof. {classInfo.teacher_name}</span>
                 </div>
               ) : (
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-blue-700 text-xs font-semibold">
                   <Sparkles className="w-3.5 h-3.5" /> Portal de Consulta Parental
                 </div>
               )}
 
-              <h2 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-slate-900 tracking-tight">
+              <h2 className="font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight">
                 Boletín Escolar y Asistencia
               </h2>
-              <p className="text-slate-500 font-medium text-sm sm:text-base leading-relaxed">
+              <p className="text-slate-500 font-medium text-sm leading-relaxed">
                 Ingresá el número de <strong>DNI del estudiante</strong> (con o sin puntos) para consultar sus calificaciones
                 del 1º y 2º cuatrimestre, observaciones de clase y registro de asistencia.
               </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 pt-3">
                 <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     inputMode="numeric"
@@ -322,7 +322,7 @@ export default function TutorPortal() {
                     placeholder="Ej: 52283711 o 52.283.711..."
                     value={queryDni}
                     onChange={(e) => setQueryDni(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-10 text-base font-bold text-slate-900 outline-none focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl py-3 pl-11 pr-10 text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
                   />
                   {queryDni && (
                     <button
@@ -337,7 +337,7 @@ export default function TutorPortal() {
                 <Button
                   type="submit"
                   disabled={loading || !queryDni.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl h-13 px-8 font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all active:scale-98"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl h-12 px-7 font-semibold text-sm shadow-md shadow-blue-500/15 transition-all active:scale-[0.98]"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">
@@ -350,10 +350,10 @@ export default function TutorPortal() {
               </form>
 
               {error && (
-                <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 text-rose-800 border border-rose-200 text-sm font-semibold text-left mt-4 animate-in fade-in duration-200">
+                <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 text-rose-800 border border-rose-200 text-sm font-medium text-left mt-4 animate-in fade-in duration-200">
                   <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold">No pudimos consultar los datos</p>
+                    <p className="font-semibold">No pudimos consultar los datos</p>
                     <p className="text-rose-700/90 text-xs mt-0.5">{error}</p>
                   </div>
                 </div>
@@ -366,14 +366,14 @@ export default function TutorPortal() {
         {reportData && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Student Official Header Card */}
-            <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white rounded-[32px] p-6 sm:p-8 shadow-xl shadow-blue-500/15 flex flex-col md:flex-row md:items-center justify-between gap-6 print-card">
+            <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-blue-500/15 flex flex-col md:flex-row md:items-center justify-between gap-6 print-card border border-white/20">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-widest text-blue-200 bg-white/10 px-3 py-1 rounded-full border border-white/20">
+                  <span className="text-xs font-semibold text-blue-200 bg-white/10 px-3 py-1 rounded-full border border-white/20">
                     Estudiante Regular
                   </span>
                   {reportData.classes?.[0]?.house && (
-                    <span className="text-xs font-black uppercase tracking-wider text-amber-200 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-400/30 flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-amber-200 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-400/30 flex items-center gap-1.5">
                       <span>{reportData.classes[0].house.icon}</span>
                       <span>Casa {reportData.classes[0].house.name}</span>
                     </span>
@@ -381,10 +381,10 @@ export default function TutorPortal() {
                 </div>
 
                 <div>
-                  <h3 className="font-['Outfit'] font-black text-3xl sm:text-4xl tracking-tight text-white">
+                  <h3 className="font-bold text-3xl sm:text-4xl tracking-tight text-white leading-tight">
                     {reportData.student.full_name}
                   </h3>
-                  <p className="text-blue-100/90 font-bold text-sm sm:text-base mt-1 flex items-center gap-2">
+                  <p className="text-blue-100/90 font-medium text-sm mt-1 flex items-center gap-2">
                     <span>DNI: {reportData.student.dni}</span>
                     <span>•</span>
                     <span>Ciclo Lectivo Oficial</span>
@@ -397,7 +397,7 @@ export default function TutorPortal() {
                     {reportData.classes.map((cls, idx) => (
                       <span
                         key={idx}
-                        className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1 rounded-xl text-xs font-semibold text-blue-100 border border-white/15"
+                        className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1 rounded-xl text-xs font-medium text-blue-100 border border-white/15"
                       >
                         <BookOpen className="w-3.5 h-3.5 text-blue-200" />
                         <span>{cls.class_name}</span>
@@ -413,15 +413,15 @@ export default function TutorPortal() {
               {/* Action and Overall Average Badge */}
               <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-3 shrink-0">
                 <div className="bg-white/15 backdrop-blur-md border border-white/20 p-5 rounded-2xl text-center min-w-[160px]">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-200 block">
+                  <span className="text-xs font-semibold text-blue-200 block">
                     Promedio General
                   </span>
-                  <div className="font-['Outfit'] font-black text-4xl mt-1 flex items-baseline justify-center gap-1">
+                  <div className="font-bold text-4xl mt-1 flex items-baseline justify-center gap-1">
                     <span>{reportData.overallAvg}</span>
-                    <span className="text-xl text-blue-200 font-bold">%</span>
+                    <span className="text-xl text-blue-200 font-semibold">%</span>
                   </div>
                   <span
-                    className={`inline-block text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full mt-2 ${
+                    className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2 ${
                       getAverageStatus(reportData.overallAvg).color
                     }`}
                   >
@@ -433,14 +433,14 @@ export default function TutorPortal() {
                   <Button
                     onClick={handlePrint}
                     variant="outline"
-                    className="bg-white/10 hover:bg-white/20 text-white border-white/30 rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5"
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/30 rounded-xl px-4 py-2 text-xs font-semibold flex items-center gap-1.5 active:scale-95"
                   >
                     <Printer className="w-4 h-4" /> Imprimir Boletín
                   </Button>
                   <Button
                     onClick={handleReset}
                     variant="ghost"
-                    className="text-blue-100 hover:text-white hover:bg-white/10 rounded-xl px-3 py-2 text-xs font-bold"
+                    className="text-blue-100 hover:text-white hover:bg-white/10 rounded-xl px-3 py-2 text-xs font-semibold active:scale-95"
                   >
                     Nueva Búsqueda
                   </Button>
@@ -451,29 +451,29 @@ export default function TutorPortal() {
             {/* Academic KPIs Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* 1º Cuatrimestre */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm print-card">
+              <div className="apple-card p-5 rounded-3xl print-card">
                 <div className="flex items-center justify-between text-slate-400 mb-1">
-                  <span className="text-xs font-black uppercase tracking-widest">1º Cuatrimestre</span>
+                  <span className="text-xs font-semibold text-slate-500">1º Cuatrimestre</span>
                   <TrendingUp className="w-4 h-4 text-blue-500" />
                 </div>
-                <div className="font-['Outfit'] font-black text-3xl text-blue-600 mt-1">
+                <div className="font-bold text-3xl text-blue-600 mt-1">
                   {reportData.c1Avg > 0 ? `${reportData.c1Avg}%` : "—"}
                 </div>
-                <p className="text-xs font-medium text-slate-500 mt-1">
+                <p className="text-xs font-medium text-slate-400 mt-1">
                   {reportData.c1Avg >= 60 ? "Trayectoria aprobada" : "En proceso de compensación"}
                 </p>
               </div>
 
               {/* 2º Cuatrimestre */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm print-card">
+              <div className="apple-card p-5 rounded-3xl print-card">
                 <div className="flex items-center justify-between text-slate-400 mb-1">
-                  <span className="text-xs font-black uppercase tracking-widest">2º Cuatrimestre</span>
+                  <span className="text-xs font-semibold text-slate-500">2º Cuatrimestre</span>
                   <TrendingUp className="w-4 h-4 text-purple-500" />
                 </div>
-                <div className="font-['Outfit'] font-black text-3xl text-purple-600 mt-1">
+                <div className="font-bold text-3xl text-purple-600 mt-1">
                   {reportData.c2Avg > 0 ? `${reportData.c2Avg}%` : "—"}
                 </div>
-                <p className="text-xs font-medium text-slate-500 mt-1">
+                <p className="text-xs font-medium text-slate-400 mt-1">
                   {reportData.c2Avg > 0
                     ? reportData.c2Avg >= 60
                       ? "Trayectoria aprobada"
@@ -483,31 +483,27 @@ export default function TutorPortal() {
               </div>
 
               {/* Asistencia General */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm print-card">
+              <div className="apple-card p-5 rounded-3xl print-card">
                 <div className="flex items-center justify-between text-slate-400 mb-1">
-                  <span className="text-xs font-black uppercase tracking-widest">Asistencia General</span>
+                  <span className="text-xs font-semibold text-slate-500">Asistencia General</span>
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 </div>
-                <div className="font-['Outfit'] font-black text-3xl text-emerald-600 mt-1">
+                <div className="font-bold text-3xl text-emerald-600 mt-1">
                   {reportData.attendancePct}%
                 </div>
-                <p className="text-xs font-medium text-slate-500 mt-1">
+                <p className="text-xs font-medium text-slate-400 mt-1">
                   {reportData.attendanceStats?.present || 0} de {reportData.attendanceStats?.total || 0} clases registradas
                 </p>
               </div>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3 no-print">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3 no-print">
+              <div className="apple-segmented-control">
                 <button
                   type="button"
                   onClick={() => setActiveTab("grades")}
-                  className={`px-5 py-2.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center gap-2 ${
-                    activeTab === "grades"
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                      : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                  }`}
+                  className={`apple-segmented-item flex items-center gap-2 ${activeTab === "grades" ? "active" : ""}`}
                 >
                   <Award className="w-4 h-4" />
                   <span>Calificaciones ({reportData.grades?.length || 0})</span>
@@ -516,11 +512,7 @@ export default function TutorPortal() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("attendance")}
-                  className={`px-5 py-2.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center gap-2 ${
-                    activeTab === "attendance"
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                      : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                  }`}
+                  className={`apple-segmented-item flex items-center gap-2 ${activeTab === "attendance" ? "active" : ""}`}
                 >
                   <Calendar className="w-4 h-4" />
                   <span>Asistencia ({reportData.attendance?.length || 0})</span>
@@ -529,28 +521,22 @@ export default function TutorPortal() {
 
               {/* Subfilters */}
               {activeTab === "grades" && (
-                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <div className="apple-segmented-control">
                   <button
                     onClick={() => setFilterCuatrimestre(0)}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      filterCuatrimestre === 0 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                    }`}
+                    className={`apple-segmented-item ${filterCuatrimestre === 0 ? "active" : ""}`}
                   >
                     Todos
                   </button>
                   <button
                     onClick={() => setFilterCuatrimestre(1)}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      filterCuatrimestre === 1 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                    }`}
+                    className={`apple-segmented-item ${filterCuatrimestre === 1 ? "active" : ""}`}
                   >
                     1º Cuatrimestre
                   </button>
                   <button
                     onClick={() => setFilterCuatrimestre(2)}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      filterCuatrimestre === 2 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                    }`}
+                    className={`apple-segmented-item ${filterCuatrimestre === 2 ? "active" : ""}`}
                   >
                     2º Cuatrimestre
                   </button>
@@ -558,28 +544,22 @@ export default function TutorPortal() {
               )}
 
               {activeTab === "attendance" && (
-                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <div className="apple-segmented-control">
                   <button
                     onClick={() => setFilterAttStatus("all")}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      filterAttStatus === "all" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                    }`}
+                    className={`apple-segmented-item ${filterAttStatus === "all" ? "active" : ""}`}
                   >
                     Todas
                   </button>
                   <button
                     onClick={() => setFilterAttStatus("present")}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      filterAttStatus === "present" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                    }`}
+                    className={`apple-segmented-item ${filterAttStatus === "present" ? "active" : ""}`}
                   >
                     Presentes
                   </button>
                   <button
                     onClick={() => setFilterAttStatus("absent")}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      filterAttStatus === "absent" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                    }`}
+                    className={`apple-segmented-item ${filterAttStatus === "absent" ? "active" : ""}`}
                   >
                     Inasistencias
                   </button>

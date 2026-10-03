@@ -16,7 +16,7 @@ import { addXPToAllStudentPokemon } from "../../lib/pokemonStore";
 import { exportClassToCSV } from "../../lib/reportExporter";
 import { queueOfflineUpdate, setupOfflineSyncListeners, getOfflineQueue } from "../../lib/offlineSync";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
-import { generatePedagogicalFeedback } from "../../lib/pedagogicalReportEngine";
+import { generatePedagogicalFeedback, getCriteriaType, getCriteriaCleanName, getCriteriaTypeMeta } from "../../lib/pedagogicalReportEngine";
 
 const StudentReportModal = lazy(() => import("../../components/reports/StudentReportModal"));
 
@@ -47,6 +47,12 @@ export default function LiveSession() {
   const [selectedStudentForReport, setSelectedStudentForReport] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingQueueCount, setPendingQueueCount] = useState(getOfflineQueue().length);
+  const [showCriteriaModal, setShowCriteriaModal] = useState(false);
+  const [criteriaForm, setCriteriaForm] = useState({
+    name: "",
+    maxScore: "10",
+    type: "class" // class | assignment | exam
+  });
 
   const baseObsModalRef = useRef("");
   const { isListening: isListeningObs, isSupported: isSpeechSupported, toggleListening: toggleListeningObs } = useSpeechToText({
@@ -280,12 +286,41 @@ export default function LiveSession() {
     setGrades(prev => ({ ...prev, ...map }));
   };
 
-  const handleAddCriteria = async () => {
-    const name = prompt("Nombre del criterio (Ej: Participación):");
-    if (!name) return;
-    const maxScore = prompt("Puntaje máximo:", "10");
-    const { data } = await supabase.from("session_criteria").insert([{ session_id: id, name, max_score: parseFloat(maxScore) || 10 }]).select().single();
-    if (data) setCriteria([...criteria, data]);
+  const handleAddCriteria = () => {
+    setCriteriaForm({ name: "", maxScore: "10", type: "class" });
+    setShowCriteriaModal(true);
+  };
+
+  const saveNewCriteria = async () => {
+    if (!criteriaForm.name.trim()) {
+      toast("Ingresá un nombre para la evaluación o criterio.", "error");
+      return;
+    }
+    const cleanName = criteriaForm.name.trim();
+    let prefix = "";
+    if (criteriaForm.type === "exam") prefix = "[Examen] ";
+    else if (criteriaForm.type === "assignment") prefix = "[TP] ";
+
+    const finalName = `${prefix}${cleanName}`;
+    const maxScore = parseFloat(criteriaForm.maxScore) || 10;
+
+    const { data, error } = await supabase
+      .from("session_criteria")
+      .insert([{ session_id: id, name: finalName, max_score: maxScore }])
+      .select()
+      .single();
+
+    if (error) {
+      toast("Error al crear el criterio: " + error.message, "error");
+      return;
+    }
+
+    if (data) {
+      setCriteria([...criteria, data]);
+      setCriteriaForm({ name: "", maxScore: "10", type: "class" });
+      setShowCriteriaModal(false);
+      toast("Evaluación creada exitosamente.", "success");
+    }
   };
 
   const handleDeleteCriteria = async (criteriaId) => {
@@ -588,86 +623,100 @@ export default function LiveSession() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
           <Link to={`/class/${session.class_id}`}>
-            <button className="p-3 rounded-2xl transition-all hover:scale-105 bg-white border border-slate-200 shadow-sm">
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            <button
+              type="button"
+              className="w-11 h-11 rounded-2xl transition-all active:scale-95 bg-white/90 backdrop-blur-xl border border-slate-200/80 hover:bg-slate-100 flex items-center justify-center shadow-2xs cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-700" />
             </button>
           </Link>
           <div>
-            <h1 className="text-2xl md:text-3xl font-['Outfit'] font-black text-slate-900 tracking-tight">Evaluación en Vivo</h1>
-            <p className="font-['DM_Sans'] font-bold text-xs mt-1 flex items-center gap-2 flex-wrap text-slate-500">
+            <h1 className="text-2xl md:text-3xl font-['Outfit'] font-black text-slate-900 tracking-[-0.025em] leading-tight">
+              Evaluación en Vivo
+            </h1>
+            <p className="font-medium text-xs mt-0.5 flex items-center gap-2 flex-wrap text-slate-600">
               <span>{className} · {format(new Date(session.date + "T12:00:00"), "d 'de' MMMM", { locale: es })}</span>
-              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-lg border ${
+              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border ${
                 (session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1)) === 2 
-                  ? "bg-purple-50 text-purple-700 border-purple-200" 
-                  : "bg-blue-50 text-blue-700 border-blue-200"
+                  ? "bg-purple-50 text-purple-800 border-purple-200" 
+                  : "bg-blue-50 text-blue-800 border-blue-200"
               }`}>
                 {(session.cuatrimestre || (new Date(session.date).getMonth() >= 6 ? 2 : 1))}º Cuatrimestre
               </span>
-              <button onClick={() => { const newDate = prompt("Nueva fecha (YYYY-MM-DD):", session.date); if (newDate && newDate !== session.date) supabase.from("sessions").update({ date: newDate }).eq("id", id).then(() => setSession(prev => ({...prev, date: newDate}))); }} className="p-1 rounded-lg transition-all hover:scale-110 bg-slate-100 border border-slate-200">
-                <Pencil className="w-3 h-3 text-slate-500" />
+              <button
+                type="button"
+                onClick={() => {
+                  const newDate = prompt("Nueva fecha (YYYY-MM-DD):", session.date);
+                  if (newDate && newDate !== session.date) {
+                    supabase.from("sessions").update({ date: newDate }).eq("id", id).then(() => setSession(prev => ({...prev, date: newDate})));
+                  }
+                }}
+                className="p-1 rounded-lg transition-all active:scale-95 bg-slate-100 border border-slate-200/80 text-slate-600 cursor-pointer"
+              >
+                <Pencil className="w-3 h-3" />
               </button>
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative w-full sm:w-64">
             <input 
               type="text" 
               placeholder="Buscar alumno..." 
               value={searchTerm} 
               onChange={(e) => { setSearchTerm(e.target.value); setFocusIndex(0); }}
-              className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm"
+              className="w-full bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-2xl pl-10 pr-4 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-2xs"
             />
             <Users className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           </div>
 
-          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="apple-segmented-control">
             {[
               { mode: "table", icon: LayoutGrid, label: "Lista" },
               { mode: "cards", icon: Users, label: "Tarjetas" }
             ].map(({ mode, icon: Icon, label }) => (
               <button 
                 key={mode} 
+                type="button"
                 onClick={() => setViewMode(mode)}
-                className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-wider ${
-                  viewMode === mode 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
-                    : 'text-slate-500 hover:text-slate-800'
+                className={`apple-segmented-item ${
+                  viewMode === mode ? 'active' : ''
                 }`}
               >
-                <Icon className="w-4 h-4" /> {label}
+                <Icon className="w-3.5 h-3.5" />
+                <span>{label}</span>
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-[32px] border border-slate-200/80 shadow-2xl shadow-slate-900/5 overflow-hidden">
+      <div className="bg-white/90 backdrop-blur-2xl rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
         {/* Executive Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 sm:p-8 gap-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 sm:p-7 gap-4 border-b border-slate-100 bg-slate-50/50">
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="font-['Outfit'] font-black text-2xl text-slate-900 tracking-tight">Planilla de Evaluaciones</h2>
+              <h2 className="font-['Outfit'] font-black text-xl text-slate-900 tracking-tight">Planilla de Evaluaciones</h2>
               {/* Online / Offline Status Badge */}
-              <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 border ${
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 border ${
                 isOnline 
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                  : "bg-amber-50 text-amber-800 border-amber-200 animate-pulse"
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
+                  : "bg-amber-50 text-amber-900 border-amber-200 animate-pulse"
               }`}>
                 {isOnline ? <Wifi className="w-3 h-3 text-emerald-500" /> : <WifiOff className="w-3 h-3 text-amber-500" />}
                 {isOnline ? "En línea" : `Sin conexión (${pendingQueueCount} pend.)`}
               </span>
             </div>
-            <p className="font-['DM_Sans'] font-bold text-xs mt-1 uppercase tracking-widest text-slate-400">
-              Atajo: Presioná [Enter] o [Tab] para navegar entre alumnos
+            <p className="text-xs text-slate-500 mt-0.5">
+              Navegá rápidamente entre celdas con [Enter] o [Tab]
             </p>
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => exportClassToCSV(className || "Clase", students, criteria, grades, attendance, "all", observations)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl h-12 px-5 font-black flex items-center gap-2 text-xs uppercase tracking-wider transition-all border border-slate-200"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl h-11 px-4 font-bold flex items-center gap-2 text-xs transition-all border border-slate-200/80 active:scale-95 cursor-pointer shadow-2xs"
             >
               <Download className="w-4 h-4 text-emerald-600" /> Excel / CSV
             </Button>
@@ -788,20 +837,33 @@ export default function LiveSession() {
                     <th onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")} className="text-left px-6 py-5 font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 cursor-pointer hover:text-blue-600 transition-colors w-72">
                       Alumno & Asistencia
                     </th>
-                    {criteria.map(c => (
-                      <th key={c.id} className="px-4 py-5 text-center font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 relative group border-l border-slate-200 min-w-[130px]">
-                        <div className="truncate font-black text-sm">{c.name}</div>
-                        <div className="text-[10px] font-black text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md inline-block mt-1">
-                          MAX: {c.max_score}
-                        </div>
-                        <button onClick={() => handleFillMaxGrades(c)} title="Llenar nota máxima" className="absolute top-2 left-2 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-md">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => handleDeleteCriteria(c.id)} title="Eliminar criterio" className="absolute top-2 right-2 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all bg-rose-500 hover:bg-rose-600 text-white shadow-md">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </th>
-                    ))}
+                    {criteria.map(c => {
+                      const type = getCriteriaType(c.name);
+                      const typeMeta = getCriteriaTypeMeta(type);
+                      const cleanName = getCriteriaCleanName(c.name);
+                      return (
+                        <th key={c.id} className="px-4 py-4 text-center font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 relative group border-l border-slate-200 min-w-[145px]">
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md border flex items-center gap-1 shadow-2xs ${typeMeta.badgeClass}`}>
+                              <span>{typeMeta.icon}</span>
+                              <span>{typeMeta.shortLabel}</span>
+                            </span>
+                            <div className="truncate font-black text-sm text-slate-900 max-w-[140px]" title={c.name}>
+                              {cleanName}
+                            </div>
+                            <div className="text-[10px] font-bold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md inline-block">
+                              Máx: {c.max_score}
+                            </div>
+                          </div>
+                          <button onClick={() => handleFillMaxGrades(c)} title="Llenar nota máxima" className="absolute top-2 left-2 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-md cursor-pointer">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDeleteCriteria(c.id)} title="Eliminar criterio" className="absolute top-2 right-2 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all bg-rose-500 hover:bg-rose-600 text-white shadow-md cursor-pointer">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </th>
+                      );
+                    })}
                     <th className="hidden sm:table-cell px-4 py-5 text-center font-['Outfit'] font-black text-xs uppercase tracking-widest text-slate-800 border-l border-slate-200 w-32">
                       Tendencia
                     </th>
@@ -1239,6 +1301,115 @@ export default function LiveSession() {
             onClose={() => setSelectedStudentForReport(null)}
           />
         </Suspense>
+      )}
+
+      {/* Modal para Agregar Criterio con Categoría */}
+      {showCriteriaModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowCriteriaModal(false)}>
+          <div className="bg-white border border-slate-200/90 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-['Outfit'] font-black text-slate-900 tracking-tight">Nueva Calificación / Criterio</h3>
+                <p className="text-xs font-medium text-slate-600 mt-1">Elegí el tipo de evaluación y definí su nombre y puntaje.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCriteriaModal(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-2">
+                  Tipo de Evaluación
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "class", label: "Clase Normal", icon: "📝", desc: "Seguimiento diario" },
+                    { id: "assignment", label: "Trabajo Práctico", icon: "📄", desc: "TP / Entrega" },
+                    { id: "exam", label: "Examen", icon: "🎯", desc: "Parcial / Prueba" }
+                  ].map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setCriteriaForm(prev => ({ ...prev, type: t.id }))}
+                      className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1 cursor-pointer ${
+                        criteriaForm.type === t.id
+                          ? t.id === "exam"
+                            ? "bg-purple-50 border-purple-400 text-purple-900 ring-2 ring-purple-500/20 font-bold"
+                            : t.id === "assignment"
+                            ? "bg-blue-50 border-blue-400 text-blue-900 ring-2 ring-blue-500/20 font-bold"
+                            : "bg-slate-100 border-slate-400 text-slate-900 ring-2 ring-slate-500/20 font-bold"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-xl">{t.icon}</span>
+                      <span className="text-xs font-black">{t.label}</span>
+                      <span className="text-[10px] text-slate-500 font-medium leading-none">{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                  Nombre de la Evaluación
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder={
+                    criteriaForm.type === "exam"
+                      ? "Ej: Primer Parcial de Funciones"
+                      : criteriaForm.type === "assignment"
+                      ? "Ej: TP 1 - Guía de Ejercicios"
+                      : "Ej: Participación en Clase / Tarea"
+                  }
+                  value={criteriaForm.name}
+                  onChange={(e) => setCriteriaForm(prev => ({ ...prev, name: e.target.value }))}
+                  onKeyDown={(e) => e.key === "Enter" && saveNewCriteria()}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                  Puntaje Máximo
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={criteriaForm.maxScore}
+                  onChange={(e) => setCriteriaForm(prev => ({ ...prev, maxScore: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowCriteriaModal(false)}
+                  className="flex-1 h-11 rounded-2xl font-bold text-xs text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={saveNewCriteria}
+                  disabled={!criteriaForm.name.trim()}
+                  className="flex-1 h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer"
+                >
+                  Crear Criterio
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`

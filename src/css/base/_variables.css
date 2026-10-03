@@ -74,17 +74,25 @@
   --primitive-shadow-glow-lg: 0 0 40px var(--color-primary);
 }
 
-/* Transitions */
+/* Transitions & Apple Springs */
 :root {
   --primitive-transition-fast: 150ms ease;
   --primitive-transition-normal: 300ms ease;
   --primitive-transition-slow: 500ms ease;
+
+  /* Apple WWDC Fluid Spring Physics */
+  --apple-spring: cubic-bezier(0.25, 1, 0.5, 1);
+  --apple-spring-snappy: cubic-bezier(0.16, 1, 0.3, 1);
+  --apple-spring-bouncy: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --apple-duration: 350ms;
 }
 
-/* Typography */
+/* Typography & Optical Tracking */
 :root {
-  --primitive-font-heading: 'Outfit', sans-serif;
-  --primitive-font-body: 'DM Sans', sans-serif;
+  --primitive-font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --primitive-font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --apple-tracking-title: -0.025em;
+  --apple-tracking-body: -0.005em;
   --primitive-font-size-xs: 0.75rem;
   --primitive-font-size-sm: 0.875rem;
   --primitive-font-size-base: 1rem;

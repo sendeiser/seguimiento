@@ -9,7 +9,12 @@ import {
   ArrowLeft, Mic, MicOff, Sparkles
 } from "lucide-react";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
-import { generatePedagogicalFeedback } from "../../lib/pedagogicalReportEngine";
+import { 
+  generatePedagogicalFeedback,
+  getCriteriaType,
+  getCriteriaCleanName,
+  getCriteriaTypeMeta
+} from "../../lib/pedagogicalReportEngine";
 
 export default function StudentReportModal({ 
   student, 
@@ -291,7 +296,16 @@ export default function StudentReportModal({
                 <tbody className="divide-y divide-slate-100">
                   {criteriaScores.map(c => (
                     <tr key={c.id} className="hover:bg-slate-50/50">
-                      <td className="px-5 py-4 font-bold text-slate-800">{c.name}</td>
+                      <td className="px-5 py-4 font-bold text-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${getCriteriaTypeMeta(getCriteriaType(c.name)).badgeClass}`}>
+                            {getCriteriaTypeMeta(getCriteriaType(c.name)).icon} {getCriteriaTypeMeta(getCriteriaType(c.name)).shortLabel}
+                          </span>
+                          <span className="font-['Outfit'] font-extrabold text-slate-900 text-sm">
+                            {getCriteriaCleanName(c.name) || c.name}
+                          </span>
+                        </div>
+                      </td>
                       <td className="px-4 py-4 text-center font-black text-base text-slate-900">
                         {c.score !== null ? c.score : "—"}
                       </td>
